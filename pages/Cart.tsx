@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { useNavigate } from 'react-router-dom';
-import { Trash2, Calendar, Clock, CreditCard, Upload } from 'lucide-react';
+import { Trash2, Calendar, Clock } from 'lucide-react';
 import { DeliveryMethod, PaymentMethod } from '../types';
 
 const Cart: React.FC = () => {
