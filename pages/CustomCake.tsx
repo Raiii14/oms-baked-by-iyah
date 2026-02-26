@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Upload, Calendar, Send } from 'lucide-react';
+import { Modal } from '../components/Modal';
+import { useNavigate } from 'react-router-dom';
 
 const CustomCake: React.FC = () => {
   const { submitCustomInquiry, user } = useStore();
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: user?.name || '',
     size: '6 inch',
@@ -11,10 +14,20 @@ const CustomCake: React.FC = () => {
     notes: '',
     image: null as File | null
   });
+  const [showLoginWarning, setShowLoginWarning] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!user) {
+      setShowLoginWarning(true);
+      return;
+    }
+
     submitCustomInquiry(formData);
+    setShowSuccessModal(true);
+    
     // Reset form
     setFormData({
       name: user?.name || '',
@@ -31,8 +44,53 @@ const CustomCake: React.FC = () => {
     }
   };
 
+  // Calculate minimum date (tomorrow)
+  const getMinDate = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    // Format to YYYY-MM-DD using local time to avoid UTC issues
+    const year = tomorrow.getFullYear();
+    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+    const day = String(tomorrow.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   return (
     <div className="max-w-2xl mx-auto">
+      <Modal
+        isOpen={showLoginWarning}
+        onClose={() => setShowLoginWarning(false)}
+        type="warning"
+        title="Login Required"
+        message="You need to be logged in to submit a custom cake inquiry. Please log in or create an account to continue."
+        primaryAction={{
+          label: 'Log In',
+          onClick: () => navigate('/login')
+        }}
+        secondaryAction={{
+          label: 'Cancel',
+          onClick: () => setShowLoginWarning(false)
+        }}
+      />
+
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={() => {
+          setShowSuccessModal(false);
+          navigate('/');
+        }}
+        type="success"
+        title="Inquiry Sent!"
+        message="Your custom cake inquiry has been sent successfully. We will review your request and send you a price quote shortly."
+        primaryAction={{
+          label: 'Back to Home',
+          onClick: () => {
+            setShowSuccessModal(false);
+            navigate('/');
+          }
+        }}
+      />
+
       <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-8">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-stone-800">Custom Cake Inquiry</h2>
@@ -80,9 +138,11 @@ const CustomCake: React.FC = () => {
                   required
                   value={formData.date}
                   onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  min={getMinDate()}
                   className="w-full pl-10 pr-4 py-2 border border-stone-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 outline-none"
                 />
               </div>
+              <p className="text-xs text-stone-400 mt-1">Orders must be placed at least 1 day in advance.</p>
             </div>
           </div>
 

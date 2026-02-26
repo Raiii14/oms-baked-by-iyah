@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, Product, Order, Ingredient, CartItem, UserRole, OrderStatus, PaymentMethod, DeliveryMethod } from '../types';
 import { INITIAL_PRODUCTS, INITIAL_INGREDIENTS, MOCK_ADMIN } from '../constants';
+
+interface Notification {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'info';
+}
 
 interface StoreContextType {
   user: User | null;
@@ -8,10 +14,12 @@ interface StoreContextType {
   ingredients: Ingredient[];
   cart: CartItem[];
   orders: Order[];
+  notifications: Notification[];
   login: (email: string, pass: string) => boolean;
   register: (name: string, email: string, pass: string) => void;
   logout: () => void;
-  addToCart: (product: Product) => void;
+  updateUser: (updates: Partial<User>) => void;
+  addToCart: (product: Product, quantity?: number) => void;
   removeFromCart: (productId: string) => void;
   updateCartQuantity: (productId: string, quantity: number) => void;
   placeOrder: (details: {
@@ -24,6 +32,8 @@ interface StoreContextType {
   submitCustomInquiry: (details: any) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
   updateInventory: (id: string, type: 'product' | 'ingredient', quantity: number) => void;
+  addNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
+  removeNotification: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -35,10 +45,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved ? JSON.parse(saved) : null;
   });
 
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+
+  const addNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Date.now().toString();
+    setNotifications(prev => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== id));
+    }, 3000);
+  }, []);
+
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  }, []);
+
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('bbi_products');
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
   });
+
 
   const [ingredients, setIngredients] = useState<Ingredient[]>(() => {
     const saved = localStorage.getItem('bbi_ingredients');
@@ -63,6 +88,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => localStorage.setItem('bbi_orders', JSON.stringify(orders)), [orders]);
 
   // Auth Logic
+  // Simple hash function for demonstration (NOT for production use)
+  const hashPassword = (str: string) => {
+    let hash = 0;
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return hash.toString();
+  };
+
   const login = (email: string, pass: string) => {
     if (email === MOCK_ADMIN.email && pass === MOCK_ADMIN.password) {
       setUser(MOCK_ADMIN);
@@ -70,7 +106,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     // Mock user login - normally would check DB
     const storedUsers = JSON.parse(localStorage.getItem('bbi_users_db') || '[]');
-    const foundUser = storedUsers.find((u: User) => u.email === email && u.password === pass);
+    const hashedPassword = hashPassword(pass);
+    
+    // Check both hashed (new) and plain (old) for backward compatibility during dev
+    const foundUser = storedUsers.find((u: User) => 
+      u.email === email && (u.password === hashedPassword || u.password === pass)
+    );
+    
     if (foundUser) {
       setUser(foundUser);
       return true;
@@ -83,7 +125,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: Date.now().toString(),
       name,
       email,
-      password: pass,
+      password: hashPassword(pass), // Store hashed password
       role: UserRole.CUSTOMER
     };
     const storedUsers = JSON.parse(localStorage.getItem('bbi_users_db') || '[]');
@@ -96,19 +138,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart([]);
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...updates };
+    
+    // Update local state
+    setUser(updatedUser);
+    
+    // Update "DB"
+    const storedUsers = JSON.parse(localStorage.getItem('bbi_users_db') || '[]');
+    const updatedUsers = storedUsers.map((u: User) => u.id === user.id ? updatedUser : u);
+    localStorage.setItem('bbi_users_db', JSON.stringify(updatedUsers));
+  };
+
   // Cart Logic
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quantity: number = 1) => {
     if (product.stock <= 0) return;
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
+        const newQuantity = Math.min(existing.quantity + quantity, product.stock);
         return prev.map(item => item.id === product.id 
-          ? { ...item, quantity: Math.min(item.quantity + 1, product.stock) } 
+          ? { ...item, quantity: newQuantity } 
           : item
         );
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity: Math.min(quantity, product.stock) }];
     });
+    addNotification(`${product.name} added to cart!`);
   };
 
   const removeFromCart = (productId: string) => {
@@ -212,10 +269,11 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      user, products, ingredients, cart, orders,
-      login, register, logout,
+      user, products, ingredients, cart, orders, notifications,
+      login, register, logout, updateUser,
       addToCart, removeFromCart, updateCartQuantity,
-      placeOrder, submitCustomInquiry, updateOrderStatus, updateInventory
+      placeOrder, submitCustomInquiry, updateOrderStatus, updateInventory,
+      addNotification, removeNotification
     }}>
       {children}
     </StoreContext.Provider>

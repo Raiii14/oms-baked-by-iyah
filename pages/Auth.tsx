@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
+import { Modal } from '../components/Modal';
 
 interface AuthProps {
   mode: 'login' | 'register';
@@ -14,27 +15,72 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
+    // Basic sanitization (trimming)
+    const cleanEmail = email.trim();
+    const cleanName = name.trim();
+    const cleanPassword = password; // Passwords shouldn't be trimmed usually, but for safety in this context
+
+    // Email Validation Regex
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+
+    if (!emailRegex.test(cleanEmail)) {
+      setError('Please enter a valid email address (e.g., user@example.com)');
+      return;
+    }
+
+    // Injection prevention: Check for dangerous characters in text fields (basic check)
+    // React escapes by default, but we can explicitly disallow certain patterns if requested
+    const dangerousPattern = /['"<>;]/;
+    if (dangerousPattern.test(cleanEmail) || (mode === 'register' && dangerousPattern.test(cleanName))) {
+       setError('Invalid characters detected. Please avoid using quotes or special symbols.');
+       return;
+    }
+
     if (mode === 'login') {
-      const success = login(email, password);
+      const success = login(cleanEmail, cleanPassword);
       if (success) {
-        navigate(email.includes('admin') ? '/admin' : '/');
+        setShowSuccessModal(true);
       } else {
         setError('Invalid credentials');
       }
     } else {
-      if (!name) { setError('Name is required'); return; }
-      register(name, email, password);
+      if (!cleanName) { setError('Name is required'); return; }
+      if (cleanName.length > 25) { setError('Name must be 25 characters or less'); return; }
+      
+      register(cleanName, cleanEmail, cleanPassword);
+      setShowSuccessModal(true);
+    }
+  };
+
+  const handleModalClose = () => {
+    setShowSuccessModal(false);
+    if (mode === 'login') {
+      navigate(email.includes('admin') ? '/admin' : '/');
+    } else {
       navigate('/');
     }
   };
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Modal
+        isOpen={showSuccessModal}
+        onClose={handleModalClose}
+        type="success"
+        title={mode === 'login' ? 'Login Successful' : 'Registration Successful'}
+        message={mode === 'login' ? 'Welcome back! You have successfully logged in.' : 'Your account has been created successfully. Welcome to Baked by Iyah!'}
+        primaryAction={{
+          label: 'Continue',
+          onClick: handleModalClose
+        }}
+      />
+
       <div className="max-w-md w-full space-y-8 bg-white p-10 rounded-2xl shadow-xl border border-stone-100">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-stone-900">
@@ -54,8 +100,9 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
                   name="name"
                   type="text"
                   required
+                  maxLength={25}
                   className="appearance-none rounded-none relative block w-full px-3 py-3 border border-stone-300 placeholder-stone-500 text-stone-900 rounded-t-md focus:outline-none focus:ring-rose-500 focus:border-rose-500 focus:z-10 sm:text-sm"
-                  placeholder="Full Name"
+                  placeholder="Full Name (Max 25 chars)"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
@@ -66,7 +113,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
               <input
                 id="email-address"
                 name="email"
-                type="email"
+                type="text" // Changed from email to text to allow manual validation override for demo if needed, but keeping regex check
                 autoComplete="email"
                 required
                 className={`appearance-none rounded-none relative block w-full px-3 py-3 border border-stone-300 placeholder-stone-500 text-stone-900 ${mode === 'login' ? 'rounded-t-md' : ''} focus:outline-none focus:ring-rose-500 focus:border-rose-500 focus:z-10 sm:text-sm`}
@@ -105,6 +152,15 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
               {mode === 'login' ? 'Sign in' : 'Register'}
             </button>
           </div>
+          
+          {/* Demo Credentials Helper */}
+          {mode === 'login' && (
+            <div className="bg-stone-50 p-3 rounded-md border border-stone-200 text-xs text-stone-500 text-center">
+              <p className="font-semibold text-stone-700">Demo Admin Credentials:</p>
+              <p>Email: <span className="font-mono">admin@bakedbyiyah.com</span></p>
+              <p>Password: <span className="font-mono">admin123</span></p>
+            </div>
+          )}
 
           {/* Google Mock */}
           <div>

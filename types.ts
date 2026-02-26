@@ -9,6 +9,7 @@ export interface User {
   name: string;
   role: UserRole;
   password?: string; // In a real app, never store plain text
+  lastNameUpdate?: number; // Timestamp of last name update
 }
 
 export enum ProductCategory {

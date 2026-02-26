@@ -3,6 +3,88 @@ import { useStore } from '../context/StoreContext';
 import { ProductCategory } from '../types';
 import { Search, Plus } from 'lucide-react';
 
+const ProductCard: React.FC<{ product: any, addToCart: any }> = ({ product, addToCart }) => {
+  const [quantity, setQuantity] = useState(1);
+
+  const handleQuantityChange = (val: number) => {
+    if (val >= 1 && val <= product.stock) {
+      setQuantity(val);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden flex flex-col hover:shadow-md transition-all duration-300">
+      <div className="relative h-64 overflow-hidden">
+        <img 
+          src={product.image} 
+          alt={product.name} 
+          className={`w-full h-full object-cover transition-transform duration-500 hover:scale-110 ${product.stock === 0 ? 'grayscale' : ''}`}
+        />
+        {product.stock === 0 && (
+          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+            <span className="bg-red-500 text-white px-4 py-1 rounded-full font-bold transform -rotate-12 border-2 border-white">SOLD OUT</span>
+          </div>
+        )}
+      </div>
+      <div className="p-6 flex flex-col flex-grow">
+        <div className="flex justify-between items-start mb-2">
+          <span className="text-xs font-semibold text-rose-500 uppercase tracking-wider bg-rose-50 px-2 py-1 rounded">
+            {product.category}
+          </span>
+          <span className="font-bold text-lg text-stone-900">₱{product.price}</span>
+        </div>
+        <h3 className="text-xl font-bold text-stone-800 mb-2">{product.name}</h3>
+        <p className="text-stone-500 text-sm mb-4 flex-grow">{product.description}</p>
+        
+        <div className="mt-auto space-y-3">
+          <span className={`text-sm ${product.stock > 5 ? 'text-green-600' : 'text-amber-600'}`}>
+            {product.stock > 0 ? `${product.stock} items left` : 'Out of Stock'}
+          </span>
+          
+          <div className="flex items-center justify-between gap-2">
+            {product.stock > 0 && (
+              <div className="flex items-center border border-stone-200 rounded-lg">
+                <button 
+                  onClick={() => handleQuantityChange(quantity - 1)}
+                  className="px-3 py-2 text-stone-600 hover:bg-stone-100"
+                >
+                  -
+                </button>
+                <input 
+                  type="number" 
+                  value={quantity}
+                  onChange={(e) => handleQuantityChange(parseInt(e.target.value) || 1)}
+                  className="w-12 text-center border-none focus:ring-0 p-0 text-sm"
+                  min="1"
+                  max={product.stock}
+                />
+                <button 
+                  onClick={() => handleQuantityChange(quantity + 1)}
+                  className="px-3 py-2 text-stone-600 hover:bg-stone-100"
+                >
+                  +
+                </button>
+              </div>
+            )}
+
+            <button
+              onClick={() => addToCart(product, quantity)}
+              disabled={product.stock === 0}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                product.stock > 0 
+                  ? 'bg-stone-900 text-white hover:bg-stone-700' 
+                  : 'bg-stone-200 text-stone-400 cursor-not-allowed'
+              }`}
+            >
+              <Plus className="w-4 h-4" /> Add
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const Menu: React.FC = () => {
   const { products, addToCart } = useStore();
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -75,47 +157,7 @@ const Menu: React.FC = () => {
       {/* Product Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProducts.map((product) => (
-          <div key={product.id} className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden flex flex-col hover:shadow-md transition-all duration-300">
-            <div className="relative h-64 overflow-hidden">
-               <img 
-                src={product.image} 
-                alt={product.name} 
-                className={`w-full h-full object-cover transition-transform duration-500 hover:scale-110 ${product.stock === 0 ? 'grayscale' : ''}`}
-              />
-              {product.stock === 0 && (
-                <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-                  <span className="bg-red-500 text-white px-4 py-1 rounded-full font-bold transform -rotate-12 border-2 border-white">SOLD OUT</span>
-                </div>
-              )}
-            </div>
-            <div className="p-6 flex flex-col flex-grow">
-              <div className="flex justify-between items-start mb-2">
-                <span className="text-xs font-semibold text-rose-500 uppercase tracking-wider bg-rose-50 px-2 py-1 rounded">
-                  {product.category}
-                </span>
-                <span className="font-bold text-lg text-stone-900">₱{product.price}</span>
-              </div>
-              <h3 className="text-xl font-bold text-stone-800 mb-2">{product.name}</h3>
-              <p className="text-stone-500 text-sm mb-4 flex-grow">{product.description}</p>
-              
-              <div className="flex items-center justify-between mt-auto">
-                <span className={`text-sm ${product.stock > 5 ? 'text-green-600' : 'text-amber-600'}`}>
-                  {product.stock > 0 ? `${product.stock} items left` : 'Out of Stock'}
-                </span>
-                <button
-                  onClick={() => addToCart(product)}
-                  disabled={product.stock === 0}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                    product.stock > 0 
-                      ? 'bg-stone-900 text-white hover:bg-stone-700' 
-                      : 'bg-stone-200 text-stone-400 cursor-not-allowed'
-                  }`}
-                >
-                  <Plus className="w-4 h-4" /> Add to Cart
-                </button>
-              </div>
-            </div>
-          </div>
+          <ProductCard key={product.id} product={product} addToCart={addToCart} />
         ))}
 
         {filteredProducts.length === 0 && (

@@ -6,8 +6,10 @@ import Home from './pages/Home';
 import Menu from './pages/Menu';
 import CustomCake from './pages/CustomCake';
 import Cart from './pages/Cart';
+import Checkout from './pages/Checkout';
 import AdminDashboard from './pages/AdminDashboard';
 import Auth from './pages/Auth';
+import Profile from './pages/Profile';
 import { useStore } from './context/StoreContext';
 import { UserRole } from './types';
 
@@ -27,8 +29,10 @@ const AppRoutes = () => (
       <Route path="/menu" element={<Menu />} />
       <Route path="/custom-cake" element={<CustomCake />} />
       <Route path="/cart" element={<Cart />} />
+      <Route path="/checkout" element={<Checkout />} />
       <Route path="/login" element={<Auth mode="login" />} />
       <Route path="/register" element={<Auth mode="register" />} />
+      <Route path="/profile" element={<Profile />} />
       <Route 
         path="/admin" 
         element={
@@ -43,7 +47,7 @@ const AppRoutes = () => (
 
 const App: React.FC = () => {
   return (
-    <Router>
+    <Router future={{ v7_relativeSplatPath: true }}>
       <StoreProvider>
         <AppRoutes />
       </StoreProvider>

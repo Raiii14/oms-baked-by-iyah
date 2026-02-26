@@ -26,20 +26,38 @@ const Home: React.FC = () => {
             Homemade cakes, cookies, and pastries baked with passion. 
             Try our famous Brookies today!
           </p>
-          <div className="mt-10 max-w-sm mx-auto sm:max-w-none sm:flex sm:justify-center gap-4">
+          <div className="mt-10 max-w-sm mx-auto sm:max-w-none flex justify-center">
             <Link
               to="/menu"
-              className="flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-rose-500 hover:bg-rose-600 md:py-4 md:text-lg transition-transform hover:scale-105"
+              className="flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-full text-white bg-rose-500 hover:bg-rose-600 md:py-4 md:text-lg transition-transform hover:scale-105 shadow-lg"
             >
               Order Now
             </Link>
-            <Link
-              to="/custom-cake"
-              className="flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-full text-rose-700 bg-rose-100 hover:bg-rose-200 md:py-4 md:text-lg"
-            >
-              Custom Cakes
-            </Link>
           </div>
+        </div>
+      </div>
+
+      {/* Custom Cake Section */}
+      <div className="bg-rose-50 rounded-2xl p-8 md:p-12 shadow-sm border border-rose-100 flex flex-col md:flex-row items-center gap-8">
+        <div className="flex-1 text-center md:text-left">
+          <h2 className="text-3xl font-bold text-stone-800 mb-4">Want a Customized Cake?</h2>
+          <p className="text-lg text-stone-600 mb-6">
+            Make your celebration extra special with a cake designed just for you. 
+            Choose your flavors, size, and design, and we'll bring your vision to life!
+          </p>
+          <Link
+            to="/custom-cake"
+            className="inline-flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-full text-rose-700 bg-white hover:bg-rose-50 border-rose-200 shadow-sm transition-colors"
+          >
+            Request Custom Cake
+          </Link>
+        </div>
+        <div className="flex-1">
+          <img 
+            src="https://picsum.photos/600/400?random=10" 
+            alt="Custom Cake Example" 
+            className="rounded-xl shadow-md w-full object-cover h-64 md:h-80"
+          />
         </div>
       </div>
 

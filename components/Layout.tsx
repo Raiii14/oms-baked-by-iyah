@@ -63,8 +63,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
               {user ? (
                 <div className="flex items-center space-x-4">
-                  <span className="text-sm text-stone-600">Hi, {user.name}</span>
-                  <button onClick={handleLogout} className="p-2 text-stone-500 hover:text-rose-500">
+                  <Link to="/profile" className="text-sm text-stone-600 hover:text-rose-500 font-medium">
+                    Hi, {user.name}
+                  </Link>
+                  <button onClick={handleLogout} className="p-2 text-stone-500 hover:text-rose-500" title="Logout">
                     <LogOut className="h-5 w-5" />
                   </button>
                 </div>
@@ -111,9 +113,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 Cart ({cart.length})
               </Link>
               {user ? (
-                <button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:text-rose-500 hover:bg-stone-50">
-                  Logout
-                </button>
+                <>
+                  <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:text-rose-500 hover:bg-stone-50">
+                    Profile
+                  </Link>
+                  <button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:text-rose-500 hover:bg-stone-50">
+                    Logout
+                  </button>
+                </>
               ) : (
                 <Link to="/login" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:text-rose-500 hover:bg-stone-50">
                   Login
