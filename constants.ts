@@ -36,15 +36,6 @@ export const INITIAL_PRODUCTS: Product[] = [
     category: ProductCategory.COOKIES,
     image: 'https://picsum.photos/400/400?random=4',
     stock: 0 // Sold out test
-  },
-  {
-    id: 'p5',
-    name: 'Custom Celebration Cake',
-    description: 'Base price for standard customized cakes.',
-    price: 800,
-    category: ProductCategory.CAKES,
-    image: 'https://picsum.photos/400/400?random=5',
-    stock: 10
   }
 ];
 
