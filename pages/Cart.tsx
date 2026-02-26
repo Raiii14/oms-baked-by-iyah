@@ -1,14 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { useStore } from '../context/StoreContext';
-import { useNavigate } from 'react-router-dom';
-import { Trash2, ShoppingBag, History } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Trash2, ShoppingBag, History, Cake } from 'lucide-react';
 import { Modal } from '../components/Modal';
 
 const Cart: React.FC = () => {
   const { cart, updateCartQuantity, removeFromCart, user, orders } = useStore();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<'cart' | 'history'>('cart');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<'cart' | 'history' | 'custom'>('cart');
   const [showLoginWarning, setShowLoginWarning] = useState(false);
+
+  useEffect(() => {
+    if (location.state && location.state.activeTab) {
+      setActiveTab(location.state.activeTab);
+    }
+  }, [location.state]);
 
   useEffect(() => {
     // Removed the automatic notification on mount to rely on the modal instead
@@ -49,9 +56,9 @@ const Cart: React.FC = () => {
         }}
       />
       {/* Tabs */}
-      <div className="flex border-b border-stone-200 mb-8">
+      <div className="flex border-b border-stone-200 mb-8 overflow-x-auto">
         <button
-          className={`pb-4 px-6 font-medium text-sm transition-colors relative ${
+          className={`pb-4 px-6 font-medium text-sm transition-colors relative whitespace-nowrap ${
             activeTab === 'cart' ? 'text-rose-600' : 'text-stone-500 hover:text-stone-700'
           }`}
           onClick={() => setActiveTab('cart')}
@@ -65,7 +72,7 @@ const Cart: React.FC = () => {
           )}
         </button>
         <button
-          className={`pb-4 px-6 font-medium text-sm transition-colors relative ${
+          className={`pb-4 px-6 font-medium text-sm transition-colors relative whitespace-nowrap ${
             activeTab === 'history' ? 'text-rose-600' : 'text-stone-500 hover:text-stone-700'
           }`}
           onClick={() => setActiveTab('history')}
@@ -78,9 +85,23 @@ const Cart: React.FC = () => {
             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-rose-600" />
           )}
         </button>
+        <button
+          className={`pb-4 px-6 font-medium text-sm transition-colors relative whitespace-nowrap ${
+            activeTab === 'custom' ? 'text-rose-600' : 'text-stone-500 hover:text-stone-700'
+          }`}
+          onClick={() => setActiveTab('custom')}
+        >
+          <div className="flex items-center gap-2">
+            <Cake className="w-4 h-4" />
+            Custom Cakes
+          </div>
+          {activeTab === 'custom' && (
+            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-rose-600" />
+          )}
+        </button>
       </div>
 
-      {activeTab === 'cart' ? (
+      {activeTab === 'cart' && (
         <>
           {cart.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-stone-100">
@@ -150,28 +171,35 @@ const Cart: React.FC = () => {
             </div>
           )}
         </>
-      ) : (
+      )}
+
+      {activeTab === 'history' && (
         <div className="space-y-6">
           {!user ? (
             <div className="text-center py-12">
               <p className="text-stone-500 mb-4">Please login to view your order history.</p>
               <button onClick={() => navigate('/login')} className="text-rose-600 font-medium hover:underline">Login Now</button>
             </div>
-          ) : orders.filter(o => o.userId === user.id).length === 0 ? (
+          ) : orders.filter(o => o.userId === user.id && !o.isCustomInquiry).length === 0 ? (
             <div className="text-center py-12 text-stone-500">
               No past orders found.
             </div>
           ) : (
-            orders.filter(o => o.userId === user.id).map((order) => (
+            orders.filter(o => o.userId === user.id && !o.isCustomInquiry).map((order) => (
               <div key={order.id} className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="font-bold text-stone-800">{order.id}</h3>
-                    <p className="text-sm text-stone-500">{new Date(order.createdAt).toLocaleDateString()}</p>
+                    <h3 className="font-bold text-stone-800 text-lg mb-1">Order #{order.id.split('-')[1]}</h3>
+                    <div className="text-sm text-stone-500 space-y-1">
+                      <p><span className="font-medium">Date:</span> {new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                      <p><span className="font-medium">Time:</span> {order.scheduledTime}</p>
+                      <p><span className="font-medium">Payment:</span> {order.paymentMethod}</p>
+                    </div>
                   </div>
                   <span className={`px-3 py-1 rounded-full text-xs font-medium ${
                     order.status === 'Completed' ? 'bg-green-100 text-green-700' :
                     order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                    order.status === 'Baking' ? 'bg-orange-100 text-orange-700' :
                     'bg-amber-100 text-amber-700'
                   }`}>
                     {order.status}
@@ -184,15 +212,64 @@ const Cart: React.FC = () => {
                       <span>₱{item.price * item.quantity}</span>
                     </div>
                   ))}
-                  {order.isCustomInquiry && (
-                    <div className="text-sm text-stone-600 italic">
-                      Custom Cake Inquiry: {order.customDetails?.size}
-                    </div>
-                  )}
                 </div>
                 <div className="border-t border-stone-100 pt-4 flex justify-between font-bold text-stone-900">
                   <span>Total</span>
                   <span>₱{order.totalAmount}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {activeTab === 'custom' && (
+        <div className="space-y-6">
+          {!user ? (
+            <div className="text-center py-12">
+              <p className="text-stone-500 mb-4">Please login to view your custom cake inquiries.</p>
+              <button onClick={() => navigate('/login')} className="text-rose-600 font-medium hover:underline">Login Now</button>
+            </div>
+          ) : orders.filter(o => o.userId === user.id && o.isCustomInquiry).length === 0 ? (
+            <div className="text-center py-12 text-stone-500">
+              No custom cake inquiries found.
+              <button onClick={() => navigate('/custom-cake')} className="block mx-auto mt-4 text-rose-600 font-medium hover:underline">Request a Quote</button>
+            </div>
+          ) : (
+            orders.filter(o => o.userId === user.id && o.isCustomInquiry).map((inquiry) => (
+              <div key={inquiry.id} className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="font-bold text-stone-800">Inquiry #{inquiry.id}</h3>
+                    <p className="text-sm text-stone-500">Submitted: {new Date(inquiry.createdAt).toLocaleDateString()}</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                    inquiry.status === 'Completed' ? 'bg-green-100 text-green-700' :
+                    inquiry.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
+                    'bg-stone-100 text-stone-700'
+                  }`}>
+                    {inquiry.status}
+                  </span>
+                </div>
+                
+                <div className="bg-stone-50 p-4 rounded-lg mb-4 space-y-2 text-sm">
+                    <p><span className="font-semibold">Size:</span> {inquiry.customDetails?.size}</p>
+                    <p><span className="font-semibold">Requested Date:</span> {inquiry.scheduledDate}</p>
+                    <p><span className="font-semibold">Notes:</span> {inquiry.customDetails?.notes}</p>
+                    {inquiry.customDetails?.referenceImage && (
+                        <div className="mt-2">
+                            <a href={inquiry.customDetails.referenceImage} target="_blank" rel="noreferrer" className="text-rose-600 underline text-xs">View Reference Image</a>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex justify-between items-center pt-4 border-t border-stone-100">
+                  <span className="font-medium text-stone-900">Price Quote</span>
+                  {inquiry.totalAmount > 0 ? (
+                      <span className="font-bold text-rose-600 text-lg">₱{inquiry.totalAmount}</span>
+                  ) : (
+                      <span className="text-stone-500 italic text-sm">Pending Review</span>
+                  )}
                 </div>
               </div>
             ))

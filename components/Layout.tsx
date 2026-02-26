@@ -43,15 +43,14 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   {link.name}
                 </Link>
               ))}
-
-              {user?.role === UserRole.ADMIN && (
-                <Link to="/admin" className="text-amber-600 font-medium hover:text-amber-700">
-                  Dashboard
-                </Link>
-              )}
             </div>
 
             <div className="hidden md:flex items-center space-x-4">
+              {user?.role === UserRole.ADMIN && (
+                <Link to="/admin" className="text-amber-600 font-medium hover:text-amber-700 mr-2">
+                  Dashboard
+                </Link>
+              )}
               <Link to="/cart" className="relative p-2 text-stone-600 hover:text-rose-500">
                 <ShoppingCart className="h-6 w-6" />
                 {cart.length > 0 && (

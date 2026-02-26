@@ -71,6 +71,7 @@ export interface Order {
   scheduledDate: string;
   scheduledTime: string;
   createdAt: string;
+  customerEmail?: string;
   isCustomInquiry?: boolean;
   customDetails?: {
     size: string;

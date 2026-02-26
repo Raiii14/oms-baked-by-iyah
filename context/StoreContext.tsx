@@ -31,6 +31,7 @@ interface StoreContextType {
   }) => void;
   submitCustomInquiry: (details: any) => void;
   updateOrderStatus: (orderId: string, status: OrderStatus) => void;
+  updateInquiryPrice: (orderId: string, price: number) => void;
   updateInventory: (id: string, type: 'product' | 'ingredient', quantity: number) => void;
   addNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeNotification: (id: string) => void;
@@ -61,7 +62,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [products, setProducts] = useState<Product[]>(() => {
     const saved = localStorage.getItem('bbi_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    const loadedProducts = saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
+    // Ensure "Custom Celebration Cake" (id: p5) is removed if it exists
+    return loadedProducts.filter((p: Product) => p.id !== 'p5');
   });
 
 
@@ -209,6 +212,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: `ORD-${Date.now()}`,
       userId: user.id,
       customerName: user.name,
+      customerEmail: user.email,
       items: [...cart],
       totalAmount: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
       status: OrderStatus.PENDING,
@@ -230,6 +234,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       id: `INQ-${Date.now()}`,
       userId: user?.id || 'guest',
       customerName: user?.name || details.name,
+      customerEmail: user?.email,
       items: [],
       totalAmount: 0, // TBD
       status: OrderStatus.PENDING,
@@ -259,6 +264,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const updateInquiryPrice = (orderId: string, price: number) => {
+    setOrders(prev => prev.map(o => o.id === orderId ? { ...o, totalAmount: price } : o));
+  };
+
   const updateInventory = (id: string, type: 'product' | 'ingredient', quantity: number) => {
     if (type === 'product') {
       setProducts(prev => prev.map(p => p.id === id ? { ...p, stock: quantity } : p));
@@ -272,7 +281,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       user, products, ingredients, cart, orders, notifications,
       login, register, logout, updateUser,
       addToCart, removeFromCart, updateCartQuantity,
-      placeOrder, submitCustomInquiry, updateOrderStatus, updateInventory,
+      placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory,
       addNotification, removeNotification
     }}>
       {children}
