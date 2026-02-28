@@ -9,6 +9,7 @@ const CustomCake: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: user?.name || '',
+    email: user?.email || '',
     size: '6 inch',
     date: '',
     notes: '',
@@ -16,6 +17,17 @@ const CustomCake: React.FC = () => {
   });
   const [showLoginWarning, setShowLoginWarning] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Update form data when user changes
+  React.useEffect(() => {
+    if (user) {
+      setFormData(prev => ({
+        ...prev,
+        name: user.name,
+        email: user.email
+      }));
+    }
+  }, [user]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +43,7 @@ const CustomCake: React.FC = () => {
     // Reset form
     setFormData({
       name: user?.name || '',
+      email: user?.email || '',
       size: '6 inch',
       date: '',
       notes: '',

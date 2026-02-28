@@ -50,7 +50,7 @@ export const INITIAL_INGREDIENTS: Ingredient[] = [
 export const MOCK_ADMIN: User = {
   id: 'admin-001',
   email: 'admin@bakedbyiyah.com',
-  name: 'Iyah (Owner)',
+  name: 'Iyah',
   role: UserRole.ADMIN,
   password: 'admin123'
 };

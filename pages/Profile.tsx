@@ -39,8 +39,8 @@ const Profile: React.FC = () => {
     setShowConfirmModal(true);
   };
 
-  const confirmNameChange = () => {
-    updateUser({ 
+  const confirmNameChange = async () => {
+    await updateUser({ 
       name: newName.trim(),
       lastNameUpdate: Date.now()
     });

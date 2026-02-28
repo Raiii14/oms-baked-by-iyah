@@ -21,7 +21,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
   const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -47,7 +47,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
     }
 
     if (mode === 'login') {
-      const success = login(cleanEmail, cleanPassword);
+      const success = await login(cleanEmail, cleanPassword);
       if (success) {
         setShowSuccessModal(true);
       } else {
@@ -58,7 +58,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
       if (cleanName.length > 25) { setError('Name must be 25 characters or less'); return; }
       if (cleanPassword !== confirmPassword) { setError('Passwords do not match'); return; }
       
-      register(cleanName, cleanEmail, cleanPassword);
+      await register(cleanName, cleanEmail, cleanPassword);
       setShowSuccessModal(true);
     }
   };
