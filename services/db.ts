@@ -17,6 +17,7 @@ export interface DatabaseProvider {
   // Data Mutation
   createOrder(order: Order): Promise<Order>;
   updateOrder(order: Order): Promise<Order>;
+  addProduct(product: Product): Promise<Product>;
   updateProduct(product: Product): Promise<Product>;
   updateIngredient(ingredient: Ingredient): Promise<Ingredient>;
 }
@@ -129,6 +130,13 @@ class LocalStorageService implements DatabaseProvider {
     const updatedOrders = orders.map(o => o.id === order.id ? order : o);
     this.set('bbi_orders', updatedOrders);
     return order;
+  }
+
+  async addProduct(product: Product): Promise<Product> {
+    await this.delay();
+    const products = this.get<Product[]>('bbi_products', INITIAL_PRODUCTS);
+    this.set('bbi_products', [...products, product]);
+    return product;
   }
 
   async updateProduct(product: Product): Promise<Product> {

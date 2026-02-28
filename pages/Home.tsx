@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { ArrowRight, Star } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 
 const Home: React.FC = () => {
   const { products } = useStore();
@@ -89,13 +89,6 @@ const Home: React.FC = () => {
                 <p className="mt-1 text-sm text-stone-500">{product.description}</p>
                 <div className="mt-4 flex items-center justify-between">
                   <p className="text-lg font-medium text-stone-900">₱{product.price}</p>
-                  <div className="flex items-center text-amber-400">
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                    <Star className="w-4 h-4 fill-current" />
-                  </div>
                 </div>
               </div>
             </div>

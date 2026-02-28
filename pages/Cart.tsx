@@ -3,6 +3,7 @@ import { useStore } from '../context/StoreContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Trash2, ShoppingBag, History, Cake } from 'lucide-react';
 import { Modal } from '../components/Modal';
+import { UserRole } from '../types';
 
 const Cart: React.FC = () => {
   const { cart, updateCartQuantity, removeFromCart, user, orders } = useStore();
@@ -21,9 +22,21 @@ const Cart: React.FC = () => {
     // Removed the automatic notification on mount to rely on the modal instead
   }, [user]);
 
+  // Redirect admins to dashboard
+  useEffect(() => {
+    if (user?.role === UserRole.ADMIN) {
+      navigate('/admin');
+    }
+  }, [user, navigate]);
+
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
 
   const handleProceedToCheckout = () => {
+    if (user?.role === UserRole.ADMIN) {
+      alert("Admins cannot place orders.");
+      return;
+    }
+
     if (!user) {
       setShowLoginWarning(true);
       return;

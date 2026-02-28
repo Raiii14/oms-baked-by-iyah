@@ -3,6 +3,7 @@ import { useStore } from '../context/StoreContext';
 import { Upload, Calendar, Send } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { useNavigate } from 'react-router-dom';
+import { UserRole } from '../types';
 
 const CustomCake: React.FC = () => {
   const { submitCustomInquiry, user } = useStore();
@@ -29,9 +30,21 @@ const CustomCake: React.FC = () => {
     }
   }, [user]);
 
+  // Redirect admins to dashboard
+  React.useEffect(() => {
+    if (user?.role === UserRole.ADMIN) {
+      navigate('/admin');
+    }
+  }, [user, navigate]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (user?.role === UserRole.ADMIN) {
+        alert("Admins cannot submit inquiries.");
+        return;
+    }
+
     if (!user) {
       setShowLoginWarning(true);
       return;

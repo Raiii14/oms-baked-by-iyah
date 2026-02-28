@@ -34,6 +34,8 @@ interface StoreContextType {
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   updateInquiryPrice: (orderId: string, price: number) => Promise<void>;
   updateInventory: (id: string, type: 'product' | 'ingredient', quantity: number) => Promise<void>;
+  addProduct: (product: Product) => Promise<void>;
+  updateProduct: (product: Product) => Promise<void>;
   addNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeNotification: (id: string) => void;
 }
@@ -262,12 +264,34 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const addProduct = async (product: Product) => {
+    try {
+      await db.addProduct(product);
+      setProducts(prev => [...prev, product]);
+      addNotification("Product added successfully", "success");
+    } catch (error) {
+      console.error("Failed to add product:", error);
+      addNotification("Failed to add product", "error");
+    }
+  };
+
+  const updateProduct = async (product: Product) => {
+    try {
+      await db.updateProduct(product);
+      setProducts(prev => prev.map(p => p.id === product.id ? product : p));
+      addNotification("Product updated successfully", "success");
+    } catch (error) {
+      console.error("Failed to update product:", error);
+      addNotification("Failed to update product", "error");
+    }
+  };
+
   return (
     <StoreContext.Provider value={{
       user, products, ingredients, cart, orders, notifications, isLoading,
       login, register, logout, updateUser,
       addToCart, removeFromCart, updateCartQuantity,
-      placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory,
+      placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct,
       addNotification, removeNotification
     }}>
       {children}

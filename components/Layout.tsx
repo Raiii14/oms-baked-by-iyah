@@ -18,7 +18,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Menu', path: '/menu' },
-    { name: 'Cakes', path: '/custom-cake' },
+    ...(user?.role !== UserRole.ADMIN ? [{ name: 'Cakes', path: '/custom-cake' }] : []),
   ];
 
   return (
@@ -60,14 +60,16 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 {/* <span className="absolute top-1 right-1 h-2 w-2 bg-rose-500 rounded-full"></span> */}
               </button>
 
-              <Link to="/cart" className="relative p-2 text-stone-600 hover:text-rose-500">
-                <ShoppingCart className="h-5 w-5" />
-                {cart.length > 0 && (
-                  <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-rose-500 rounded-full">
-                    {cart.reduce((acc, item) => acc + item.quantity, 0)}
-                  </span>
-                )}
-              </Link>
+              {user?.role !== UserRole.ADMIN && (
+                <Link to="/cart" className="relative p-2 text-stone-600 hover:text-rose-500">
+                  <ShoppingCart className="h-5 w-5" />
+                  {cart.length > 0 && (
+                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-rose-500 rounded-full">
+                      {cart.reduce((acc, item) => acc + item.quantity, 0)}
+                    </span>
+                  )}
+                </Link>
+              )}
 
               {user ? (
                 <div className="flex items-center space-x-2">
@@ -89,59 +91,115 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               )}
             </div>
 
-            {/* Mobile menu button (Absolute positioned or handled via flex in mobile view if needed, but grid works well) */}
+            {/* Mobile menu button */}
             <div className="flex items-center lg:hidden justify-end col-start-3">
               <button
-                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                onClick={() => setIsMenuOpen(true)}
                 className="inline-flex items-center justify-center p-2 rounded-md text-stone-400 hover:text-stone-500 hover:bg-stone-100 focus:outline-none"
               >
-                {isMenuOpen ? <X className="block h-6 w-6" /> : <Menu className="block h-6 w-6" />}
+                <Menu className="block h-6 w-6" />
               </button>
             </div>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+        {/* Mobile Sidebar Menu (Right-Aligned Slide-Out) */}
         {isMenuOpen && (
-          <div className="lg:hidden bg-white border-t border-stone-200">
-            <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-              {user && (
-                <div className="px-3 py-2 text-base font-medium text-rose-500 border-b border-stone-100 mb-2">
-                  Hi, {user.name}
+          <div className="fixed inset-0 z-50 flex justify-end">
+            {/* Backdrop */}
+            <div 
+                className="absolute inset-0 bg-black/20 backdrop-blur-sm transition-opacity" 
+                onClick={() => setIsMenuOpen(false)}
+            />
+            
+            {/* Sidebar */}
+            <div className="relative w-64 bg-white h-full shadow-2xl transform transition-transform duration-300 ease-in-out flex flex-col">
+                <div className="p-4 flex justify-between items-center border-b border-stone-100">
+                    <span className="font-bold text-lg text-rose-500">Menu</span>
+                    <button 
+                        onClick={() => setIsMenuOpen(false)}
+                        className="p-2 rounded-full hover:bg-stone-100 text-stone-500"
+                    >
+                        <X className="w-5 h-5" />
+                    </button>
                 </div>
-              )}
-              {navLinks.map((link) => (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  onClick={() => setIsMenuOpen(false)}
-                  className="block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:text-rose-500 hover:bg-stone-50"
-                >
-                  {link.name}
-                </Link>
-              ))}
-               {user?.role === UserRole.ADMIN && (
-                <Link to="/admin" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-amber-600 hover:bg-stone-50">
-                  Dashboard
-                </Link>
-              )}
-              <Link to="/cart" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:text-rose-500 hover:bg-stone-50">
-                Cart ({cart.length})
-              </Link>
-              {user ? (
-                <>
-                  <Link to="/profile" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:text-rose-500 hover:bg-stone-50">
-                    Profile Settings
-                  </Link>
-                  <button onClick={() => { handleLogout(); setIsMenuOpen(false); }} className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:text-rose-500 hover:bg-stone-50">
-                    Logout
-                  </button>
-                </>
-              ) : (
-                <Link to="/login" onClick={() => setIsMenuOpen(false)} className="block px-3 py-2 rounded-md text-base font-medium text-stone-700 hover:text-rose-500 hover:bg-stone-50">
-                  Login
-                </Link>
-              )}
+                
+                <div className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+                    {user && (
+                        <div className="px-4 py-2 mb-4">
+                            <p className="text-sm text-stone-500">Signed in as</p>
+                            <p className="font-bold text-stone-800 truncate">{user.name}</p>
+                        </div>
+                    )}
+
+                    {navLinks.map((link) => (
+                        <Link
+                            key={link.path}
+                            to={link.path}
+                            onClick={() => setIsMenuOpen(false)}
+                            className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                                location.pathname === link.path 
+                                    ? 'bg-rose-50 text-rose-600' 
+                                    : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'
+                            }`}
+                        >
+                            {link.name}
+                        </Link>
+                    ))}
+
+                    {user?.role === UserRole.ADMIN && (
+                        <Link 
+                            to="/admin" 
+                            onClick={() => setIsMenuOpen(false)} 
+                            className="block px-4 py-2.5 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
+                        >
+                            Admin Dashboard
+                        </Link>
+                    )}
+
+                    {user?.role !== UserRole.ADMIN && (
+                        <Link 
+                            to="/cart" 
+                            onClick={() => setIsMenuOpen(false)} 
+                            className="block px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 flex justify-between items-center"
+                        >
+                            <span>Cart</span>
+                            {cart.length > 0 && (
+                                <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                                    {cart.reduce((acc, item) => acc + item.quantity, 0)}
+                                </span>
+                            )}
+                        </Link>
+                    )}
+
+                    <div className="border-t border-stone-100 my-2 pt-2">
+                        {user ? (
+                            <>
+                                <Link 
+                                    to="/profile" 
+                                    onClick={() => setIsMenuOpen(false)} 
+                                    className="block px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                                >
+                                    Profile Settings
+                                </Link>
+                                <button 
+                                    onClick={() => { handleLogout(); setIsMenuOpen(false); }} 
+                                    className="w-full text-left px-4 py-2.5 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+                                >
+                                    Logout
+                                </button>
+                            </>
+                        ) : (
+                            <Link 
+                                to="/login" 
+                                onClick={() => setIsMenuOpen(false)} 
+                                className="block px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900"
+                            >
+                                Login
+                            </Link>
+                        )}
+                    </div>
+                </div>
             </div>
           </div>
         )}

@@ -1,13 +1,34 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
-import { OrderStatus, PaymentMethod } from '../types';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { OrderStatus, PaymentMethod, ProductCategory, Product } from '../types';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, LabelList } from 'recharts';
+import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Image as ImageIcon } from 'lucide-react';
 
 const AdminDashboard: React.FC = () => {
-  const { orders, products, ingredients, updateOrderStatus, updateInventory, updateInquiryPrice } = useStore();
-  const [activeTab, setActiveTab] = useState<'orders' | 'inquiries' | 'inventory' | 'reports'>('orders');
-  const [showRawMaterials, setShowRawMaterials] = useState(true);
+  const { orders, products, updateOrderStatus, updateInventory, updateInquiryPrice, addProduct, updateProduct } = useStore();
+  const [activeTab, setActiveTab] = useState<'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu'>('orders');
+  const [reportTimeframe, setReportTimeframe] = useState<'weekly' | 'monthly'>('weekly');
+
+  // Helper to handle file upload
+  const handleImageUpload = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            resolve(reader.result as string);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+  };
+
+  const handleProductImageUpdate = async (product: Product, file: File) => {
+      try {
+          const imageUrl = await handleImageUpload(file);
+          await updateProduct({ ...product, image: imageUrl });
+      } catch (error) {
+          console.error("Error updating image:", error);
+      }
+  };
 
   // Orders Pagination & Filtering
   const [currentPage, setCurrentPage] = useState(1);
@@ -32,17 +53,78 @@ const AdminDashboard: React.FC = () => {
   const inquiries = orders.filter(o => o.isCustomInquiry);
 
   // Reports Data
-  const totalRevenue = orders
-    .filter(o => o.status !== OrderStatus.CANCELLED)
-    .reduce((acc, o) => acc + o.totalAmount, 0);
+  const validOrders = orders.filter(o => o.status !== OrderStatus.CANCELLED);
   
-  const productSales = products.map(p => {
-    const quantitySold = orders.reduce((acc, o) => {
-        const item = o.items.find(i => i.id === p.id);
-        return acc + (item ? item.quantity : 0);
-    }, 0);
-    return { name: p.name, sales: quantitySold };
-  }).sort((a,b) => b.sales - a.sales);
+  const totalRevenue = validOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+  
+  // Calculate Sales by Product (Iterating ORDERS to catch everything, including Custom Cakes)
+  const salesMap = new Map<string, number>();
+  
+  validOrders.forEach(order => {
+    if (order.isCustomInquiry) {
+        // Group all custom cakes together
+        const current = salesMap.get('Custom Cakes') || 0;
+        salesMap.set('Custom Cakes', current + 1);
+    } else {
+        order.items.forEach(item => {
+            const current = salesMap.get(item.name) || 0;
+            salesMap.set(item.name, current + item.quantity);
+        });
+    }
+  });
+
+  const productSales = Array.from(salesMap.entries())
+    .map(([name, sales]) => ({ name, sales }))
+    .sort((a, b) => b.sales - a.sales);
+
+  // Revenue Over Time Data
+  const revenueData = React.useMemo(() => {
+    const dataMap = new Map<string, number>();
+    const now = new Date();
+    
+    // Initialize last 7 days or 12 months with 0
+    if (reportTimeframe === 'weekly') {
+        for (let i = 6; i >= 0; i--) {
+            const d = new Date(now);
+            d.setDate(d.getDate() - i);
+            const key = d.toLocaleDateString('en-US', { weekday: 'short' }); // Mon, Tue
+            dataMap.set(key, 0);
+        }
+    } else {
+        for (let i = 11; i >= 0; i--) {
+            const d = new Date(now);
+            d.setMonth(d.getMonth() - i);
+            const key = d.toLocaleDateString('en-US', { month: 'short' }); // Jan, Feb
+            dataMap.set(key, 0);
+        }
+    }
+
+    validOrders.forEach(order => {
+        const date = new Date(order.createdAt); // Use createdAt for reporting
+        let key = '';
+        
+        if (reportTimeframe === 'weekly') {
+            // Check if within last 7 days
+            const diffTime = Math.abs(now.getTime() - date.getTime());
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+            if (diffDays <= 7) {
+                key = date.toLocaleDateString('en-US', { weekday: 'short' });
+            }
+        } else {
+            // Check if within last 12 months
+            const diffMonths = (now.getFullYear() - date.getFullYear()) * 12 + (now.getMonth() - date.getMonth());
+            if (diffMonths <= 12) {
+                key = date.toLocaleDateString('en-US', { month: 'short' });
+            }
+        }
+
+        if (key && dataMap.has(key)) {
+            dataMap.set(key, (dataMap.get(key) || 0) + order.totalAmount);
+        }
+    });
+
+    return Array.from(dataMap.entries()).map(([name, revenue]) => ({ name, revenue }));
+  }, [validOrders, reportTimeframe]);
 
   return (
     <div className="space-y-6">
@@ -53,6 +135,7 @@ const AdminDashboard: React.FC = () => {
             { id: 'orders', label: 'Orders', icon: ShoppingBag },
             { id: 'inquiries', label: 'Inquiries', icon: Cake },
             { id: 'inventory', label: 'Inventory', icon: Package },
+            { id: 'menu', label: 'Menu', icon: Plus },
             { id: 'reports', label: 'Reports', icon: TrendingUp },
           ].map((tab) => (
             <button
@@ -75,15 +158,15 @@ const AdminDashboard: React.FC = () => {
       {activeTab === 'orders' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 flex flex-wrap gap-4 items-center justify-between">
-            <div className="flex items-center gap-4">
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
                 <div className="flex items-center gap-2">
                     <Filter className="w-4 h-4 text-stone-500" />
                     <span className="text-sm font-medium text-stone-700">Status:</span>
                     <select 
                         value={filterStatus} 
                         onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-                        className="border border-stone-300 rounded-md text-sm px-2 py-1"
+                        className="border border-stone-300 rounded-md text-sm px-2 py-1 outline-none focus:ring-2 focus:ring-rose-500"
                     >
                         <option value="all">All</option>
                         {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
@@ -94,7 +177,7 @@ const AdminDashboard: React.FC = () => {
                     <select 
                         value={sortOrder} 
                         onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-                        className="border border-stone-300 rounded-md text-sm px-2 py-1"
+                        className="border border-stone-300 rounded-md text-sm px-2 py-1 outline-none focus:ring-2 focus:ring-rose-500"
                     >
                         <option value="desc">Newest First</option>
                         <option value="asc">Oldest First</option>
@@ -108,7 +191,7 @@ const AdminDashboard: React.FC = () => {
 
            {paginatedOrders.length === 0 ? <p className="text-center py-8 text-stone-500">No orders found matching filters.</p> : paginatedOrders.map(order => (
              <div key={order.id} className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
-               <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-4 border-b border-stone-100 pb-4">
+               <div className="flex flex-col md:flex-row justify-between md:items-start gap-4 mb-4 border-b border-stone-100 pb-4">
                  <div>
                    <div className="flex items-center gap-2 mb-1">
                      <span className="font-bold text-lg text-stone-800">{order.customerName}</span>
@@ -121,16 +204,16 @@ const AdminDashboard: React.FC = () => {
                      <span className="font-medium">Time:</span> {order.scheduledTime}
                    </p>
                  </div>
-                 <div className="flex items-center gap-4">
+                 <div className="flex flex-col items-end gap-2">
                     <div className="text-right">
                         <p className="font-bold text-lg">₱{order.totalAmount}</p>
                         <p className="text-xs text-stone-500">{order.paymentMethod}</p>
                     </div>
-                    <div className="relative">
+                    <div className="relative w-full md:w-auto">
                       <select
                         value={order.status}
                         onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                        className={`appearance-none pl-4 pr-8 py-2 rounded-lg text-sm font-bold border-none outline-none cursor-pointer transition-colors ${
+                        className={`appearance-none w-full md:w-auto pl-4 pr-8 py-2 rounded-lg text-sm font-bold border-none outline-none cursor-pointer transition-colors ${
                           order.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700 hover:bg-green-200' :
                           order.status === OrderStatus.PENDING ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' :
                           order.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
@@ -263,85 +346,200 @@ const AdminDashboard: React.FC = () => {
 
       {/* INVENTORY TAB */}
       {activeTab === 'inventory' && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="max-w-4xl mx-auto">
           {/* Finished Goods */}
           <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
-            <h3 className="text-lg font-bold text-stone-800 mb-4 flex items-center gap-2">
-                <ShoppingBag className="w-5 h-5 text-rose-500" /> Finished Goods
-            </h3>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-bold text-stone-800 flex items-center gap-2">
+                    <ShoppingBag className="w-5 h-5 text-rose-500" /> Finished Goods Inventory
+                </h3>
+                <button 
+                    onClick={() => setActiveTab('menu')}
+                    className="text-sm bg-rose-500 text-white px-3 py-1.5 rounded-lg hover:bg-rose-600 transition-colors flex items-center gap-1"
+                >
+                    <Plus className="w-4 h-4" /> Add Product
+                </button>
+            </div>
             <div className="space-y-4">
               {products.map(product => (
-                <div key={product.id} className="flex justify-between items-center p-2 hover:bg-stone-50 rounded">
-                  <div className="flex items-center gap-3">
-                    <img src={product.image} alt={product.name} className="w-10 h-10 rounded object-cover" />
+                <div key={product.id} className="flex justify-between items-center p-3 hover:bg-stone-50 rounded-lg border border-transparent hover:border-stone-100 transition-all">
+                  <div className="flex items-center gap-4">
+                    <img src={product.image} alt={product.name} className="w-12 h-12 rounded-lg object-cover shadow-sm" />
                     <div>
-                        <p className="font-medium text-sm">{product.name}</p>
+                        <p className="font-bold text-stone-800">{product.name}</p>
                         <p className="text-xs text-stone-500">Price: ₱{product.price}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input 
-                        type="number" 
-                        value={product.stock}
-                        onChange={(e) => {
-                            const val = parseInt(e.target.value);
-                            if (!isNaN(val) && val >= 0 && val <= 500) {
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden">
+                        <button 
+                            onClick={() => {
+                                const val = Math.max(0, product.stock - 1);
                                 updateInventory(product.id, 'product', val);
-                            }
-                        }}
-                        className="w-20 border border-stone-300 rounded px-2 py-1 text-center"
-                        min="0"
-                        max="500"
-                    />
-                    <span className="text-xs text-stone-400">/ 500</span>
+                            }}
+                            className="px-3 py-1 bg-stone-50 hover:bg-stone-100 text-stone-600 border-r border-stone-200"
+                        >
+                            -
+                        </button>
+                        <input 
+                            type="number" 
+                            value={product.stock}
+                            onChange={(e) => {
+                                const val = parseInt(e.target.value);
+                                if (!isNaN(val) && val >= 0 && val <= 500) {
+                                    updateInventory(product.id, 'product', val);
+                                }
+                            }}
+                            className="w-16 text-center py-1 outline-none text-sm font-medium"
+                            min="0"
+                            max="500"
+                        />
+                        <button 
+                            onClick={() => {
+                                const val = Math.min(500, product.stock + 1);
+                                updateInventory(product.id, 'product', val);
+                            }}
+                            className="px-3 py-1 bg-stone-50 hover:bg-stone-100 text-stone-600 border-l border-stone-200"
+                        >
+                            +
+                        </button>
+                    </div>
+                    <span className="text-xs text-stone-400 w-12 text-right">/ 500</span>
                   </div>
                 </div>
               ))}
             </div>
           </div>
+        </div>
+      )}
 
-          {/* Raw Materials */}
-          <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
-            <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-bold text-stone-800 flex items-center gap-2">
-                    <Package className="w-5 h-5 text-amber-500" /> Raw Materials
+      {/* MENU MANAGEMENT TAB */}
+      {activeTab === 'menu' && (
+        <div className="max-w-4xl mx-auto">
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200 mb-8">
+                <h3 className="text-lg font-bold text-stone-800 mb-4">
+                    Add New Product
                 </h3>
-                <button 
-                    onClick={() => setShowRawMaterials(!showRawMaterials)}
-                    className="text-stone-500 hover:text-stone-700"
+                <form 
+                    onSubmit={async (e) => {
+                        e.preventDefault();
+                        const formData = new FormData(e.currentTarget);
+                        const imageFile = formData.get('imageFile') as File;
+                        let imageUrl = formData.get('imageUrl') as string;
+
+                        if (imageFile && imageFile.size > 0) {
+                            imageUrl = await handleImageUpload(imageFile);
+                        } else if (!imageUrl) {
+                            imageUrl = 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+                        }
+
+                        const newProduct: Product = {
+                            id: `p${Date.now()}`,
+                            name: formData.get('name') as string,
+                            description: formData.get('description') as string,
+                            price: Number(formData.get('price')),
+                            category: formData.get('category') as ProductCategory,
+                            image: imageUrl,
+                            stock: Number(formData.get('stock'))
+                        };
+                        addProduct(newProduct);
+                        (e.target as HTMLFormElement).reset();
+                    }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
                 >
-                    {showRawMaterials ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                </button>
-            </div>
-            
-            {showRawMaterials && (
-                <div className="space-y-4">
-                {ingredients.map(ing => (
-                    <div key={ing.id} className="flex justify-between items-center p-2 hover:bg-stone-50 rounded">
-                    <div>
-                        <div className="flex items-center gap-2">
-                            <p className="font-medium text-sm">{ing.name}</p>
-                            {ing.quantity <= ing.threshold && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                    <div className="col-span-2 md:col-span-1">
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Product Name</label>
+                        <input name="name" required className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500" placeholder="e.g. Red Velvet Cake" />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Category</label>
+                        <select name="category" required className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500">
+                            {Object.values(ProductCategory).map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="col-span-2">
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Description</label>
+                        <textarea name="description" required className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500" rows={3} placeholder="Product description..." />
+                    </div>
+                    
+                    {/* Price and Stock separated into their own rows/divs for better mobile layout */}
+                    <div className="col-span-2 md:col-span-1">
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Price (₱)</label>
+                        <input name="price" type="number" required min="0" className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500" placeholder="0.00" />
+                    </div>
+                    <div className="col-span-2 md:col-span-1">
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Initial Stock</label>
+                        <input name="stock" type="number" required min="0" className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500" placeholder="0" />
+                    </div>
+
+                    <div className="col-span-2">
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Product Image</label>
+                        <div className="space-y-3">
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-stone-500 w-16">Upload:</span>
+                                <input name="imageFile" type="file" accept="image/*" className="block w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100"/>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-stone-500 w-16">Or URL:</span>
+                                <input name="imageUrl" type="url" className="flex-1 border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm" placeholder="https://..." />
+                            </div>
                         </div>
-                        <p className="text-xs text-stone-500">Unit: {ing.unit}</p>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => updateInventory(ing.id, 'ingredient', Math.max(0, ing.quantity - 1))} className="w-6 h-6 bg-stone-100 rounded hover:bg-stone-200">-</button>
-                        <span className={`w-12 text-center font-medium ${ing.quantity <= ing.threshold ? 'text-red-500 font-bold' : ''}`}>{ing.quantity}</span>
-                        <button onClick={() => updateInventory(ing.id, 'ingredient', ing.quantity + 1)} className="w-6 h-6 bg-stone-100 rounded hover:bg-stone-200">+</button>
+                    <div className="col-span-2 flex justify-end">
+                        <button type="submit" className="bg-rose-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-rose-600 transition-colors">
+                            Add Product
+                        </button>
                     </div>
-                    </div>
-                ))}
+                </form>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
+                <h3 className="text-lg font-bold text-stone-800 mb-4">
+                    Current Menu Items
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {products.map(product => (
+                        <div key={product.id} className="flex gap-4 p-4 border border-stone-100 rounded-xl hover:shadow-md transition-all bg-stone-50/50">
+                            <div className="relative group w-20 h-20 flex-shrink-0">
+                                <img src={product.image} alt={product.name} className="w-full h-full rounded-lg object-cover bg-stone-200" />
+                                <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-lg">
+                                    <ImageIcon className="w-6 h-6 text-white" />
+                                    <input 
+                                        type="file" 
+                                        accept="image/*" 
+                                        className="hidden" 
+                                        onChange={(e) => {
+                                            if (e.target.files?.[0]) {
+                                                handleProductImageUpdate(product, e.target.files[0]);
+                                            }
+                                        }}
+                                    />
+                                </label>
+                            </div>
+                            <div className="flex-1">
+                                <div className="flex justify-between items-start">
+                                    <h4 className="font-bold text-stone-800">{product.name}</h4>
+                                    <span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-full">{product.category}</span>
+                                </div>
+                                <p className="text-sm text-stone-500 line-clamp-2 my-1">{product.description}</p>
+                                <div className="flex justify-between items-center mt-2">
+                                    <span className="font-bold text-rose-500">₱{product.price}</span>
+                                    <span className="text-xs text-stone-400">Stock: {product.stock}</span>
+                                </div>
+                            </div>
+                        </div>
+                    ))}
                 </div>
-            )}
-            {!showRawMaterials && <p className="text-sm text-stone-400 italic">Raw materials section hidden.</p>}
-          </div>
+            </div>
         </div>
       )}
 
       {/* REPORTS TAB */}
       {activeTab === 'reports' && (
         <div className="space-y-8">
+            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="bg-gradient-to-r from-rose-500 to-rose-600 text-white p-6 rounded-xl shadow-md">
                     <p className="text-rose-100 text-sm font-medium">Total Revenue</p>
@@ -357,18 +555,77 @@ const AdminDashboard: React.FC = () => {
                 </div>
             </div>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200 h-96">
-                <h3 className="text-lg font-bold text-stone-800 mb-6">Best Selling Products</h3>
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={productSales}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="name" tick={{fontSize: 12}} interval={0} />
-                        <YAxis allowDecimals={false} />
-                        <Tooltip cursor={{fill: 'transparent'}} />
-                        <Legend />
-                        <Bar dataKey="sales" name="Units Sold" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                </ResponsiveContainer>
+            {/* Charts Section - Stacked for better visibility */}
+            <div className="space-y-8">
+                {/* Revenue Chart */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200 h-[450px] overflow-hidden">
+                    <div className="flex justify-between items-center mb-6">
+                        <h3 className="text-lg font-bold text-stone-800">Revenue Trends</h3>
+                        <div className="flex bg-stone-100 rounded-lg p-1">
+                            <button 
+                                onClick={() => setReportTimeframe('weekly')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${reportTimeframe === 'weekly' ? 'bg-white shadow text-stone-800' : 'text-stone-500'}`}
+                            >
+                                Weekly
+                            </button>
+                            <button 
+                                onClick={() => setReportTimeframe('monthly')}
+                                className={`px-3 py-1 text-xs font-medium rounded-md transition-all ${reportTimeframe === 'monthly' ? 'bg-white shadow text-stone-800' : 'text-stone-500'}`}
+                            >
+                                Monthly
+                            </button>
+                        </div>
+                    </div>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={revenueData} margin={{ top: 5, right: 10, left: 0, bottom: 40 }}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e5e5" />
+                            <XAxis 
+                                dataKey="name" 
+                                tick={{fontSize: 11, fill: '#78716c'}} 
+                                axisLine={false} 
+                                tickLine={false} 
+                                interval={0}
+                                angle={-45}
+                                textAnchor="end"
+                                height={70}
+                            />
+                            <YAxis tick={{fontSize: 11, fill: '#78716c'}} axisLine={false} tickLine={false} tickFormatter={(value) => `₱${value}`} />
+                            <Tooltip 
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                formatter={(value: number) => [`₱${value.toLocaleString()}`, 'Revenue']}
+                            />
+                            <Legend verticalAlign="top" height={36}/>
+                            <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#f43f5e" strokeWidth={3} activeDot={{ r: 8, fill: '#f43f5e' }} dot={{ fill: '#f43f5e', r: 4 }} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
+
+                {/* Best Selling Chart - Vertical Layout */}
+                <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200 h-[500px] overflow-hidden">
+                    <h3 className="text-lg font-bold text-stone-800 mb-6">Best Selling Products</h3>
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={productSales} layout="vertical" margin={{ top: 5, right: 30, left: 0, bottom: 30 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#e5e5e5" />
+                            <XAxis type="number" tick={{fontSize: 11, fill: '#78716c'}} axisLine={false} tickLine={false} />
+                            <YAxis 
+                                dataKey="name" 
+                                type="category" 
+                                width={90} 
+                                tick={{fontSize: 11, fill: '#78716c'}} 
+                                axisLine={false} 
+                                tickLine={false} 
+                            />
+                            <Tooltip 
+                                cursor={{fill: '#f5f5f4'}}
+                                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                            />
+                            <Legend verticalAlign="top" height={36}/>
+                            <Bar dataKey="sales" name="Units Sold" fill="#f43f5e" radius={[0, 4, 4, 0]} barSize={32}>
+                                <LabelList dataKey="sales" position="right" style={{ fill: '#78716c', fontSize: 11 }} />
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
             </div>
         </div>
       )}

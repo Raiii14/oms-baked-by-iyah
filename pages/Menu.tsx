@@ -1,9 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
-import { ProductCategory } from '../types';
+import { ProductCategory, UserRole } from '../types';
 import { Search, Plus } from 'lucide-react';
 
 const ProductCard: React.FC<{ product: any, addToCart: any }> = ({ product, addToCart }) => {
+  const { user } = useStore();
   const [quantity, setQuantity] = useState(1);
 
   const handleQuantityChange = (val: number) => {
@@ -11,6 +12,8 @@ const ProductCard: React.FC<{ product: any, addToCart: any }> = ({ product, addT
       setQuantity(val);
     }
   };
+
+  const isAdmin = user?.role === UserRole.ADMIN;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden flex flex-col hover:shadow-md transition-all duration-300">
@@ -42,7 +45,7 @@ const ProductCard: React.FC<{ product: any, addToCart: any }> = ({ product, addT
           </span>
           
           <div className="flex items-center justify-between gap-2">
-            {product.stock > 0 && (
+            {!isAdmin && product.stock > 0 && (
               <div className="flex items-center border border-stone-200 rounded-lg">
                 <button 
                   onClick={() => handleQuantityChange(quantity - 1)}
@@ -67,17 +70,26 @@ const ProductCard: React.FC<{ product: any, addToCart: any }> = ({ product, addT
               </div>
             )}
 
-            <button
-              onClick={() => addToCart(product, quantity)}
-              disabled={product.stock === 0}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
-                product.stock > 0 
-                  ? 'bg-stone-900 text-white hover:bg-stone-700' 
-                  : 'bg-stone-200 text-stone-400 cursor-not-allowed'
-              }`}
-            >
-              <Plus className="w-4 h-4" /> Add
-            </button>
+            {isAdmin ? (
+               <button
+                disabled
+                className="flex-1 px-4 py-2 rounded-lg font-medium bg-stone-100 text-stone-400 cursor-not-allowed text-sm"
+              >
+                Admin View Only
+              </button>
+            ) : (
+              <button
+                onClick={() => addToCart(product, quantity)}
+                disabled={product.stock === 0}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  product.stock > 0 
+                    ? 'bg-stone-900 text-white hover:bg-stone-700' 
+                    : 'bg-stone-200 text-stone-400 cursor-not-allowed'
+                }`}
+              >
+                <Plus className="w-4 h-4" /> Add
+              </button>
+            )}
           </div>
         </div>
       </div>
