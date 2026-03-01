@@ -53,7 +53,7 @@ const Cart: React.FC = () => {
       setShowLoginWarning(true);
       return;
     }
-    navigate('/checkout');
+    navigate('/checkout');  
   };
 
   const handleQuantityChange = (itemId: string, val: string) => {
@@ -73,7 +73,7 @@ const Cart: React.FC = () => {
         message="You need to be logged in to proceed to checkout. Please log in or create an account to continue."
         primaryAction={{
           label: 'Log In',
-          onClick: () => navigate('/login')
+          onClick: () => navigate('/login?redirect=/cart')
         }}
         secondaryAction={{
           label: 'Cancel',

@@ -5,6 +5,15 @@ import { Menu, X, ShoppingCart, User as UserIcon, LogOut, Bell, Settings, Check,
 import { UserRole } from '../types';
 import { NotificationToast, getNotifConfig } from './NotificationToast';
 
+// Scrolls to top whenever the route pathname changes
+const ScrollToTop: React.FC = () => {
+  const { pathname } = useLocation();
+  React.useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [pathname]);
+  return null;
+};
+
 const timeAgo = (dateStr: string): string => {
   const diff = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
   if (diff < 60) return 'Just now';
@@ -93,6 +102,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50">
+      <ScrollToTop />
       <nav className="bg-white shadow-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-3 items-center h-16">

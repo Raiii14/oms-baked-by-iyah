@@ -32,6 +32,11 @@ const AdminDashboard: React.FC = () => {
   // Local price input state per inquiry — only sent to DB on "Update" click
   const [inquiryPriceInputs, setInquiryPriceInputs] = useState<Record<string, string>>({});
 
+  // Local string draft state for inventory inputs so the field can be fully cleared while typing
+  const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
+  const getStockDisplay = (productId: string, stock: number) =>
+    productId in stockDrafts ? stockDrafts[productId] : String(stock);
+
   // State for editing product image URL (in Current Menu Items)
   const [editingImageProductId, setEditingImageProductId] = useState<string | null>(null);
   const [editingImageUrl, setEditingImageUrl] = useState('');
@@ -75,6 +80,11 @@ const AdminDashboard: React.FC = () => {
   const validOrders = React.useMemo(() => orders.filter(o => o.status !== OrderStatus.CANCELLED), [orders]);
   
   const totalRevenue = validOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+  const completedOrders = orders.filter(o => o.status === OrderStatus.COMPLETED).length;
+  const pendingOrders = orders.filter(o => o.status === OrderStatus.PENDING).length;
+  const avgOrderValue = validOrders.length > 0 ? totalRevenue / validOrders.length : 0;
+  const needsPriceQuote = orders.filter(o => o.isCustomInquiry && (!o.totalAmount || o.totalAmount === 0)).length;
+  const lowStockCount = products.filter(p => p.stock <= 5).length;
   
   // Calculate Sales by Product (Iterating ORDERS to catch everything, including Custom Cakes)
   const salesMap = new Map<string, number>();
@@ -177,34 +187,39 @@ const AdminDashboard: React.FC = () => {
       {activeTab === 'orders' && (
         <div className="space-y-4">
           {/* Filters */}
-          <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-200 flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-            <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-                <div className="flex items-center gap-2">
-                    <Filter className="w-4 h-4 text-stone-500" />
-                    <span className="text-sm font-medium text-stone-700">Status:</span>
-                    <select 
-                        value={filterStatus} 
-                        onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
-                        className="border border-stone-300 rounded-md text-sm px-2 py-1 outline-none focus:ring-2 focus:ring-rose-500"
-                    >
-                        <option value="all">All</option>
-                        {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
+          <div className="bg-white p-4 rounded-xl shadow-sm border border-stone-200">
+            <div className="grid grid-cols-2 gap-3">
+                <div>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">Filter by Status</label>
+                    <div className="relative">
+                        <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-stone-400 pointer-events-none" />
+                        <select 
+                            value={filterStatus} 
+                            onChange={(e) => { setFilterStatus(e.target.value); setCurrentPage(1); }}
+                            className="w-full border border-stone-200 rounded-lg text-sm pl-8 pr-3 py-2 outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50 appearance-none cursor-pointer"
+                        >
+                            <option value="all">All Statuses</option>
+                            {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                        </select>
+                    </div>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium text-stone-700">Sort Date:</span>
+                <div>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">Sort by Date</label>
                     <select 
                         value={sortOrder} 
                         onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
-                        className="border border-stone-300 rounded-md text-sm px-2 py-1 outline-none focus:ring-2 focus:ring-rose-500"
+                        className="w-full border border-stone-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50 appearance-none cursor-pointer"
                     >
                         <option value="desc">Newest First</option>
                         <option value="asc">Oldest First</option>
                     </select>
                 </div>
             </div>
-            <div className="text-sm text-stone-500">
-                Showing {filteredOrders.length} orders
+            <div className="mt-3 pt-3 border-t border-stone-100 flex items-center justify-between">
+                <span className="text-xs text-stone-400">{filteredOrders.length === 0 ? 'No orders found' : `${filteredOrders.length} order${filteredOrders.length !== 1 ? 's' : ''} found`}</span>
+                {filterStatus !== 'all' && (
+                    <button onClick={() => { setFilterStatus('all'); setCurrentPage(1); }} className="text-xs text-rose-500 hover:text-rose-700 font-medium">Clear filter</button>
+                )}
             </div>
           </div>
 
@@ -217,21 +232,21 @@ const AdminDashboard: React.FC = () => {
              <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
                {/* Card Header */}
-               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-stone-100 bg-stone-50/60">
-                 <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
-                     <ShoppingBag className="w-5 h-5 text-rose-500" />
+               <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-stone-100 bg-stone-50/60">
+                 <div className="flex items-start gap-3 min-w-0">
+                   <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                     <ShoppingBag className="w-4 h-4 text-rose-500" />
                    </div>
-                   <div>
+                   <div className="min-w-0">
                      <h3 className="font-bold text-stone-800 text-base leading-tight">{order.customerName}</h3>
-                     <span className="inline-block mt-1 text-base font-bold font-mono tracking-wide bg-stone-100 text-stone-700 px-3 py-1 rounded-lg">{order.id}</span>
+                     <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{order.id}</span>
                    </div>
                  </div>
-                 <div className="relative self-start sm:self-auto">
+                 <div className="relative flex-shrink-0">
                    <select
                      value={order.status}
                      onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                     className={`appearance-none pl-3 pr-7 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
+                     className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
                        order.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
                        order.status === OrderStatus.PENDING   ? 'bg-amber-100 text-amber-700' :
                        order.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
@@ -241,7 +256,7 @@ const AdminDashboard: React.FC = () => {
                    >
                      {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                    </select>
-                   <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                   <div className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center">
                      <svg className="fill-current h-3 w-3 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                    </div>
                  </div>
@@ -249,13 +264,10 @@ const AdminDashboard: React.FC = () => {
 
                {/* Customer Meta */}
                <div className="px-6 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
-                 {[
-                   order.customerEmail || 'No email provided',
-                   `Ordered: ${new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-                   `Needed: ${new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at ${formatTime(order.scheduledTime)}`,
-                 ].map((item, i) => (
-                   <span key={i} className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">{item}</span>
-                 ))}
+                 <span className="bg-stone-100 text-stone-600 text-xs font-medium px-2.5 py-1 rounded-full">{order.customerEmail || 'No email provided'}</span>
+                 <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">Ordered: {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                 <span className="bg-rose-50 text-rose-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-rose-100">📅 Needed: {new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {formatTime(order.scheduledTime)}</span>
+                 {order.paymentMethod && <span className="bg-green-50 text-green-700 text-xs font-medium px-2.5 py-1 rounded-full border border-green-100">{order.paymentMethod}</span>}
                </div>
 
                {/* Order Items */}
@@ -333,21 +345,21 @@ const AdminDashboard: React.FC = () => {
               <div key={inquiry.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
                 {/* Card Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-stone-50/60">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
-                      <Cake className="w-5 h-5 text-rose-500" />
+                <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-stone-100 bg-stone-50/60">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <Cake className="w-4 h-4 text-rose-500" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <h3 className="font-bold text-stone-800 text-base leading-tight">{inquiry.customerName}</h3>
-                      <span className="inline-block mt-1 text-base font-bold font-mono tracking-wide bg-stone-100 text-stone-700 px-3 py-1 rounded-lg">{inquiry.id}</span>
+                      <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{inquiry.id}</span>
                     </div>
                   </div>
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <select
                       value={inquiry.status}
                       onChange={(e) => updateOrderStatus(inquiry.id, e.target.value as OrderStatus)}
-                      className={`appearance-none pl-3 pr-7 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
+                      className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
                         inquiry.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
                         inquiry.status === OrderStatus.PENDING   ? 'bg-amber-100 text-amber-700' :
                         inquiry.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
@@ -357,7 +369,7 @@ const AdminDashboard: React.FC = () => {
                     >
                       {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                    <div className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center">
                       <svg className="fill-current h-3 w-3 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                     </div>
                   </div>
@@ -459,37 +471,51 @@ const AdminDashboard: React.FC = () => {
                     <Plus className="w-4 h-4" /> Add Product
                 </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {products.map(product => (
-                <div key={product.id} className="flex justify-between items-center p-3 hover:bg-stone-50 rounded-lg border border-transparent hover:border-stone-100 transition-all">
-                  <div className="flex items-center gap-4">
-                    <img src={product.image} alt={product.name} className="w-12 h-12 rounded-lg object-cover shadow-sm" />
-                    <div>
-                        <p className="font-bold text-stone-800">{product.name}</p>
-                        <p className="text-xs text-stone-500">Price: ₱{product.price}</p>
+                <div key={product.id} className="bg-stone-50 border border-stone-100 rounded-2xl overflow-hidden hover:shadow-md transition-all">
+                  {/* Product info row */}
+                  <div className="flex items-center gap-4 px-4 pt-4 pb-3">
+                    <img src={product.image} alt={product.name} className="w-16 h-16 rounded-xl object-cover shadow-sm flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="font-bold text-stone-800 text-base">{product.name}</p>
+                      <p className="text-sm text-stone-500 mt-0.5">₱{product.price.toLocaleString()}</p>
+                      {product.stock <= 5 && (
+                        <span className="inline-block text-xs bg-red-50 text-red-600 font-semibold px-2 py-0.5 rounded-full mt-1.5 border border-red-100">⚠ Low Stock</span>
+                      )}
                     </div>
                   </div>
-                  <div className="flex items-center">
-                    <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden">
+                  {/* Stock control row */}
+                  <div className="flex items-center justify-between px-4 py-3 border-t border-stone-200 bg-white">
+                    <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Stock Quantity</span>
+                    <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden shadow-sm">
                         <button 
                             onClick={() => {
                                 const val = Math.max(0, product.stock - 1);
                                 updateInventory(product.id, 'product', val);
                             }}
-                            className="px-3 h-8 flex items-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-r border-stone-200"
+                            className="w-10 h-9 flex items-center justify-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-r border-stone-200 font-bold text-lg"
                         >
-                            -
+                            −
                         </button>
                         <input 
-                            type="number" 
-                            value={product.stock}
+                            type="number"
+                            value={getStockDisplay(product.id, product.stock)}
                             onChange={(e) => {
-                                const val = parseInt(e.target.value);
+                                const raw = e.target.value;
+                                setStockDrafts(d => ({ ...d, [product.id]: raw }));
+                                const val = parseInt(raw, 10);
                                 if (!isNaN(val) && val >= 0) {
                                     updateInventory(product.id, 'product', val);
                                 }
                             }}
-                            className="w-16 text-center h-8 outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            onBlur={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                const safe = isNaN(val) || val < 0 ? 0 : val;
+                                updateInventory(product.id, 'product', safe);
+                                setStockDrafts(d => { const n = { ...d }; delete n[product.id]; return n; });
+                            }}
+                            className="w-16 text-center h-9 outline-none text-sm font-bold text-stone-700 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             min="0"
                         />
                         <button 
@@ -497,12 +523,11 @@ const AdminDashboard: React.FC = () => {
                                 const val = product.stock + 1;
                                 updateInventory(product.id, 'product', val);
                             }}
-                            className="px-3 h-8 flex items-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-l border-stone-200"
+                            className="w-10 h-9 flex items-center justify-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-l border-stone-200 font-bold text-lg"
                         >
                             +
                         </button>
                     </div>
-                    <span className="text-xs text-stone-400">in stock</span>
                   </div>
                 </div>
               ))}
@@ -626,20 +651,80 @@ const AdminDashboard: React.FC = () => {
       {activeTab === 'reports' && (
         <div className="space-y-8">
             {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="bg-gradient-to-r from-rose-500 to-rose-600 text-white p-6 rounded-xl shadow-md">
-                    <p className="text-rose-100 text-sm font-medium">Total Revenue</p>
-                    <p className="text-3xl font-bold mt-1">₱{totalRevenue.toLocaleString()}</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {/* Row 1 */}
+                <div className="bg-gradient-to-br from-rose-500 to-rose-600 text-white p-5 rounded-xl shadow-md flex flex-col justify-between">
+                    <p className="text-rose-100 text-xs font-semibold uppercase tracking-wide">Total Revenue</p>
+                    <div>
+                        <p className="text-3xl font-bold mt-2">₱{totalRevenue.toLocaleString()}</p>
+                        <p className="text-rose-200 text-xs mt-1">from non-cancelled orders</p>
+                    </div>
                 </div>
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
-                    <p className="text-stone-500 text-sm font-medium">Total Orders</p>
-                    <p className="text-3xl font-bold text-stone-800 mt-1">{orders.length}</p>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 flex flex-col justify-between">
+                    <p className="text-stone-400 text-xs font-semibold uppercase tracking-wide">Total Orders</p>
+                    <div>
+                        <p className="text-3xl font-bold text-stone-800 mt-2">{orders.filter(o => !o.isCustomInquiry).length}</p>
+                        <p className="text-stone-400 text-xs mt-1">{orders.filter(o => o.isCustomInquiry).length} custom inquiries</p>
+                    </div>
                 </div>
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
-                    <p className="text-stone-500 text-sm font-medium">Active Inquiries</p>
-                    <p className="text-3xl font-bold text-stone-800 mt-1">{orders.filter(o => o.isCustomInquiry && o.status === OrderStatus.PENDING).length}</p>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 flex flex-col justify-between">
+                    <p className="text-stone-400 text-xs font-semibold uppercase tracking-wide">Avg Order Value</p>
+                    <div>
+                        <p className="text-3xl font-bold text-stone-800 mt-2">₱{avgOrderValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+                        <p className="text-stone-400 text-xs mt-1">per completed order</p>
+                    </div>
+                </div>
+                {/* Row 2 */}
+                <div className="bg-green-50 border border-green-100 p-5 rounded-xl flex flex-col justify-between">
+                    <p className="text-green-600 text-xs font-semibold uppercase tracking-wide">Completed</p>
+                    <div>
+                        <p className="text-3xl font-bold text-green-700 mt-2">{completedOrders}</p>
+                        <p className="text-green-500 text-xs mt-1">
+                          {orders.length > 0 ? Math.round((completedOrders / orders.length) * 100) : 0}% completion rate
+                        </p>
+                    </div>
+                </div>
+                <div className="bg-amber-50 border border-amber-100 p-5 rounded-xl flex flex-col justify-between">
+                    <p className="text-amber-600 text-xs font-semibold uppercase tracking-wide">Pending</p>
+                    <div>
+                        <p className="text-3xl font-bold text-amber-700 mt-2">{pendingOrders}</p>
+                        <p className="text-amber-500 text-xs mt-1">awaiting confirmation</p>
+                    </div>
+                </div>
+                <div className={`p-5 rounded-xl flex flex-col justify-between border ${
+                  needsPriceQuote > 0
+                    ? 'bg-violet-50 border-violet-100'
+                    : 'bg-white border-stone-200'
+                }`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wide ${
+                      needsPriceQuote > 0 ? 'text-violet-600' : 'text-stone-400'
+                    }`}>Needs Price Quote</p>
+                    <div>
+                        <p className={`text-3xl font-bold mt-2 ${
+                          needsPriceQuote > 0 ? 'text-violet-700' : 'text-stone-800'
+                        }`}>{needsPriceQuote}</p>
+                        <p className={`text-xs mt-1 ${
+                          needsPriceQuote > 0 ? 'text-violet-400' : 'text-stone-400'
+                        }`}>custom cake inquiries</p>
+                    </div>
                 </div>
             </div>
+
+            {/* Low Stock Alert Banner */}
+            {lowStockCount > 0 && (
+              <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-xl px-5 py-4">
+                <div className="w-9 h-9 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                  <Package className="w-4 h-4 text-red-500" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-red-700 text-sm">Low Stock Alert</p>
+                  <p className="text-red-500 text-xs">{lowStockCount} product{lowStockCount !== 1 ? 's' : ''} at 5 units or below — consider restocking soon.</p>
+                </div>
+                <button onClick={() => setActiveTab('inventory')} className="text-xs font-bold text-red-600 hover:text-red-700 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap">
+                  View Inventory
+                </button>
+              </div>
+            )}
 
             {/* Charts Section - Stacked for better visibility */}
             <div className="space-y-8">

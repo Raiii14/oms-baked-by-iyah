@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { Modal } from '../components/Modal';
 import { Eye, EyeOff } from 'lucide-react';
@@ -11,6 +11,8 @@ interface AuthProps {
 const Auth: React.FC<AuthProps> = ({ mode }) => {
   const { login, register } = useStore();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/';
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -78,10 +80,11 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
 
   const handleModalClose = () => {
     setShowSuccessModal(false);
+    window.scrollTo({ top: 0, behavior: 'instant' });
     if (mode === 'login') {
-      navigate(email.includes('admin') ? '/admin' : '/');
+      navigate(email.includes('admin') ? '/admin' : redirectTo);
     } else {
-      navigate('/');
+      navigate(redirectTo);
     }
   };
 
