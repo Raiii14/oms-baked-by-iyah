@@ -3,13 +3,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { Modal } from '../components/Modal';
 import { Eye, EyeOff } from 'lucide-react';
+import { UserRole } from '../types';
 
 interface AuthProps {
   mode: 'login' | 'register';
 }
 
 const Auth: React.FC<AuthProps> = ({ mode }) => {
-  const { login, register } = useStore();
+  const { login, register, user } = useStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
@@ -82,7 +83,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
     setShowSuccessModal(false);
     window.scrollTo({ top: 0, behavior: 'instant' });
     if (mode === 'login') {
-      navigate(email.includes('admin') ? '/admin' : redirectTo);
+      navigate(user?.role === UserRole.ADMIN ? '/admin' : redirectTo);
     } else {
       navigate(redirectTo);
     }
@@ -223,8 +224,8 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
           {mode === 'login' && (
             <div className="bg-stone-50 p-3 rounded-md border border-stone-200 text-xs text-stone-500 text-center">
               <p className="font-semibold text-stone-700">Demo Admin Credentials:</p>
-              <p>Email: <span className="font-mono">admin@bakedbyiyah.com</span></p>
-              <p>Password: <span className="font-mono">admin123</span></p>
+              <p>Email: <span className="font-mono">iyah.admin@bakedbyiyah.com</span></p>
+              <p>Password: <span className="font-mono">BakedByIyah@2026</span></p>
             </div>
           )}
 

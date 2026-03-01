@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { OrderStatus, PaymentMethod, ProductCategory, Product } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, LabelList } from 'recharts';
-import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Image as ImageIcon } from 'lucide-react';
+import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
 
 type AdminTab = 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu';
 const VALID_TABS: AdminTab[] = ['orders', 'inquiries', 'inventory', 'reports', 'menu'];
@@ -21,7 +21,7 @@ const formatTime = (t: string): string => {
 };
 
 const AdminDashboard: React.FC = () => {
-  const { orders, products, updateOrderStatus, updateInventory, updateInquiryPrice, addProduct, updateProduct } = useStore();
+  const { orders, products, updateOrderStatus, updateInventory, updateInquiryPrice, addProduct, updateProduct, deleteProduct } = useStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab: AdminTab = (VALID_TABS.includes(searchParams.get('tab') as AdminTab)
     ? searchParams.get('tab') as AdminTab
@@ -37,9 +37,9 @@ const AdminDashboard: React.FC = () => {
   const getStockDisplay = (productId: string, stock: number) =>
     productId in stockDrafts ? stockDrafts[productId] : String(stock);
 
-  // State for editing product image URL (in Current Menu Items)
-  const [editingImageProductId, setEditingImageProductId] = useState<string | null>(null);
-  const [editingImageUrl, setEditingImageUrl] = useState('');
+  // State for full product editing and deletion
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
 
   // Converts any Google Drive sharing/view URL into a direct-embeddable thumbnail URL.
   // Also accepts already-direct URLs untouched.
@@ -617,28 +617,38 @@ const AdminDashboard: React.FC = () => {
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {products.map(product => (
-                        <div key={product.id} className="flex gap-4 p-4 border border-stone-100 rounded-xl hover:shadow-md transition-all bg-stone-50/50">
-                            <div className="relative group w-20 h-20 flex-shrink-0">
-                                <img src={product.image} alt={product.name} className="w-full h-full rounded-lg object-cover bg-stone-200" />
+                        <div key={product.id} className="flex flex-col p-4 border border-stone-100 rounded-xl hover:shadow-md transition-all bg-stone-50/50">
+                            <div className="flex gap-4">
+                                <div className="w-20 h-20 flex-shrink-0">
+                                    <img src={product.image} alt={product.name} className="w-full h-full rounded-lg object-cover bg-stone-200" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <h4 className="font-bold text-stone-800 truncate">{product.name}</h4>
+                                        <span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-full whitespace-nowrap">{product.category}</span>
+                                    </div>
+                                    <p className="text-sm text-stone-500 line-clamp-2 my-1">{product.description}</p>
+                                    <div className="flex justify-between items-center mt-2">
+                                        <span className="font-bold text-rose-500">₱{product.price}</span>
+                                        <span className="text-xs text-stone-400">Stock: {product.stock}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-stone-100">
                                 <button
                                     type="button"
-                                    onClick={() => { setEditingImageProductId(product.id); setEditingImageUrl(product.image); }}
-                                    className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-lg"
+                                    onClick={() => setEditingProduct({ ...product })}
+                                    className="flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-rose-500 hover:bg-rose-50 px-3 py-1.5 rounded-lg transition-colors"
                                 >
-                                    <ImageIcon className="w-5 h-5 text-white" />
-                                    <span className="text-white text-xs mt-1 font-medium">Change URL</span>
+                                    <Pencil className="w-3.5 h-3.5" /> Edit
                                 </button>
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-start">
-                                    <h4 className="font-bold text-stone-800">{product.name}</h4>
-                                    <span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-full">{product.category}</span>
-                                </div>
-                                <p className="text-sm text-stone-500 line-clamp-2 my-1">{product.description}</p>
-                                <div className="flex justify-between items-center mt-2">
-                                    <span className="font-bold text-rose-500">₱{product.price}</span>
-                                    <span className="text-xs text-stone-400">Stock: {product.stock}</span>
-                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setDeletingProductId(product.id)}
+                                    className="flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" /> Remove
+                                </button>
                             </div>
                         </div>
                     ))}
@@ -801,72 +811,132 @@ const AdminDashboard: React.FC = () => {
         </div>
       )}
 
-      {/* Product Image URL Edit Modal */}
-      {editingImageProductId && (() => {
-        const previewUrl = editingImageUrl.trim() ? normalizeImageUrl(editingImageUrl) : '';
+      {/* Full Product Edit Modal */}
+      {editingProduct && (() => {
+        const previewUrl = editingProduct.image.trim() ? normalizeImageUrl(editingProduct.image) : '';
         return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
-            <h4 className="font-bold text-stone-800 mb-4 flex items-center gap-2">
-              <ImageIcon className="w-5 h-5 text-rose-500" /> Change Product Image
-            </h4>
-            <label className="block text-sm font-medium text-stone-700 mb-1">Image URL</label>
-            <input
-              type="url"
-              value={editingImageUrl}
-              onChange={(e) => setEditingImageUrl(e.target.value)}
-              className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm mb-2"
-              placeholder="https://..."
-            />
-            <p className="text-xs text-stone-400 mb-3">
-              You can paste any direct image URL or a Google Drive share link — it will be converted automatically.
-            </p>
-
-            {/* Live Preview */}
-            {previewUrl && (
-              <div className="mb-4">
-                <p className="text-xs font-medium text-stone-500 mb-1">Preview:</p>
-                <div className="w-full h-36 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden flex items-center justify-center">
-                  <img
-                    key={previewUrl}
-                    src={previewUrl}
-                    alt="Preview"
-                    className="w-full h-full object-cover"
-                    onError={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = 'none';
-                      (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex';
-                    }}
-                    onLoad={(e) => {
-                      (e.currentTarget as HTMLImageElement).style.display = 'block';
-                      (e.currentTarget.nextSibling as HTMLElement).style.display = 'none';
-                    }}
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 overflow-y-auto">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 my-4">
+            <h4 className="font-bold text-stone-800 mb-5 text-lg">Edit Product</h4>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Product Name</label>
+                  <input
+                    type="text"
+                    value={editingProduct.name}
+                    onChange={(e) => setEditingProduct(prev => prev ? { ...prev, name: e.target.value } : null)}
+                    className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm"
                   />
-                  <div className="flex-col items-center justify-center text-stone-400 text-xs text-center p-4" style={{display:'none'}}>
-                    <ImageIcon className="w-8 h-8 mb-1 mx-auto opacity-40" />
-                    <span>Image failed to load. Check the URL or file sharing permissions.</span>
-                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Category</label>
+                  <select
+                    value={editingProduct.category}
+                    onChange={(e) => setEditingProduct(prev => prev ? { ...prev, category: e.target.value as ProductCategory } : null)}
+                    className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm"
+                  >
+                    {Object.values(ProductCategory).map(cat => (
+                      <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            )}
-
-            <div className="flex justify-end gap-3">
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Description</label>
+                <textarea
+                  value={editingProduct.description}
+                  onChange={(e) => setEditingProduct(prev => prev ? { ...prev, description: e.target.value } : null)}
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm"
+                  rows={2}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Price (₱)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editingProduct.price}
+                    onChange={(e) => setEditingProduct(prev => prev ? { ...prev, price: Number(e.target.value) } : null)}
+                    className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-stone-700 mb-1">Stock</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editingProduct.stock}
+                    onChange={(e) => setEditingProduct(prev => prev ? { ...prev, stock: Number(e.target.value) } : null)}
+                    className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-stone-700 mb-1">Image URL</label>
+                <input
+                  type="url"
+                  value={editingProduct.image}
+                  onChange={(e) => setEditingProduct(prev => prev ? { ...prev, image: e.target.value } : null)}
+                  className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm"
+                  placeholder="https://..."
+                />
+                <p className="text-xs text-stone-400 mt-1">Google Drive share links are converted automatically.</p>
+              </div>
+              {previewUrl && (
+                <div className="w-full h-32 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden">
+                  <img key={previewUrl} src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 mt-6">
               <button
-                onClick={() => setEditingImageProductId(null)}
+                onClick={() => setEditingProduct(null)}
                 className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg font-medium text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={async () => {
-                  const product = products.find(p => p.id === editingImageProductId);
-                  if (product && editingImageUrl.trim()) {
-                    await updateProduct({ ...product, image: normalizeImageUrl(editingImageUrl) });
-                  }
-                  setEditingImageProductId(null);
+                  await updateProduct({ ...editingProduct, image: normalizeImageUrl(editingProduct.image) });
+                  setEditingProduct(null);
                 }}
                 className="px-4 py-2 bg-rose-500 text-white rounded-lg font-medium text-sm hover:bg-rose-600"
               >
-                Update
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
+
+      {/* Delete Product Confirm Modal */}
+      {deletingProductId && (() => {
+        const product = products.find(p => p.id === deletingProductId);
+        return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <h4 className="font-bold text-stone-800 mb-2">Remove Product?</h4>
+            <p className="text-sm text-stone-500 mb-5">
+              <span className="font-semibold text-stone-700">"{product?.name}"</span> will be permanently removed from the menu. This cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setDeletingProductId(null)}
+                className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  await deleteProduct(deletingProductId);
+                  setDeletingProductId(null);
+                }}
+                className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium text-sm hover:bg-red-600"
+              >
+                Remove
               </button>
             </div>
           </div>

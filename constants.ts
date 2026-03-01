@@ -41,8 +41,8 @@ export const INITIAL_PRODUCTS: Product[] = [
 
 export const MOCK_ADMIN: User = {
   id: 'admin-001',
-  email: 'admin@bakedbyiyah.com',
+  email: 'iyah.admin@bakedbyiyah.com',
   name: 'Iyah',
   role: UserRole.ADMIN,
-  password: 'admin123'
+  password: 'BakedByIyah@2026'
 };
