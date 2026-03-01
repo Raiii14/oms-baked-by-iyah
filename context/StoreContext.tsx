@@ -26,6 +26,7 @@ interface StoreContextType {
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<boolean>;
   register: (name: string, email: string, pass: string, phone: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   addToCart: (product: Product, quantity?: number) => void;
@@ -122,6 +123,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadData();
   }, [addNotification]);
 
+  // Listen for Supabase auth changes — catches OAuth redirects and token refreshes
+  useEffect(() => {
+    const unsubscribe = db.subscribeToAuthChanges((sessionUser) => {
+      if (sessionUser) {
+        setUser(sessionUser);
+      } else {
+        setUser(null);
+        setCart([]);
+      }
+    });
+    return unsubscribe;
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load initial notifications for the logged-in customer (not admin)
   useEffect(() => {
     if (!user || user.role === UserRole.ADMIN) {
@@ -151,6 +165,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return true;
     }
     return false;
+  };
+
+  const loginWithGoogle = async () => {
+    try {
+      await db.loginWithGoogle();
+      // Page redirects to Google — nothing else runs after this
+    } catch (error) {
+      console.error('Google login failed:', error);
+      addNotification('Google login is not available.', 'error');
+    }
   };
 
   const register = async (name: string, email: string, pass: string, phone: string) => {
@@ -375,7 +399,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <StoreContext.Provider value={{
       user, products, cart, orders, notifications, isLoading,
-      login, register, logout, updateUser,
+      login, register, loginWithGoogle, logout, updateUser,
       addToCart, removeFromCart, updateCartQuantity,
       placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
       addNotification, removeNotification,

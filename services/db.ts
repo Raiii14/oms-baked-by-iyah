@@ -9,6 +9,7 @@ export interface DatabaseProvider {
   // Auth
   getSessionUser(): Promise<User | null>;
   login(email: string, pass: string): Promise<User | null>;
+  loginWithGoogle(): Promise<void>;
   register(name: string, email: string, pass: string, phone: string): Promise<User>;
   logout(): Promise<void>;
   updateUser(user: User): Promise<User>;
@@ -36,6 +37,13 @@ export interface DatabaseProvider {
    * Returns an unsubscribe function — call it in useEffect cleanup.
    */
   subscribeToNotifications(userId: string, callback: (notif: UserNotification) => void): () => void;
+
+  /**
+   * Subscribe to Supabase auth state changes (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED).
+   * Fires with the resolved User profile or null. Used to catch OAuth redirects.
+   * Returns an unsubscribe function.
+   */
+  subscribeToAuthChanges(callback: (user: User | null) => void): () => void;
 }
 
 // ─── LocalStorage Implementation (Fallback / Dev) ────────────────────────────
@@ -110,6 +118,10 @@ class LocalStorageService implements DatabaseProvider {
 
   async logout(): Promise<void> {
     localStorage.removeItem('bbi_user');
+  }
+
+  async loginWithGoogle(): Promise<void> {
+    throw new Error('Google login is not available in offline mode.');
   }
 
   async updateUser(user: User): Promise<User> {
@@ -209,6 +221,11 @@ class LocalStorageService implements DatabaseProvider {
 
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
+  }
+
+  subscribeToAuthChanges(_callback: (user: User | null) => void): () => void {
+    // LocalStorage has no real auth events — no-op
+    return () => {};
   }
 }
 
@@ -314,6 +331,15 @@ class SupabaseService implements DatabaseProvider {
 
   async logout(): Promise<void> {
     await supabase.auth.signOut();
+  }
+
+  async loginWithGoogle(): Promise<void> {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) throw error;
+    // Browser redirects to Google — no return value
   }
 
   async updateUser(user: User): Promise<User> {
@@ -480,6 +506,18 @@ class SupabaseService implements DatabaseProvider {
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
+  }
+
+  subscribeToAuthChanges(callback: (user: User | null) => void): () => void {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+        const profile = await this.fetchProfile(session.user.id);
+        callback(profile);
+      } else if (event === 'SIGNED_OUT') {
+        callback(null);
+      }
+    });
+    return () => subscription.unsubscribe();
   }
 }
 

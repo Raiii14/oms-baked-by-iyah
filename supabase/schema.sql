@@ -60,7 +60,7 @@ BEGIN
   INSERT INTO public.profiles (id, name, email, phone_number, role)
   VALUES (
     NEW.id,
-    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    COALESCE(NEW.raw_user_meta_data->>'name', NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
     NEW.email,
     NEW.raw_user_meta_data->>'phone_number',
     COALESCE(NEW.raw_user_meta_data->>'role', 'CUSTOMER')
