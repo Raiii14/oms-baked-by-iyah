@@ -513,9 +513,10 @@ class SupabaseService implements DatabaseProvider {
       if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         const profile = await this.fetchProfile(session.user.id);
         callback(profile);
-      } else if (event === 'SIGNED_OUT') {
-        callback(null);
       }
+      // SIGNED_OUT is intentionally ignored here — it fires on all tabs when
+      // any tab signs out, which would kill sessions in unrelated tabs.
+      // Logout is handled explicitly by the logout() call in StoreContext.
     });
     return () => subscription.unsubscribe();
   }

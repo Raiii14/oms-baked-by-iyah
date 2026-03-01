@@ -123,14 +123,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadData();
   }, [addNotification]);
 
-  // Listen for Supabase auth changes — catches OAuth redirects and token refreshes
+  // Listen for Supabase auth changes — catches OAuth redirects and token refreshes.
+  // SIGNED_OUT is deliberately not handled here to avoid one tab's logout
+  // killing sessions in other concurrent tabs.
   useEffect(() => {
     const unsubscribe = db.subscribeToAuthChanges((sessionUser) => {
       if (sessionUser) {
         setUser(sessionUser);
-      } else {
-        setUser(null);
-        setCart([]);
       }
     });
     return unsubscribe;
