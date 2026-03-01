@@ -40,12 +40,13 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
       return;
     }
 
-    // Philippine Mobile Number Validation Regex
-    const phoneRegex = /^09\d{9}$/
-
-    if (!phoneRegex.test(cleanPhone)) {
-      setError('Please enter a valid 11 digit mobile number starting with 09.');
-      return;
+    // Philippine Mobile Number Validation Regex (register only)
+    if (mode === 'register') {
+      const phoneRegex = /^09\d{9}$/
+      if (!phoneRegex.test(cleanPhone)) {
+        setError('Please enter a valid 11 digit mobile number starting with 09.');
+        return;
+      }
     }
 
     // Injection prevention: Check for dangerous characters in text fields (basic check)
@@ -57,20 +58,13 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
     }
 
     if (mode === 'login') {
-      try {
-        const success = await login(cleanEmail, cleanPassword);
-        if (success) {
-          setShowSuccessModal(true);
-        } else {
-          setError('Invalid credentials');
-        }
-      } catch (err: any) {
-        let errorMessage = err.message || 'Login failed. Please try again.';
-        if (errorMessage.toLowerCase().includes('rate limit exceeded')) {
-            errorMessage = "Too many attempts. Please wait a few minutes before trying again.";
-        }
-        setError(errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1));
+      const success = await login(cleanEmail, cleanPassword);
+      if (success) {
+        setShowSuccessModal(true);
+      } else {
+        setError('Invalid credentials');
       }
+      
     } else {
       if (!cleanName) { setError('Name is required'); return; }
       if (cleanName.length > 25) { setError('Name must be 25 characters or less'); return; }

@@ -11,6 +11,7 @@ const Profile: React.FC = () => {
   const [newPhone, setNewPhone] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [fieldToUpdate, setFieldToUpdate] = useState<'name' | 'phone'>('name');
+  const [showInvalidPhoneModal, setShowInvalidPhoneModal] = useState(false);
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -55,7 +56,7 @@ const Profile: React.FC = () => {
       // Basic validation
       const phMobileRegex = /^(09|\+639)\d{9}$/;
       if (!phMobileRegex.test(newPhone.trim())) {
-        addNotification('Please enter a valid PH mobile number (e.g., 09123456789)', 'error');
+        setShowInvalidPhoneModal(true);
         return;
       }
     }
@@ -160,6 +161,32 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
+      {/* Invalid Phone Modal */}
+      {showInvalidPhoneModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
+            <div className="flex items-center gap-3 text-red-500 mb-4">
+              <AlertCircle className="w-6 h-6" />
+              <h3 className="text-lg font-bold text-stone-900">Invalid Phone Number</h3>
+            </div>
+            <p className="text-stone-600 mb-2">
+              Please enter a valid Philippine mobile number.
+            </p>
+            <p className="text-sm text-stone-500 mb-6">
+              Accepted formats: <strong>09XXXXXXXXX</strong> or <strong>+639XXXXXXXXX</strong>
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowInvalidPhoneModal(false)}
+                className="px-4 py-2 bg-rose-600 text-white rounded-lg font-medium hover:bg-rose-700"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confirmation Modal */}
       {showConfirmModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
@@ -173,6 +200,9 @@ const Profile: React.FC = () => {
               <br/><br/>
               {fieldToUpdate === 'name' && (
                 <span className="text-xs font-semibold text-rose-600">Note: You will only be able to edit your name again after 7 days.</span>
+              )}
+              {fieldToUpdate === 'phone' && (
+                <span className="text-xs font-semibold text-rose-600">Note: You can only change this after 7 days. Make sure your phone number is correct as it will be used for order-related communications.</span>
               )}
             </p>
             <div className="flex justify-end gap-3">

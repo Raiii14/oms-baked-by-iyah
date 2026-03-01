@@ -9,25 +9,21 @@ const AdminDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu'>('orders');
   const [reportTimeframe, setReportTimeframe] = useState<'weekly' | 'monthly'>('weekly');
 
-  // Helper to handle file upload
-  const handleImageUpload = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            resolve(reader.result as string);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-  };
+  // State for editing product image URL (in Current Menu Items)
+  const [editingImageProductId, setEditingImageProductId] = useState<string | null>(null);
+  const [editingImageUrl, setEditingImageUrl] = useState('');
 
-  const handleProductImageUpdate = async (product: Product, file: File) => {
-      try {
-          const imageUrl = await handleImageUpload(file);
-          await updateProduct({ ...product, image: imageUrl });
-      } catch (error) {
-          console.error("Error updating image:", error);
-      }
+  // Converts any Google Drive sharing/view URL into a direct-embeddable thumbnail URL.
+  // Also accepts already-direct URLs untouched.
+  const normalizeImageUrl = (url: string): string => {
+    const trimmed = url.trim();
+    const fileMatch = trimmed.match(/drive\.google\.com\/file\/d\/([^/?]+)/);
+    const ucMatch   = trimmed.match(/[?&]id=([^&]+)/);
+    const id = fileMatch?.[1] ?? (trimmed.includes('drive.google.com') ? ucMatch?.[1] : undefined);
+    if (id) {
+      return `https://lh3.googleusercontent.com/d/${id}`;
+    }
+    return trimmed;
   };
 
   // Orders Pagination & Filtering
@@ -377,7 +373,7 @@ const AdminDashboard: React.FC = () => {
                                 const val = Math.max(0, product.stock - 1);
                                 updateInventory(product.id, 'product', val);
                             }}
-                            className="px-3 py-1 bg-stone-50 hover:bg-stone-100 text-stone-600 border-r border-stone-200"
+                            className="px-3 h-8 flex items-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-r border-stone-200"
                         >
                             -
                         </button>
@@ -390,7 +386,7 @@ const AdminDashboard: React.FC = () => {
                                     updateInventory(product.id, 'product', val);
                                 }
                             }}
-                            className="w-16 text-center py-1 outline-none text-sm font-medium"
+                            className="w-16 text-center h-8 outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             min="0"
                             max="500"
                         />
@@ -399,7 +395,7 @@ const AdminDashboard: React.FC = () => {
                                 const val = Math.min(500, product.stock + 1);
                                 updateInventory(product.id, 'product', val);
                             }}
-                            className="px-3 py-1 bg-stone-50 hover:bg-stone-100 text-stone-600 border-l border-stone-200"
+                            className="px-3 h-8 flex items-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-l border-stone-200"
                         >
                             +
                         </button>
@@ -421,16 +417,15 @@ const AdminDashboard: React.FC = () => {
                     Add New Product
                 </h3>
                 <form 
-                    onSubmit={async (e) => {
+                    onSubmit={(e) => {
                         e.preventDefault();
                         const formData = new FormData(e.currentTarget);
-                        const imageFile = formData.get('imageFile') as File;
-                        let imageUrl = formData.get('imageUrl') as string;
+                        let imageUrl = (formData.get('imageUrl') as string).trim();
 
-                        if (imageFile && imageFile.size > 0) {
-                            imageUrl = await handleImageUpload(imageFile);
-                        } else if (!imageUrl) {
+                        if (!imageUrl) {
                             imageUrl = 'https://images.unsplash.com/photo-1578985545062-69928b1d9587?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+                        } else {
+                            imageUrl = normalizeImageUrl(imageUrl);
                         }
 
                         const newProduct: Product = {
@@ -475,17 +470,11 @@ const AdminDashboard: React.FC = () => {
                     </div>
 
                     <div className="col-span-2">
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Product Image</label>
-                        <div className="space-y-3">
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-stone-500 w-16">Upload:</span>
-                                <input name="imageFile" type="file" accept="image/*" className="block w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100"/>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs font-bold text-stone-500 w-16">Or URL:</span>
-                                <input name="imageUrl" type="url" className="flex-1 border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm" placeholder="https://..." />
-                            </div>
-                        </div>
+                        <label className="block text-sm font-medium text-stone-700 mb-1">Product Image URL</label>
+                        <input name="imageUrl" type="url" className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm" placeholder="https://..." />
+                        <p className="text-xs text-stone-400 mt-1.5">
+                            Paste any image URL or a Google Drive share/view link — it will be converted automatically. Leave empty to use a default image.
+                        </p>
                     </div>
                     <div className="col-span-2 flex justify-end">
                         <button type="submit" className="bg-rose-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-rose-600 transition-colors">
@@ -504,19 +493,14 @@ const AdminDashboard: React.FC = () => {
                         <div key={product.id} className="flex gap-4 p-4 border border-stone-100 rounded-xl hover:shadow-md transition-all bg-stone-50/50">
                             <div className="relative group w-20 h-20 flex-shrink-0">
                                 <img src={product.image} alt={product.name} className="w-full h-full rounded-lg object-cover bg-stone-200" />
-                                <label className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-lg">
-                                    <ImageIcon className="w-6 h-6 text-white" />
-                                    <input 
-                                        type="file" 
-                                        accept="image/*" 
-                                        className="hidden" 
-                                        onChange={(e) => {
-                                            if (e.target.files?.[0]) {
-                                                handleProductImageUpdate(product, e.target.files[0]);
-                                            }
-                                        }}
-                                    />
-                                </label>
+                                <button
+                                    type="button"
+                                    onClick={() => { setEditingImageProductId(product.id); setEditingImageUrl(product.image); }}
+                                    className="absolute inset-0 bg-black/50 flex flex-col items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer rounded-lg"
+                                >
+                                    <ImageIcon className="w-5 h-5 text-white" />
+                                    <span className="text-white text-xs mt-1 font-medium">Change URL</span>
+                                </button>
                             </div>
                             <div className="flex-1">
                                 <div className="flex justify-between items-start">
@@ -629,6 +613,79 @@ const AdminDashboard: React.FC = () => {
             </div>
         </div>
       )}
+
+      {/* Product Image URL Edit Modal */}
+      {editingImageProductId && (() => {
+        const previewUrl = editingImageUrl.trim() ? normalizeImageUrl(editingImageUrl) : '';
+        return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
+            <h4 className="font-bold text-stone-800 mb-4 flex items-center gap-2">
+              <ImageIcon className="w-5 h-5 text-rose-500" /> Change Product Image
+            </h4>
+            <label className="block text-sm font-medium text-stone-700 mb-1">Image URL</label>
+            <input
+              type="url"
+              value={editingImageUrl}
+              onChange={(e) => setEditingImageUrl(e.target.value)}
+              className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm mb-2"
+              placeholder="https://..."
+            />
+            <p className="text-xs text-stone-400 mb-3">
+              You can paste any direct image URL or a Google Drive share link — it will be converted automatically.
+            </p>
+
+            {/* Live Preview */}
+            {previewUrl && (
+              <div className="mb-4">
+                <p className="text-xs font-medium text-stone-500 mb-1">Preview:</p>
+                <div className="w-full h-36 rounded-lg border border-stone-200 bg-stone-100 overflow-hidden flex items-center justify-center">
+                  <img
+                    key={previewUrl}
+                    src={previewUrl}
+                    alt="Preview"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'none';
+                      (e.currentTarget.nextSibling as HTMLElement).style.display = 'flex';
+                    }}
+                    onLoad={(e) => {
+                      (e.currentTarget as HTMLImageElement).style.display = 'block';
+                      (e.currentTarget.nextSibling as HTMLElement).style.display = 'none';
+                    }}
+                  />
+                  <div className="flex-col items-center justify-center text-stone-400 text-xs text-center p-4" style={{display:'none'}}>
+                    <ImageIcon className="w-8 h-8 mb-1 mx-auto opacity-40" />
+                    <span>Image failed to load. Check the URL or file sharing permissions.</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setEditingImageProductId(null)}
+                className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg font-medium text-sm"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  const product = products.find(p => p.id === editingImageProductId);
+                  if (product && editingImageUrl.trim()) {
+                    await updateProduct({ ...product, image: normalizeImageUrl(editingImageUrl) });
+                  }
+                  setEditingImageProductId(null);
+                }}
+                className="px-4 py-2 bg-rose-500 text-white rounded-lg font-medium text-sm hover:bg-rose-600"
+              >
+                Update
+              </button>
+            </div>
+          </div>
+        </div>
+        );
+      })()}
     </div>
   );
 };

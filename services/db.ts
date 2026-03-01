@@ -82,7 +82,8 @@ class LocalStorageService implements DatabaseProvider {
       name,
       email,
       password: hashPassword(pass),
-      role: UserRole.CUSTOMER
+      role: UserRole.CUSTOMER,
+      phoneNumber: phone
     };
 
     const storedUsers = this.get<User[]>('bbi_users_db', []);
