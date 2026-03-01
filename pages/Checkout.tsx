@@ -14,6 +14,7 @@ const Checkout: React.FC = () => {
   const [scheduledDate, setScheduledDate] = useState('');
   const [scheduledTime, setScheduledTime] = useState('');
   const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [deliveryAddress, setDeliveryAddress] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
 
@@ -49,12 +50,18 @@ const Checkout: React.FC = () => {
       return;
     }
 
+    if (deliveryMethod === DeliveryMethod.DELIVERY && !deliveryAddress.trim()) {
+      addNotification("Please enter your delivery address.", "error");
+      return;
+    }
+
     placeOrder({
       paymentMethod,
       deliveryMethod,
       scheduledDate,
       scheduledTime,
-      paymentProof
+      paymentProof,
+      deliveryAddress: deliveryMethod === DeliveryMethod.DELIVERY ? deliveryAddress : undefined
     });
     setIsOrderPlaced(true);
     setShowSuccessModal(true);
@@ -148,8 +155,19 @@ const Checkout: React.FC = () => {
                 ))}
               </div>
               {deliveryMethod === DeliveryMethod.DELIVERY && (
-                 <p className="text-xs text-stone-500 mt-2">Available within Obando and Valenzuela only.</p>
-              )}
+                <div className="mt-4">
+                   <label className="block text-sm font-medium text-stone-600 mb-1">Delivery Address</label>
+                   <textarea
+                     required
+                     value={deliveryAddress}
+                     onChange={(e) => setDeliveryAddress(e.target.value)}
+                     className="w-full p-3 border border-stone-300 rounded-lg focus:ring-rose-500 focus:border-rose-500 outline-none"
+                     placeholder="Enter your complete delivery address (House No., Street, Barangay, City)"
+                     rows={3}
+                   />
+                   <p className="text-xs text-stone-500 mt-2">Available within Obando and Valenzuela only.</p>
+                 </div>
+                )}
             </div>
 
             {/* Payment Method */}
