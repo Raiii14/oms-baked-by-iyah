@@ -8,6 +8,18 @@ import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRig
 type AdminTab = 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu';
 const VALID_TABS: AdminTab[] = ['orders', 'inquiries', 'inventory', 'reports', 'menu'];
 
+// Converts "HH:MM" 24-hr to "H:MM AM/PM"
+const formatTime = (t: string): string => {
+  if (!t || t === 'TBD') return t;
+  if (/AM|PM/i.test(t)) return t;
+  const [hStr, mStr = '00'] = t.split(':');
+  let h = parseInt(hStr, 10);
+  const meridiem = h >= 12 ? 'PM' : 'AM';
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return `${h}:${mStr} ${meridiem}`;
+};
+
 const AdminDashboard: React.FC = () => {
   const { orders, products, updateOrderStatus, updateInventory, updateInquiryPrice, addProduct, updateProduct } = useStore();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -212,7 +224,7 @@ const AdminDashboard: React.FC = () => {
                    </div>
                    <div>
                      <h3 className="font-bold text-stone-800 text-base leading-tight">{order.customerName}</h3>
-                     <span className="inline-block mt-1 text-sm font-mono bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{order.id}</span>
+                     <span className="inline-block mt-1 text-base font-bold font-mono tracking-wide bg-stone-100 text-stone-700 px-3 py-1 rounded-lg">{order.id}</span>
                    </div>
                  </div>
                  <div className="relative self-start sm:self-auto">
@@ -236,10 +248,14 @@ const AdminDashboard: React.FC = () => {
                </div>
 
                {/* Customer Meta */}
-               <div className="px-6 py-3 flex flex-wrap gap-x-6 gap-y-1 text-sm border-b border-stone-100">
-                 <span className="text-stone-500">{order.customerEmail || 'No email provided'}</span>
-                 <span className="text-stone-400">Ordered: {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                 <span className="text-stone-400">Needed: {new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {order.scheduledTime}</span>
+               <div className="px-6 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
+                 {[
+                   order.customerEmail || 'No email provided',
+                   `Ordered: ${new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+                   `Needed: ${new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at ${formatTime(order.scheduledTime)}`,
+                 ].map((item, i) => (
+                   <span key={i} className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">{item}</span>
+                 ))}
                </div>
 
                {/* Order Items */}
@@ -324,7 +340,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-stone-800 text-base leading-tight">{inquiry.customerName}</h3>
-                      <span className="inline-block mt-1 text-sm font-mono bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{inquiry.id}</span>
+                      <span className="inline-block mt-1 text-base font-bold font-mono tracking-wide bg-stone-100 text-stone-700 px-3 py-1 rounded-lg">{inquiry.id}</span>
                     </div>
                   </div>
                   <div className="relative">
@@ -348,9 +364,9 @@ const AdminDashboard: React.FC = () => {
                 </div>
 
                 {/* Customer Meta */}
-                <div className="px-6 py-3 flex flex-wrap gap-x-6 gap-y-1 text-sm border-b border-stone-100">
-                  <span className="text-stone-500">{inquiry.customerEmail || 'No email provided'}</span>
-                  <span className="text-stone-400">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <div className="px-6 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
+                  <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">{inquiry.customerEmail || 'No email provided'}</span>
+                  <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
 
                 {/* Cake Details */}

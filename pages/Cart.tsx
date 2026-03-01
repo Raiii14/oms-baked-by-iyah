@@ -8,6 +8,18 @@ import { UserRole, OrderStatus } from '../types';
 const CART_TABS = ['cart', 'history', 'custom'] as const;
 type CartTab = typeof CART_TABS[number];
 
+// Converts "HH:MM" 24-hr to "H:MM AM/PM"
+const formatTime = (t: string): string => {
+  if (!t || t === 'TBD') return t;
+  if (/AM|PM/i.test(t)) return t;
+  const [hStr, mStr = '00'] = t.split(':');
+  let h = parseInt(hStr, 10);
+  const meridiem = h >= 12 ? 'PM' : 'AM';
+  if (h === 0) h = 12;
+  else if (h > 12) h -= 12;
+  return `${h}:${mStr} ${meridiem}`;
+};
+
 const Cart: React.FC = () => {
   const { cart, updateCartQuantity, removeFromCart, user, orders } = useStore();
   const navigate = useNavigate();
@@ -235,7 +247,7 @@ const Cart: React.FC = () => {
                     <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
                       <ShoppingBag className="w-4 h-4 text-rose-500" />
                     </div>
-                    <span className="inline-block text-sm font-mono bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{order.id}</span>
+                    <span className="text-base font-bold font-mono tracking-wide bg-stone-100 text-stone-700 px-3 py-1 rounded-lg">{order.id}</span>
                   </div>
                   <span className={`self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold ${
                     order.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
@@ -247,20 +259,29 @@ const Cart: React.FC = () => {
                 </div>
 
                 {/* Meta */}
-                <div className="px-5 py-3 flex flex-wrap gap-x-5 gap-y-1 text-sm border-b border-stone-100">
-                  <span className="text-stone-400">Ordered: {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                  <span className="text-stone-400">Needed: {new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {order.scheduledTime}</span>
-                  <span className="text-stone-400">{order.paymentMethod}</span>
+                <div className="px-5 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
+                  {[
+                    `Ordered: ${new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+                    `Needed: ${new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at ${formatTime(order.scheduledTime)}`,
+                    order.paymentMethod,
+                  ].map((item, i) => (
+                    <span key={i} className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">{item}</span>
+                  ))}
                 </div>
 
-                {/* Items */}
+                {/* Items with thumbnails */}
                 <div className="px-5 py-4">
-                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-2">Items</p>
-                  <ul className="space-y-1.5">
+                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Items</p>
+                  <ul className="space-y-2.5">
                     {order.items.map((item, idx) => (
-                      <li key={idx} className="flex justify-between text-sm">
-                        <span className="text-stone-600">{item.quantity}× {item.name}</span>
-                        <span className="font-medium text-stone-700">₱{(item.price * item.quantity).toLocaleString()}</span>
+                      <li key={idx} className="flex items-center gap-3">
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="w-11 h-11 rounded-lg object-cover flex-shrink-0 bg-stone-100 border border-stone-100"
+                        />
+                        <span className="text-stone-600 text-sm flex-1">{item.quantity}× {item.name}</span>
+                        <span className="font-medium text-stone-700 text-sm flex-shrink-0">₱{(item.price * item.quantity).toLocaleString()}</span>
                       </li>
                     ))}
                   </ul>
@@ -302,7 +323,7 @@ const Cart: React.FC = () => {
                     <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
                       <Cake className="w-4 h-4 text-rose-500" />
                     </div>
-                    <span className="inline-block text-sm font-mono bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{inquiry.id}</span>
+                    <span className="text-base font-bold font-mono tracking-wide bg-stone-100 text-stone-700 px-3 py-1 rounded-lg">{inquiry.id}</span>
                   </div>
                   <span className={`self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold ${
                     inquiry.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
@@ -314,9 +335,13 @@ const Cart: React.FC = () => {
                 </div>
 
                 {/* Meta */}
-                <div className="px-5 py-3 flex flex-wrap gap-x-5 gap-y-1 text-sm border-b border-stone-100">
-                  <span className="text-stone-400">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                  <span className="text-stone-400">Needed: {new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <div className="px-5 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
+                  {[
+                    `Submitted: ${new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+                    `Needed: ${new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+                  ].map((item, i) => (
+                    <span key={i} className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">{item}</span>
+                  ))}
                 </div>
 
                 {/* Cake Details */}
