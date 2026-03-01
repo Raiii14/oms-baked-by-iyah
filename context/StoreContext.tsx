@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod } from '../types';
+import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod, UserRole, UserNotification } from '../types';
 import { db } from '../services/db';
 
 interface Notification {
@@ -47,9 +47,20 @@ interface StoreContextType {
   updateProduct: (product: Product) => Promise<void>;
   addNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeNotification: (id: string) => void;
+  userNotifications: UserNotification[];
+  toastQueue: UserNotification[];
+  markNotificationRead: (id: string) => Promise<void>;
+  markAllNotificationsRead: () => Promise<void>;
+  dismissToast: (id: string) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
+
+// Generates a short 6-character uppercase alphanumeric ID (e.g. "A3B7K2")
+const generateId = (): string => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
@@ -67,7 +78,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return saved ? JSON.parse(saved) : [];
   });
   const [orders, setOrders] = useState<Order[]>([]);
-
+  const [userNotifications, setUserNotifications] = useState<UserNotification[]>([]);
+  const [toastQueue, setToastQueue] = useState<UserNotification[]>([]);
+  const knownNotifIdsRef = useRef<Set<string>>(new Set());
 
 
   // Persistence Effects for Client-Side only (User Session & Cart)
@@ -108,6 +121,38 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     loadData();
   }, [addNotification]);
+
+  // Load notifications for the logged-in customer (not admin)
+  useEffect(() => {
+    if (!user || user.role === UserRole.ADMIN) {
+      setUserNotifications([]);
+      knownNotifIdsRef.current = new Set();
+      return;
+    }
+    db.getUserNotifications(user.id).then(notifs => {
+      setUserNotifications(notifs);
+      // Seed known IDs — existing notifications should NOT trigger toasts
+      knownNotifIdsRef.current = new Set(notifs.map(n => n.id));
+    });
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cross-tab sync: admin writes to localStorage in one tab, customer receives it here
+  useEffect(() => {
+    if (!user || user.role === UserRole.ADMIN) return;
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key !== 'bbi_user_notifications') return;
+      db.getUserNotifications(user.id).then(notifs => {
+        const fresh = notifs.filter(n => !knownNotifIdsRef.current.has(n.id));
+        if (fresh.length > 0) {
+          setToastQueue(prev => [...prev, ...fresh]);
+          fresh.forEach(n => knownNotifIdsRef.current.add(n.id));
+        }
+        setUserNotifications(notifs);
+      });
+    };
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auth Logic
   const login = async (email: string, pass: string) => {
@@ -193,7 +238,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setProducts(newProducts); // Local Update
 
     const newOrder: Order = {
-      id: `ORD-${Date.now()}`,
+      id: `ORD-${generateId()}`,
       userId: user.id,
       customerName: user.name,
       customerEmail: user.email,
@@ -212,7 +257,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const submitCustomInquiry = async (details: any) => {
     const newOrder: Order = {
-      id: `INQ-${Date.now()}`,
+      id: `INQ-${generateId()}`,
       userId: user?.id || 'guest',
       customerName: user?.name || details.name,
       customerEmail: details.email || user?.email,
@@ -236,13 +281,36 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   // Admin Logic
+  const getOrderStatusMessage = (orderId: string, status: OrderStatus): string => {
+    const shortId = '#' + orderId.replace(/^(ORD|INQ)-/, ''); // e.g. #A3B7K2
+    switch (status) {
+      case OrderStatus.CONFIRMED: return `Your order ${shortId} has been confirmed! We're getting started. 🎉`;
+      case OrderStatus.BAKING:    return `Your order ${shortId} is now being baked! 🧁`;
+      case OrderStatus.COMPLETED: return `Your order ${shortId} is ready! Come and enjoy. 🎂`;
+      case OrderStatus.CANCELLED: return `Your order ${shortId} has been cancelled. Please contact us for more info.`;
+      default:                    return `Your order ${shortId} status has been updated to ${status}.`;
+    }
+  };
+
   const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
-        const updatedOrder = { ...order, status };
-        await db.updateOrder(updatedOrder);
-        setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
-        console.log(`Email sent to customer: Order ${orderId} is now ${status}`);
+      const updatedOrder = { ...order, status };
+      await db.updateOrder(updatedOrder);
+      setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      // Write a notification for the customer (skip Pending — that's the default)
+      if (status !== OrderStatus.PENDING && order.userId !== 'guest') {
+        const notif: UserNotification = {
+          id: `notif-${Date.now()}`,
+          userId: order.userId,
+          message: getOrderStatusMessage(orderId, status),
+          orderId,
+          orderStatus: status,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        };
+        await db.addUserNotification(notif);
+      }
     }
   };
 
@@ -264,6 +332,21 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
       }
     }
+  };
+
+  const markNotificationRead = async (id: string) => {
+    await db.markNotificationRead(id);
+    setUserNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  };
+
+  const markAllNotificationsRead = async () => {
+    if (!user) return;
+    await db.markAllNotificationsRead(user.id);
+    setUserNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+  };
+
+  const dismissToast = (id: string) => {
+    setToastQueue(prev => prev.filter(n => n.id !== id));
   };
 
   const addProduct = async (product: Product) => {
@@ -294,7 +377,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       login, register, logout, updateUser,
       addToCart, removeFromCart, updateCartQuantity,
       placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct,
-      addNotification, removeNotification
+      addNotification, removeNotification,
+      userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
     }}>
       {children}
     </StoreContext.Provider>

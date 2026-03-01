@@ -74,3 +74,13 @@ export interface Order {
     referenceImage?: string;
   };
 }
+
+export interface UserNotification {
+  id: string;
+  userId: string;
+  message: string;
+  orderId: string;
+  orderStatus: OrderStatus;
+  isRead: boolean;
+  createdAt: string;
+}

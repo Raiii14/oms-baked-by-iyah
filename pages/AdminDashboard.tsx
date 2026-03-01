@@ -1,13 +1,24 @@
 import React, { useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { OrderStatus, PaymentMethod, ProductCategory, Product } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, LabelList } from 'recharts';
 import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Image as ImageIcon } from 'lucide-react';
 
+type AdminTab = 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu';
+const VALID_TABS: AdminTab[] = ['orders', 'inquiries', 'inventory', 'reports', 'menu'];
+
 const AdminDashboard: React.FC = () => {
   const { orders, products, updateOrderStatus, updateInventory, updateInquiryPrice, addProduct, updateProduct } = useStore();
-  const [activeTab, setActiveTab] = useState<'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu'>('orders');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab: AdminTab = (VALID_TABS.includes(searchParams.get('tab') as AdminTab)
+    ? searchParams.get('tab') as AdminTab
+    : 'orders');
+  const setActiveTab = (tab: AdminTab) => setSearchParams({ tab }, { replace: true });
   const [reportTimeframe, setReportTimeframe] = useState<'weekly' | 'monthly'>('weekly');
+
+  // Local price input state per inquiry — only sent to DB on "Update" click
+  const [inquiryPriceInputs, setInquiryPriceInputs] = useState<Record<string, string>>({});
 
   // State for editing product image URL (in Current Menu Items)
   const [editingImageProductId, setEditingImageProductId] = useState<string | null>(null);
@@ -136,7 +147,7 @@ const AdminDashboard: React.FC = () => {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu')}
+              onClick={() => setActiveTab(tab.id as AdminTab)}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-stone-800 text-white shadow-sm'
@@ -185,65 +196,87 @@ const AdminDashboard: React.FC = () => {
             </div>
           </div>
 
-           {paginatedOrders.length === 0 ? <p className="text-center py-8 text-stone-500">No orders found matching filters.</p> : paginatedOrders.map(order => (
-             <div key={order.id} className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
-               <div className="flex flex-col md:flex-row justify-between md:items-start gap-4 mb-4 border-b border-stone-100 pb-4">
-                 <div>
-                   <div className="flex items-center gap-2 mb-1">
-                     <span className="font-bold text-lg text-stone-800">{order.customerName}</span>
+           {paginatedOrders.length === 0 ? (
+             <div className="text-center py-16">
+               <ShoppingBag className="w-12 h-12 text-stone-200 mx-auto mb-3" />
+               <p className="text-stone-400 font-medium">No orders found matching filters.</p>
+             </div>
+           ) : paginatedOrders.map(order => (
+             <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
+
+               {/* Card Header */}
+               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-stone-100 bg-stone-50/60">
+                 <div className="flex items-center gap-3">
+                   <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+                     <ShoppingBag className="w-5 h-5 text-rose-500" />
                    </div>
-                   <p className="text-stone-500 text-sm">{order.customerEmail || 'No email provided'}</p>
-                   <p className="text-stone-500 text-sm mt-1">
-                     <span className="font-medium">Date:</span> {new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
-                   </p>
-                   <p className="text-stone-500 text-sm">
-                     <span className="font-medium">Time:</span> {order.scheduledTime}
-                   </p>
+                   <div>
+                     <h3 className="font-bold text-stone-800 text-base leading-tight">{order.customerName}</h3>
+                     <span className="inline-block mt-1 text-sm font-mono bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{order.id}</span>
+                   </div>
                  </div>
-                 <div className="flex flex-col items-end gap-2">
-                    <div className="text-right">
-                        <p className="font-bold text-lg">₱{order.totalAmount}</p>
-                        <p className="text-xs text-stone-500">{order.paymentMethod}</p>
-                    </div>
-                    <div className="relative w-full md:w-auto">
-                      <select
-                        value={order.status}
-                        onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                        className={`appearance-none w-full md:w-auto pl-4 pr-8 py-2 rounded-lg text-sm font-bold border-none outline-none cursor-pointer transition-colors ${
-                          order.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700 hover:bg-green-200' :
-                          order.status === OrderStatus.PENDING ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' :
-                          order.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
-                          order.status === OrderStatus.BAKING ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' :
-                          'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                        }`}
-                      >
-                        {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                      <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-current opacity-50">
-                        <svg className="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                      </div>
-                    </div>
+                 <div className="relative self-start sm:self-auto">
+                   <select
+                     value={order.status}
+                     onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
+                     className={`appearance-none pl-3 pr-7 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
+                       order.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
+                       order.status === OrderStatus.PENDING   ? 'bg-amber-100 text-amber-700' :
+                       order.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
+                       order.status === OrderStatus.BAKING    ? 'bg-orange-100 text-orange-700' :
+                       'bg-stone-100 text-stone-600'
+                     }`}
+                   >
+                     {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                   </select>
+                   <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                     <svg className="fill-current h-3 w-3 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                   </div>
                  </div>
                </div>
 
-               <ul className="space-y-2">
-                 {order.items.map(item => (
-                   <li key={item.id} className="flex justify-between text-sm">
-                     <span>{item.quantity}x {item.name}</span>
-                     <span className="text-stone-500">₱{item.price * item.quantity}</span>
-                   </li>
-                 ))}
-               </ul>
+               {/* Customer Meta */}
+               <div className="px-6 py-3 flex flex-wrap gap-x-6 gap-y-1 text-sm border-b border-stone-100">
+                 <span className="text-stone-500">{order.customerEmail || 'No email provided'}</span>
+                 <span className="text-stone-400">Ordered: {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                 <span className="text-stone-400">Needed: {new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {order.scheduledTime}</span>
+               </div>
 
-               {/* Payment Proof */}
-               {order.paymentMethod === PaymentMethod.GCASH && order.paymentProof && (
-                 <div className="mt-4 pt-4 border-t border-stone-100">
-                   <p className="text-xs font-bold text-stone-500 mb-1">Payment Receipt:</p>
-                   <a href={order.paymentProof} target="_blank" rel="noreferrer" className="text-rose-500 hover:underline text-sm flex items-center gap-1">
-                     View Receipt
-                   </a>
+               {/* Order Items */}
+               <div className="px-6 py-5">
+                 <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Order Items</p>
+                 <ul className="space-y-2">
+                   {order.items.map(item => (
+                     <li key={item.id} className="flex justify-between items-center text-sm">
+                       <span className="text-stone-700">{item.quantity}× {item.name}</span>
+                       <span className="font-medium text-stone-600">₱{(item.price * item.quantity).toLocaleString()}</span>
+                     </li>
+                   ))}
+                 </ul>
+               </div>
+
+               {/* Total & Payment Footer */}
+               <div className="px-6 py-4 bg-stone-50 border-t border-stone-100">
+                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                   <div>
+                     <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Total Amount</p>
+                     <p className="text-2xl font-bold text-stone-800">₱{order.totalAmount.toLocaleString()}</p>
+                     <p className="text-xs text-stone-400 mt-0.5">{order.paymentMethod}</p>
+                   </div>
+                   {order.paymentMethod === PaymentMethod.GCASH && order.paymentProof && (
+                     <a
+                       href={order.paymentProof}
+                       target="_blank"
+                       rel="noreferrer"
+                       className="inline-flex items-center gap-1.5 text-sm text-rose-500 hover:text-rose-700 font-medium transition-colors"
+                     >
+                       <ImageIcon className="w-4 h-4" />
+                       View Payment Receipt
+                     </a>
+                   )}
                  </div>
-               )}
+               </div>
+
              </div>
            ))}
 
@@ -272,72 +305,126 @@ const AdminDashboard: React.FC = () => {
 
       {/* CUSTOM INQUIRIES TAB */}
       {activeTab === 'inquiries' && (
-          <div className="space-y-4">
-              {inquiries.length === 0 ? <p className="text-center py-8 text-stone-500">No custom cake inquiries yet.</p> : inquiries.map(inquiry => (
-                  <div key={inquiry.id} className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
-                      <div className="flex justify-between items-start mb-4">
-                          <div>
-                              <h3 className="font-bold text-lg text-stone-800">{inquiry.customerName}</h3>
-                              <p className="text-sm text-stone-500">{inquiry.customerEmail || 'No email provided'}</p>
-                              <p className="text-sm text-stone-500 mt-1">
-                                <span className="font-medium">Submitted:</span> {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                              </p>
-                          </div>
-                          <div className="flex flex-col items-end gap-2">
-                            <div className="relative">
-                              <select
-                                value={inquiry.status}
-                                onChange={(e) => updateOrderStatus(inquiry.id, e.target.value as OrderStatus)}
-                                className={`appearance-none pl-4 pr-8 py-2 rounded-lg text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
-                                  inquiry.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700 hover:bg-green-200' :
-                                  inquiry.status === OrderStatus.PENDING ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' :
-                                  inquiry.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700 hover:bg-blue-200' :
-                                  inquiry.status === OrderStatus.BAKING ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' :
-                                  'bg-stone-100 text-stone-700 hover:bg-stone-200'
-                                }`}
-                              >
-                                {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                              </select>
-                              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-current opacity-50">
-                                <svg className="fill-current h-3 w-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
-                              </div>
-                            </div>
-                          </div>
-                      </div>
+        <div className="space-y-4">
+          {inquiries.length === 0 ? (
+            <div className="text-center py-16">
+              <Cake className="w-12 h-12 text-stone-200 mx-auto mb-3" />
+              <p className="text-stone-400 font-medium">No custom cake inquiries yet.</p>
+            </div>
+          ) : inquiries.map(inquiry => {
+            const priceInput = inquiryPriceInputs[inquiry.id] ?? String(inquiry.totalAmount || '');
+            return (
+              <div key={inquiry.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
-                      <div className="bg-purple-50 p-4 rounded-lg mb-4">
-                        <p><strong>Size:</strong> {inquiry.customDetails?.size}</p>
-                        <p><strong>Notes:</strong> {inquiry.customDetails?.notes}</p>
-                        <p><strong>Date Needed:</strong> {new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</p>
-                        {inquiry.customDetails?.referenceImage && (
-                            <div className="mt-2">
-                                    <a href={inquiry.customDetails.referenceImage} target="_blank" rel="noreferrer" className="text-blue-500 underline text-sm">View Reference Image</a>
-                            </div>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-4 bg-stone-50 p-4 rounded-lg border border-stone-200">
-                          <label className="text-sm font-bold text-stone-700">Set Price Quote:</label>
-                          <div className="flex items-center gap-2">
-                              <span className="text-stone-500 font-bold">₱</span>
-                              <input 
-                                type="number" 
-                                defaultValue={inquiry.totalAmount}
-                                onBlur={(e) => updateInquiryPrice(inquiry.id, parseFloat(e.target.value))}
-                                className="w-32 border border-stone-300 rounded px-2 py-1"
-                                placeholder="0.00"
-                              />
-                              <button className="text-xs bg-stone-800 text-white px-3 py-1.5 rounded hover:bg-stone-700">
-                                  Update
-                              </button>
-                          </div>
-                          <span className="text-xs text-stone-500 ml-2">
-                              (Updates automatically on blur or enter)
-                          </span>
-                      </div>
+                {/* Card Header */}
+                <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100 bg-stone-50/60">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
+                      <Cake className="w-5 h-5 text-rose-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-stone-800 text-base leading-tight">{inquiry.customerName}</h3>
+                      <span className="inline-block mt-1 text-sm font-mono bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{inquiry.id}</span>
+                    </div>
                   </div>
-              ))}
-          </div>
+                  <div className="relative">
+                    <select
+                      value={inquiry.status}
+                      onChange={(e) => updateOrderStatus(inquiry.id, e.target.value as OrderStatus)}
+                      className={`appearance-none pl-3 pr-7 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
+                        inquiry.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
+                        inquiry.status === OrderStatus.PENDING   ? 'bg-amber-100 text-amber-700' :
+                        inquiry.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
+                        inquiry.status === OrderStatus.BAKING    ? 'bg-orange-100 text-orange-700' :
+                        'bg-stone-100 text-stone-600'
+                      }`}
+                    >
+                      {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                    </select>
+                    <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                      <svg className="fill-current h-3 w-3 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Customer Meta */}
+                <div className="px-6 py-3 flex flex-wrap gap-x-6 gap-y-1 text-sm border-b border-stone-100">
+                  <span className="text-stone-500">{inquiry.customerEmail || 'No email provided'}</span>
+                  <span className="text-stone-400">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                </div>
+
+                {/* Cake Details */}
+                <div className="px-6 py-5">
+                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Cake Details</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+                    <div className="bg-violet-50 rounded-xl px-4 py-3">
+                      <p className="text-xs text-violet-400 font-medium mb-0.5">Size</p>
+                      <p className="text-sm font-semibold text-violet-800">{inquiry.customDetails?.size || '—'}</p>
+                    </div>
+                    <div className="bg-amber-50 rounded-xl px-4 py-3">
+                      <p className="text-xs text-amber-500 font-medium mb-0.5">Date Needed</p>
+                      <p className="text-sm font-semibold text-amber-800">{new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                    </div>
+                  </div>
+                  {inquiry.customDetails?.notes && (
+                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
+                      <p className="text-xs text-stone-400 font-medium mb-1">Notes from Customer</p>
+                      <p className="text-sm text-stone-700 leading-relaxed">{inquiry.customDetails.notes}</p>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.referenceImage && (
+                    <a
+                      href={inquiry.customDetails.referenceImage}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-700 font-medium transition-colors"
+                    >
+                      <ImageIcon className="w-4 h-4" />
+                      View Reference Image
+                    </a>
+                  )}
+                </div>
+
+                {/* Price Quote */}
+                <div className="px-6 py-4 bg-stone-50 border-t border-stone-100">
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1">
+                      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Price Quote</p>
+                      <p className="text-2xl font-bold text-stone-800">
+                        {inquiry.totalAmount > 0 ? `₱${inquiry.totalAmount.toLocaleString()}` : <span className="text-stone-300">Not set yet</span>}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                        <span className="pl-3 pr-1 text-stone-400 font-bold text-sm">₱</span>
+                        <input
+                          type="number"
+                          value={priceInput}
+                          onChange={(e) => setInquiryPriceInputs(prev => ({ ...prev, [inquiry.id]: e.target.value }))}
+                          className="w-28 px-2 py-2 outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          placeholder="0.00"
+                          min="0"
+                        />
+                      </div>
+                      <button
+                        onClick={() => {
+                          const val = parseFloat(priceInput);
+                          if (!isNaN(val) && val >= 0) {
+                            updateInquiryPrice(inquiry.id, val);
+                          }
+                        }}
+                        className="px-4 py-2 bg-stone-800 text-white text-sm font-semibold rounded-lg hover:bg-stone-700 active:scale-95 transition-all whitespace-nowrap"
+                      >
+                        Set Price
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
       )}
 
       {/* INVENTORY TAB */}
@@ -366,7 +453,7 @@ const AdminDashboard: React.FC = () => {
                         <p className="text-xs text-stone-500">Price: ₱{product.price}</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center">
                     <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden">
                         <button 
                             onClick={() => {
@@ -382,17 +469,16 @@ const AdminDashboard: React.FC = () => {
                             value={product.stock}
                             onChange={(e) => {
                                 const val = parseInt(e.target.value);
-                                if (!isNaN(val) && val >= 0 && val <= 500) {
+                                if (!isNaN(val) && val >= 0) {
                                     updateInventory(product.id, 'product', val);
                                 }
                             }}
                             className="w-16 text-center h-8 outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             min="0"
-                            max="500"
                         />
                         <button 
                             onClick={() => {
-                                const val = Math.min(500, product.stock + 1);
+                                const val = product.stock + 1;
                                 updateInventory(product.id, 'product', val);
                             }}
                             className="px-3 h-8 flex items-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-l border-stone-200"
@@ -400,7 +486,7 @@ const AdminDashboard: React.FC = () => {
                             +
                         </button>
                     </div>
-                    <span className="text-xs text-stone-400 w-12 text-right">/ 500</span>
+                    <span className="text-xs text-stone-400">in stock</span>
                   </div>
                 </div>
               ))}

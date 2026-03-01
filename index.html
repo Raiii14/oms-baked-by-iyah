@@ -10,6 +10,11 @@
       body {
         font-family: 'Poppins', sans-serif;
       }
+      /* Hide Edge/IE native password reveal button to avoid doubling with our custom toggle */
+      input[type="password"]::-ms-reveal,
+      input[type="password"]::-ms-clear {
+        display: none;
+      }
     </style>
   <script type="importmap">
 {

@@ -1,4 +1,4 @@
-import { User, Product, Order, UserRole } from '../types';
+import { User, Product, Order, UserRole, UserNotification } from '../types';
 import { INITIAL_PRODUCTS, MOCK_ADMIN } from '../constants';
 
 // This interface defines the contract that any database service (Supabase, Firebase, etc.) must fulfill.
@@ -18,6 +18,12 @@ export interface DatabaseProvider {
   updateOrder(order: Order): Promise<Order>;
   addProduct(product: Product): Promise<Product>;
   updateProduct(product: Product): Promise<Product>;
+
+  // Notifications
+  getUserNotifications(userId: string): Promise<UserNotification[]>;
+  addUserNotification(notification: UserNotification): Promise<void>;
+  markNotificationRead(notificationId: string): Promise<void>;
+  markAllNotificationsRead(userId: string): Promise<void>;
 }
 
 // --- LocalStorage Implementation (Current) ---
@@ -139,6 +145,34 @@ class LocalStorageService implements DatabaseProvider {
     const updatedProducts = products.map(p => p.id === product.id ? product : p);
     this.set('bbi_products', updatedProducts);
     return product;
+  }
+
+  async getUserNotifications(userId: string): Promise<UserNotification[]> {
+    await this.delay(50);
+    const all = this.get<UserNotification[]>('bbi_user_notifications', []);
+    return all.filter((n: UserNotification) => n.userId === userId);
+  }
+
+  async addUserNotification(notification: UserNotification): Promise<void> {
+    await this.delay(50);
+    const all = this.get<UserNotification[]>('bbi_user_notifications', []);
+    this.set('bbi_user_notifications', [notification, ...all]);
+  }
+
+  async markNotificationRead(notificationId: string): Promise<void> {
+    await this.delay(50);
+    const all = this.get<UserNotification[]>('bbi_user_notifications', []);
+    this.set('bbi_user_notifications', all.map((n: UserNotification) =>
+      n.id === notificationId ? { ...n, isRead: true } : n
+    ));
+  }
+
+  async markAllNotificationsRead(userId: string): Promise<void> {
+    await this.delay(50);
+    const all = this.get<UserNotification[]>('bbi_user_notifications', []);
+    this.set('bbi_user_notifications', all.map((n: UserNotification) =>
+      n.userId === userId ? { ...n, isRead: true } : n
+    ));
   }
 }
 
