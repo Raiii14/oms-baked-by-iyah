@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod, UserRole, UserNotification } from '../types';
 import { db } from '../services/db';
 
@@ -26,7 +26,7 @@ interface StoreContextType {
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<boolean>;
   register: (name: string, email: string, pass: string, phone: string) => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
   addToCart: (product: Product, quantity?: number) => void;
   removeFromCart: (productId: string) => void;
@@ -45,6 +45,7 @@ interface StoreContextType {
   updateInventory: (id: string, type: 'product' | 'ingredient', quantity: number) => Promise<void>;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
+  deleteProduct: (productId: string) => Promise<void>;
   addNotification: (message: string, type?: 'success' | 'error' | 'info') => void;
   removeNotification: (id: string) => void;
   userNotifications: UserNotification[];
@@ -66,10 +67,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isLoading, setIsLoading] = useState(true);
   
   // State initialization
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('bbi_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  // User starts as null; getSessionUser() re-hydrates from Supabase (or localStorage) on mount
+  const [user, setUser] = useState<User | null>(null);
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -80,7 +79,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [orders, setOrders] = useState<Order[]>([]);
   const [userNotifications, setUserNotifications] = useState<UserNotification[]>([]);
   const [toastQueue, setToastQueue] = useState<UserNotification[]>([]);
-  const knownNotifIdsRef = useRef<Set<string>>(new Set());
 
 
   // Persistence Effects for Client-Side only (User Session & Cart)
@@ -101,15 +99,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, []);
 
 
-  // Load initial data from "DB"
+  // Load session + initial data from DB
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
       try {
-        const [loadedProducts, loadedOrders] = await Promise.all([
+        const [sessionUser, loadedProducts, loadedOrders] = await Promise.all([
+          db.getSessionUser(),
           db.getProducts(),
-          db.getOrders()
+          db.getOrders(),
         ]);
+        if (sessionUser) setUser(sessionUser);
         setProducts(loadedProducts);
         setOrders(loadedOrders);
       } catch (error) {
@@ -122,36 +122,25 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     loadData();
   }, [addNotification]);
 
-  // Load notifications for the logged-in customer (not admin)
+  // Load initial notifications for the logged-in customer (not admin)
   useEffect(() => {
     if (!user || user.role === UserRole.ADMIN) {
       setUserNotifications([]);
-      knownNotifIdsRef.current = new Set();
       return;
     }
-    db.getUserNotifications(user.id).then(notifs => {
-      setUserNotifications(notifs);
-      // Seed known IDs — existing notifications should NOT trigger toasts
-      knownNotifIdsRef.current = new Set(notifs.map(n => n.id));
-    });
+    db.getUserNotifications(user.id).then(notifs => setUserNotifications(notifs));
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Cross-tab sync: admin writes to localStorage in one tab, customer receives it here
+  // Subscribe to new notifications in real-time (Supabase Realtime or cross-tab storage event)
   useEffect(() => {
     if (!user || user.role === UserRole.ADMIN) return;
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key !== 'bbi_user_notifications') return;
-      db.getUserNotifications(user.id).then(notifs => {
-        const fresh = notifs.filter(n => !knownNotifIdsRef.current.has(n.id));
-        if (fresh.length > 0) {
-          setToastQueue(prev => [...prev, ...fresh]);
-          fresh.forEach(n => knownNotifIdsRef.current.add(n.id));
-        }
-        setUserNotifications(notifs);
-      });
-    };
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    const unsubscribe = db.subscribeToNotifications(user.id, (newNotif) => {
+      setToastQueue(prev => [...prev, newNotif]);
+      setUserNotifications(prev =>
+        prev.some(n => n.id === newNotif.id) ? prev : [newNotif, ...prev]
+      );
+    });
+    return unsubscribe;
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auth Logic
@@ -169,7 +158,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setUser(newUser);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await db.logout();
     setUser(null);
     setCart([]);
   };
@@ -371,12 +361,23 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
+  const deleteProduct = async (productId: string) => {
+    try {
+      await db.deleteProduct(productId);
+      setProducts(prev => prev.filter(p => p.id !== productId));
+      addNotification("Product removed successfully", "success");
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+      addNotification("Failed to remove product", "error");
+    }
+  };
+
   return (
     <StoreContext.Provider value={{
       user, products, cart, orders, notifications, isLoading,
       login, register, logout, updateUser,
       addToCart, removeFromCart, updateCartQuantity,
-      placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct,
+      placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
       addNotification, removeNotification,
       userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
     }}>
