@@ -4,6 +4,7 @@ import { Upload, Calendar, Send } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import { useNavigate } from 'react-router-dom';
 import { UserRole } from '../types';
+import { compressImage } from '../utils/imageCompression';
 
 const CustomCake: React.FC = () => {
   const { submitCustomInquiry, user } = useStore();
@@ -64,9 +65,16 @@ const CustomCake: React.FC = () => {
     });
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFormData({ ...formData, image: e.target.files[0] });
+      const file = e.target.files[0];
+      try {
+        const compressed = await compressImage(file, 0.7, 1024); // Better quality for reference
+        setFormData({ ...formData, image: compressed });
+      } catch (err) {
+        console.error("Compression failed", err);
+        setFormData({ ...formData, image: file });
+      }
     }
   };
 

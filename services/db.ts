@@ -1,17 +1,16 @@
-import { User, Product, Order, Ingredient, UserRole } from '../types';
-import { INITIAL_PRODUCTS, INITIAL_INGREDIENTS, MOCK_ADMIN } from '../constants';
+import { User, Product, Order, UserRole } from '../types';
+import { INITIAL_PRODUCTS, MOCK_ADMIN } from '../constants';
 
 // This interface defines the contract that any database service (Supabase, Firebase, etc.) must fulfill.
 // To switch databases, you simply create a new class implementing this interface.
 export interface DatabaseProvider {
   // Auth
   login(email: string, pass: string): Promise<User | null>;
-  register(name: string, email: string, pass: string): Promise<User>;
+  register(name: string, email: string, pass: string, phone: string): Promise<User>;
   updateUser(user: User): Promise<User>;
 
   // Data Fetching
   getProducts(): Promise<Product[]>;
-  getIngredients(): Promise<Ingredient[]>;
   getOrders(): Promise<Order[]>;
 
   // Data Mutation
@@ -19,7 +18,6 @@ export interface DatabaseProvider {
   updateOrder(order: Order): Promise<Order>;
   addProduct(product: Product): Promise<Product>;
   updateProduct(product: Product): Promise<Product>;
-  updateIngredient(ingredient: Ingredient): Promise<Ingredient>;
 }
 
 // --- LocalStorage Implementation (Current) ---
@@ -36,7 +34,7 @@ class LocalStorageService implements DatabaseProvider {
   }
 
   // Helper to set data
-  private set(key: string, val: any) {
+  private set(key: string, val: unknown) {
     localStorage.setItem(key, JSON.stringify(val));
   }
 
@@ -67,7 +65,7 @@ class LocalStorageService implements DatabaseProvider {
     return foundUser || null;
   }
 
-  async register(name: string, email: string, pass: string): Promise<User> {
+  async register(name: string, email: string, pass: string, phone: string): Promise<User> {
     await this.delay();
     const hashPassword = (str: string) => {
         let hash = 0;
@@ -107,11 +105,6 @@ class LocalStorageService implements DatabaseProvider {
     return products.filter((p: Product) => p.id !== 'p5');
   }
 
-  async getIngredients(): Promise<Ingredient[]> {
-    await this.delay(100);
-    return this.get<Ingredient[]>('bbi_ingredients', INITIAL_INGREDIENTS);
-  }
-
   async getOrders(): Promise<Order[]> {
     await this.delay(100);
     return this.get<Order[]>('bbi_orders', []);
@@ -145,14 +138,6 @@ class LocalStorageService implements DatabaseProvider {
     const updatedProducts = products.map(p => p.id === product.id ? product : p);
     this.set('bbi_products', updatedProducts);
     return product;
-  }
-
-  async updateIngredient(ingredient: Ingredient): Promise<Ingredient> {
-    await this.delay();
-    const ingredients = this.get<Ingredient[]>('bbi_ingredients', INITIAL_INGREDIENTS);
-    const updatedIngredients = ingredients.map(i => i.id === ingredient.id ? ingredient : i);
-    this.set('bbi_ingredients', updatedIngredients);
-    return ingredient;
   }
 }
 

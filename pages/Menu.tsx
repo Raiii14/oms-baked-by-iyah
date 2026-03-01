@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
-import { ProductCategory, UserRole } from '../types';
+import { ProductCategory, UserRole, Product } from '../types';
 import { Search, Plus } from 'lucide-react';
 
-const ProductCard: React.FC<{ product: any, addToCart: any }> = ({ product, addToCart }) => {
+const ProductCard: React.FC<{ product: Product, addToCart: (product: Product, quantity: number) => void }> = ({ product, addToCart }) => {
   const { user } = useStore();
   const [quantity, setQuantity] = useState(1);
 

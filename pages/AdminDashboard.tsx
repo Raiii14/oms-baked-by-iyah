@@ -53,7 +53,7 @@ const AdminDashboard: React.FC = () => {
   const inquiries = orders.filter(o => o.isCustomInquiry);
 
   // Reports Data
-  const validOrders = orders.filter(o => o.status !== OrderStatus.CANCELLED);
+  const validOrders = React.useMemo(() => orders.filter(o => o.status !== OrderStatus.CANCELLED), [orders]);
   
   const totalRevenue = validOrders.reduce((acc, o) => acc + o.totalAmount, 0);
   
@@ -140,7 +140,7 @@ const AdminDashboard: React.FC = () => {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as any)}
+              onClick={() => setActiveTab(tab.id as 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu')}
               className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all whitespace-nowrap ${
                 activeTab === tab.id
                   ? 'bg-stone-800 text-white shadow-sm'

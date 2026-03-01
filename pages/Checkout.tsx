@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock, ArrowLeft } from 'lucide-react';
 import { DeliveryMethod, PaymentMethod } from '../types';
 import { Modal } from '../components/Modal';
+import { compressImage } from '../utils/imageCompression';
 
 const Checkout: React.FC = () => {
   const { cart, placeOrder, user, addNotification } = useStore();
@@ -202,7 +203,20 @@ const Checkout: React.FC = () => {
                        <input 
                           type="file" 
                           accept="image/*"
-                          onChange={(e) => setPaymentProof(e.target.files?.[0] || null)}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              try {
+                                const compressed = await compressImage(file, 0.5, 800);
+                                setPaymentProof(compressed);
+                              } catch (err) {
+                                console.error("Compression failed", err);
+                                setPaymentProof(file);
+                              }
+                            } else {
+                              setPaymentProof(null);
+                            }
+                          }}
                           className="block w-full text-sm text-stone-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-rose-50 file:text-rose-700 hover:file:bg-rose-100"
                        />
                     </div>

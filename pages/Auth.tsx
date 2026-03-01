@@ -14,6 +14,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
   
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -28,6 +29,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
     // Basic sanitization (trimming)
     const cleanEmail = email.trim();
     const cleanName = name.trim();
+    const cleanPhone = phoneNumber.trim();
     const cleanPassword = password; // Passwords shouldn't be trimmed usually, but for safety in this context
 
     // Email Validation Regex
@@ -38,27 +40,44 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
       return;
     }
 
+    // Philippine Mobile Number Validation Regex
+    const phoneRegex = /^09\d{9}$/
+
+    if (!phoneRegex.test(cleanPhone)) {
+      setError('Please enter a valid 11 digit mobile number starting with 09.');
+      return;
+    }
+
     // Injection prevention: Check for dangerous characters in text fields (basic check)
     // React escapes by default, but we can explicitly disallow certain patterns if requested
     const dangerousPattern = /['"<>;]/;
-    if (dangerousPattern.test(cleanEmail) || (mode === 'register' && dangerousPattern.test(cleanName))) {
+    if (dangerousPattern.test(cleanEmail) || (mode === 'register' && (dangerousPattern.test(cleanName) || dangerousPattern.test(cleanPhone)))) {
        setError('Invalid characters detected. Please avoid using quotes or special symbols.');
        return;
     }
 
     if (mode === 'login') {
-      const success = await login(cleanEmail, cleanPassword);
-      if (success) {
-        setShowSuccessModal(true);
-      } else {
-        setError('Invalid credentials');
+      try {
+        const success = await login(cleanEmail, cleanPassword);
+        if (success) {
+          setShowSuccessModal(true);
+        } else {
+          setError('Invalid credentials');
+        }
+      } catch (err: any) {
+        let errorMessage = err.message || 'Login failed. Please try again.';
+        if (errorMessage.toLowerCase().includes('rate limit exceeded')) {
+            errorMessage = "Too many attempts. Please wait a few minutes before trying again.";
+        }
+        setError(errorMessage.charAt(0).toUpperCase() + errorMessage.slice(1));
       }
     } else {
       if (!cleanName) { setError('Name is required'); return; }
       if (cleanName.length > 25) { setError('Name must be 25 characters or less'); return; }
+      if (!cleanPhone) { setError('Phone number is required'); return; }
       if (cleanPassword !== confirmPassword) { setError('Passwords do not match'); return; }
       
-      await register(cleanName, cleanEmail, cleanPassword);
+      await register(cleanName, cleanEmail, cleanPassword, cleanPhone);
       setShowSuccessModal(true);
     }
   };
@@ -127,6 +146,21 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
+            {mode === 'register' && (
+              <div>
+                <label htmlFor="phone-number" className="sr-only">Phone Number</label>
+                <input
+                  id="phone-number"
+                  name="phone"
+                  type="tel"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-3 border border-stone-300 placeholder-stone-500 text-stone-900 focus:outline-none focus:ring-rose-500 focus:border-rose-500 focus:z-10 sm:text-sm"
+                  placeholder="Phone Number (e.g., 09123456789)"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                />
+              </div>
+            )}
             <div className="relative">
               <label htmlFor="password" className="sr-only">Password</label>
               <input

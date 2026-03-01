@@ -10,6 +10,7 @@ export interface User {
   role: UserRole;
   password?: string; // In a real app, never store plain text
   lastNameUpdate?: number; // Timestamp of last name update
+  phoneNumber?: string;
 }
 
 export enum ProductCategory {
@@ -26,14 +27,6 @@ export interface Product {
   category: ProductCategory;
   image: string;
   stock: number;
-}
-
-export interface Ingredient {
-  id: string;
-  name: string;
-  unit: string;
-  quantity: number;
-  threshold: number;
 }
 
 export interface CartItem extends Product {
@@ -72,6 +65,8 @@ export interface Order {
   scheduledTime: string;
   createdAt: string;
   customerEmail?: string;
+  customerPhone?: string;
+  deliveryAddress?: string;
   isCustomInquiry?: boolean;
   customDetails?: {
     size: string;

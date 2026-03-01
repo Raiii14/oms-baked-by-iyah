@@ -9,14 +9,10 @@ const Cart: React.FC = () => {
   const { cart, updateCartQuantity, removeFromCart, user, orders } = useStore();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState<'cart' | 'history' | 'custom'>('cart');
+  const [activeTab, setActiveTab] = useState<'cart' | 'history' | 'custom'>(
+    (location.state as { activeTab?: 'cart' | 'history' | 'custom' })?.activeTab || 'cart'
+  );
   const [showLoginWarning, setShowLoginWarning] = useState(false);
-
-  useEffect(() => {
-    if (location.state && location.state.activeTab) {
-      setActiveTab(location.state.activeTab);
-    }
-  }, [location.state]);
 
   useEffect(() => {
     // Removed the automatic notification on mount to rely on the modal instead

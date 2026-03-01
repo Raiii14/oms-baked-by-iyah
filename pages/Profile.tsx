@@ -7,13 +7,17 @@ const Profile: React.FC = () => {
   const { user, updateUser, addNotification } = useStore();
   const [isEditingName, setIsEditingName] = useState(false);
   const [newName, setNewName] = useState('');
+  const [isEditingPhone, setIsEditingPhone] = useState(false);
+  const [newPhone, setNewPhone] = useState('');
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [fieldToUpdate, setFieldToUpdate] = useState<'name' | 'phone'>('name');
 
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  const handleEditClick = () => {
+  const handleEditClick = (field: 'name' | 'phone') => {
+    if (field === 'name') {
     // Check 7-day cooldown
     if (user.lastNameUpdate) {
       const daysSinceUpdate = (Date.now() - user.lastNameUpdate) / (1000 * 60 * 60 * 24);
@@ -25,28 +29,56 @@ const Profile: React.FC = () => {
     }
     setNewName(user.name);
     setIsEditingName(true);
+      setFieldToUpdate('name');
+    } else {
+      setNewPhone(user.phoneNumber || '');
+      setIsEditingPhone(true);
+      setFieldToUpdate('phone');
+    }
   };
 
-  const handleSaveName = () => {
-    if (newName.trim().length === 0) {
-      addNotification('Name cannot be empty', 'error');
-      return;
+  const handleSave = (field: 'name' | 'phone') => {
+    if (field === 'name') {
+      if (newName.trim().length === 0) {
+        addNotification('Name cannot be empty', 'error');
+        return;
+      }
+      if (newName.trim().length > 25) {
+        addNotification('Name must be 25 characters or less', 'error');
+        return;
+      }
+    } else {
+      if (!newPhone.trim()) {
+        addNotification('Phone number cannot be empty', 'error');
+        return;
+      }
+      // Basic validation
+      const phMobileRegex = /^(09|\+639)\d{9}$/;
+      if (!phMobileRegex.test(newPhone.trim())) {
+        addNotification('Please enter a valid PH mobile number (e.g., 09123456789)', 'error');
+        return;
+      }
     }
-    if (newName.trim().length > 25) {
-      addNotification('Name must be 25 characters or less', 'error');
-      return;
-    }
+    setFieldToUpdate(field);
     setShowConfirmModal(true);
   };
 
-  const confirmNameChange = async () => {
-    await updateUser({ 
-      name: newName.trim(),
-      lastNameUpdate: Date.now()
-    });
-    setIsEditingName(false);
+  const confirmChange = async () => {
+    if (fieldToUpdate === 'name') {
+      await updateUser({ 
+        name: newName.trim(),
+        lastNameUpdate: Date.now()
+      });
+      setIsEditingName(false);
+      addNotification('Name updated successfully!');
+    } else {
+      await updateUser({
+        phoneNumber: newPhone.trim()
+      });
+      setIsEditingPhone(false);
+      addNotification('Phone number updated successfully!');
+    }
     setShowConfirmModal(false);
-    addNotification('Name updated successfully!');
   };
 
   return (
@@ -76,13 +108,13 @@ const Profile: React.FC = () => {
                       className="flex-1 border border-stone-300 rounded px-2 py-1 text-sm"
                       maxLength={25}
                     />
-                    <button onClick={handleSaveName} className="text-green-600 hover:text-green-700 font-medium text-xs">Save</button>
+                    <button onClick={() => handleSave('name')} className="text-green-600 hover:text-green-700 font-medium text-xs">Save</button>
                     <button onClick={() => setIsEditingName(false)} className="text-stone-500 hover:text-stone-600 font-medium text-xs">Cancel</button>
                   </div>
                 ) : (
                   <>
                     <span>{user.name}</span>
-                    <button onClick={handleEditClick} className="text-rose-500 hover:text-rose-600">
+                    <button onClick={() => handleEditClick('name')} className="text-rose-500 hover:text-rose-600">
                       <Edit2 className="w-4 h-4" />
                     </button>
                   </>
@@ -95,6 +127,33 @@ const Profile: React.FC = () => {
               </dt>
               <dd className="mt-1 text-sm text-stone-900 sm:mt-0 sm:col-span-2">
                 {user.email}
+              </dd>
+            </div>
+            <div className="bg-stone-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6 items-center">
+              <dt className="text-sm font-medium text-stone-500">
+                Phone Number
+              </dt>
+              <dd className="mt-1 text-sm text-stone-900 sm:mt-0 sm:col-span-2 flex justify-between items-center">
+                {isEditingPhone ? (
+                  <div className="flex gap-2 w-full">
+                    <input 
+                      type="tel" 
+                      value={newPhone}
+                      onChange={(e) => setNewPhone(e.target.value)}
+                      className="flex-1 border border-stone-300 rounded px-2 py-1 text-sm"
+                      placeholder="09123456789"
+                    />
+                    <button onClick={() => handleSave('phone')} className="text-green-600 hover:text-green-700 font-medium text-xs">Save</button>
+                    <button onClick={() => setIsEditingPhone(false)} className="text-stone-500 hover:text-stone-600 font-medium text-xs">Cancel</button>
+                  </div>
+                ) : (
+                  <>
+                    <span>{user.phoneNumber || 'Not set'}</span>
+                    <button onClick={() => handleEditClick('phone')} className="text-rose-500 hover:text-rose-600">
+                      <Edit2 className="w-4 h-4" />
+                    </button>
+                  </>
+                )}
               </dd>
             </div>
           </dl>
@@ -110,9 +169,11 @@ const Profile: React.FC = () => {
               <h3 className="text-lg font-bold text-stone-900">Confirm Change</h3>
             </div>
             <p className="text-stone-600 mb-6">
-              Are you sure you want to change your name to <strong>{newName}</strong>? 
+              Are you sure you want to change your {fieldToUpdate} to <strong>{fieldToUpdate === 'name' ? newName : newPhone}</strong>? 
               <br/><br/>
-              <span className="text-xs font-semibold text-rose-600">Note: You will only be able to edit your name again after 7 days.</span>
+              {fieldToUpdate === 'name' && (
+                <span className="text-xs font-semibold text-rose-600">Note: You will only be able to edit your name again after 7 days.</span>
+              )}
             </p>
             <div className="flex justify-end gap-3">
               <button 
@@ -122,7 +183,7 @@ const Profile: React.FC = () => {
                 Cancel
               </button>
               <button 
-                onClick={confirmNameChange}
+                onClick={confirmChange}
                 className="px-4 py-2 bg-rose-600 text-white rounded-lg font-medium hover:bg-rose-700"
               >
                 Confirm

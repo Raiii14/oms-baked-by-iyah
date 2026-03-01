@@ -1,4 +1,4 @@
-import { Product, ProductCategory, Ingredient, User, UserRole } from './types';
+import { Product, ProductCategory, User, UserRole } from './types';
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
@@ -37,14 +37,6 @@ export const INITIAL_PRODUCTS: Product[] = [
     image: 'https://picsum.photos/400/400?random=4',
     stock: 0 // Sold out test
   }
-];
-
-export const INITIAL_INGREDIENTS: Ingredient[] = [
-  { id: 'i1', name: 'Flour', unit: 'kg', quantity: 50, threshold: 10 },
-  { id: 'i2', name: 'Sugar', unit: 'kg', quantity: 30, threshold: 5 },
-  { id: 'i3', name: 'Eggs', unit: 'tray', quantity: 12, threshold: 2 },
-  { id: 'i4', name: 'Cocoa Powder', unit: 'kg', quantity: 8, threshold: 2 },
-  { id: 'i5', name: 'Butter', unit: 'block', quantity: 20, threshold: 5 },
 ];
 
 export const MOCK_ADMIN: User = {

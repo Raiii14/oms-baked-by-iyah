@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { User, Product, Order, Ingredient, CartItem, OrderStatus, PaymentMethod, DeliveryMethod } from '../types';
+import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod } from '../types';
 import { db } from '../services/db';
 
 interface Notification {
@@ -8,16 +8,24 @@ interface Notification {
   type: 'success' | 'error' | 'info';
 }
 
+interface CustomInquiryDetails {
+  name?: string;
+  email?: string;
+  date: string;
+  size: string;
+  notes: string;
+  image?: File | null;
+}
+
 interface StoreContextType {
   user: User | null;
   products: Product[];
-  ingredients: Ingredient[];
   cart: CartItem[];
   orders: Order[];
   notifications: Notification[];
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<boolean>;
-  register: (name: string, email: string, pass: string) => Promise<void>;
+  register: (name: string, email: string, pass: string, phone: string) => Promise<void>;
   logout: () => void;
   updateUser: (updates: Partial<User>) => Promise<void>;
   addToCart: (product: Product, quantity?: number) => void;
@@ -29,8 +37,9 @@ interface StoreContextType {
     scheduledDate: string;
     scheduledTime: string;
     paymentProof?: File | null;
+    deliveryAddress?: string;
   }) => Promise<void>;
-  submitCustomInquiry: (details: any) => Promise<void>;
+  submitCustomInquiry: (details: CustomInquiryDetails) => Promise<void>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   updateInquiryPrice: (orderId: string, price: number) => Promise<void>;
   updateInventory: (id: string, type: 'product' | 'ingredient', quantity: number) => Promise<void>;
@@ -53,35 +62,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [cart, setCart] = useState<CartItem[]>(() => {
     const saved = localStorage.getItem('bbi_cart');
     return saved ? JSON.parse(saved) : [];
   });
   const [orders, setOrders] = useState<Order[]>([]);
 
-  // Load initial data from "DB"
-  useEffect(() => {
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const [loadedProducts, loadedIngredients, loadedOrders] = await Promise.all([
-          db.getProducts(),
-          db.getIngredients(),
-          db.getOrders()
-        ]);
-        setProducts(loadedProducts);
-        setIngredients(loadedIngredients);
-        setOrders(loadedOrders);
-      } catch (error) {
-        console.error("Failed to load data:", error);
-        addNotification("Failed to load data from server", "error");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadData();
-  }, []);
+
 
   // Persistence Effects for Client-Side only (User Session & Cart)
   // We don't persist products/orders here anymore because they come from the "DB"
@@ -100,6 +87,28 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setNotifications(prev => prev.filter(n => n.id !== id));
   }, []);
 
+
+  // Load initial data from "DB"
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const [loadedProducts, loadedOrders] = await Promise.all([
+          db.getProducts(),
+          db.getOrders()
+        ]);
+        setProducts(loadedProducts);
+        setOrders(loadedOrders);
+      } catch (error) {
+        console.error("Failed to load data:", error);
+        addNotification("Failed to load data from server", "error");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
+  }, [addNotification]);
+
   // Auth Logic
   const login = async (email: string, pass: string) => {
     const foundUser = await db.login(email, pass);
@@ -110,8 +119,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     return false;
   };
 
-  const register = async (name: string, email: string, pass: string) => {
-    const newUser = await db.register(name, email, pass);
+  const register = async (name: string, email: string, pass: string, phone: string) => {
+    const newUser = await db.register(name, email, pass, phone);
     setUser(newUser);
   };
 
@@ -254,13 +263,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         await db.updateProduct(updatedProduct);
         setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
       }
-    } else {
-      const ingredient = ingredients.find(i => i.id === id);
-      if (ingredient) {
-        const updatedIngredient = { ...ingredient, quantity };
-        await db.updateIngredient(updatedIngredient);
-        setIngredients(prev => prev.map(i => i.id === id ? updatedIngredient : i));
-      }
     }
   };
 
@@ -288,7 +290,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   return (
     <StoreContext.Provider value={{
-      user, products, ingredients, cart, orders, notifications, isLoading,
+      user, products, cart, orders, notifications, isLoading,
       login, register, logout, updateUser,
       addToCart, removeFromCart, updateCartQuantity,
       placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct,
