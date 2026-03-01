@@ -219,15 +219,6 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
               {mode === 'login' ? 'Sign in' : 'Register'}
             </button>
           </div>
-          
-          {/* Demo Credentials Helper */}
-          {mode === 'login' && (
-            <div className="bg-stone-50 p-3 rounded-md border border-stone-200 text-xs text-stone-500 text-center">
-              <p className="font-semibold text-stone-700">Demo Admin Credentials:</p>
-              <p>Email: <span className="font-mono">iyah.admin@bakedbyiyah.com</span></p>
-              <p>Password: <span className="font-mono">BakedByIyah@2026</span></p>
-            </div>
-          )}
 
           {/* Google Mock */}
           <div>
