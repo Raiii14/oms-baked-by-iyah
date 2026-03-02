@@ -8,8 +8,8 @@ if (!rootElement) {
 }
 
 const root = ReactDOM.createRoot(rootElement);
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// React.StrictMode intentionally double-mounts components in development,
+// which creates two Supabase auth instances competing for the same Web Lock
+// (lock:sb-...-auth-token). The second instance steals the lock and breaks
+// all auth operations. StrictMode is removed to prevent this.
+root.render(<App />);
