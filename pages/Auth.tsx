@@ -60,22 +60,26 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
        return;
     }
 
-    if (mode === 'login') {
-      const success = await login(cleanEmail, cleanPassword);
-      if (success) {
-        setShowSuccessModal(true);
+    try {
+      if (mode === 'login') {
+        const success = await login(cleanEmail, cleanPassword);
+        if (success) {
+          setShowSuccessModal(true);
+        } else {
+          setError('Invalid email or password. Please try again.');
+        }
       } else {
-        setError('Invalid credentials');
+        if (!cleanName) { setError('Name is required'); return; }
+        if (cleanName.length > 25) { setError('Name must be 25 characters or less'); return; }
+        if (!cleanPhone) { setError('Phone number is required'); return; }
+        if (cleanPassword !== confirmPassword) { setError('Passwords do not match'); return; }
+
+        await register(cleanName, cleanEmail, cleanPassword, cleanPhone);
+        setShowSuccessModal(true);
       }
-      
-    } else {
-      if (!cleanName) { setError('Name is required'); return; }
-      if (cleanName.length > 25) { setError('Name must be 25 characters or less'); return; }
-      if (!cleanPhone) { setError('Phone number is required'); return; }
-      if (cleanPassword !== confirmPassword) { setError('Passwords do not match'); return; }
-      
-      await register(cleanName, cleanEmail, cleanPassword, cleanPhone);
-      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('Auth error:', err);
+      setError(err instanceof Error ? err.message : 'Something went wrong. Please try again.');
     }
   };
 

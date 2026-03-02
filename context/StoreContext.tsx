@@ -158,12 +158,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // Auth Logic
   const login = async (email: string, pass: string) => {
-    const foundUser = await db.login(email, pass);
-    if (foundUser) {
-      setUser(foundUser);
-      return true;
+    try {
+      const foundUser = await db.login(email, pass);
+      if (foundUser) {
+        setUser(foundUser);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Login error:', err);
+      throw err; // re-throw so Auth.tsx catch block can show the message
     }
-    return false;
   };
 
   const loginWithGoogle = async () => {

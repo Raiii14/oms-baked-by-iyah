@@ -295,8 +295,14 @@ class SupabaseService implements DatabaseProvider {
 
   async login(email: string, pass: string): Promise<User | null> {
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
-    if (error || !data.user) return null;
-    return this.fetchProfile(data.user.id);
+    if (error) {
+      console.error('signInWithPassword error:', error.message, error.status);
+      return null;
+    }
+    if (!data.user) return null;
+    const profile = await this.fetchProfile(data.user.id);
+    if (!profile) console.error('fetchProfile returned null for user:', data.user.id);
+    return profile;
   }
 
   async register(name: string, email: string, pass: string, phone: string): Promise<User> {
