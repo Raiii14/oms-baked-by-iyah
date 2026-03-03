@@ -235,12 +235,21 @@ class LocalStorageService implements DatabaseProvider {
 class SupabaseService implements DatabaseProvider {
   // Fetch and map a profiles row → User
   private async fetchProfile(userId: string): Promise<User | null> {
+    console.log('[db] fetchProfile → userId:', userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', userId)
       .single();
-    if (error || !data) return null;
+    if (error) {
+      console.error('[db] fetchProfile error:', error.message, 'code:', error.code);
+      return null;
+    }
+    if (!data) {
+      console.warn('[db] fetchProfile: no row found for user', userId);
+      return null;
+    }
+    console.log('[db] fetchProfile → role:', data.role, 'name:', data.name);
     return {
       id: data.id as string,
       email: data.email as string,
@@ -288,20 +297,44 @@ class SupabaseService implements DatabaseProvider {
   }
 
   async getSessionUser(): Promise<User | null> {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return null;
-    return this.fetchProfile(session.user.id);
+    console.log('[db] getSessionUser → checking session...');
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) console.error('[db] getSession error:', sessionError.message);
+    if (!session?.user) {
+      console.log('[db] getSessionUser → no active session');
+      return null;
+    }
+    console.log('[db] getSessionUser → session found, user id:', session.user.id, 'expires:', new Date(session.expires_at! * 1000).toISOString());
+
+    const profile = await this.fetchProfile(session.user.id);
+    if (profile) return profile;
+
+    // fetchProfile returned null despite a valid-looking session — the cached
+    // token may be stale. Force a server-side refresh and retry once.
+    console.warn('[db] fetchProfile returned null, forcing token refresh...');
+    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError || !refreshed.session?.user) {
+      console.error('[db] Session refresh failed:', refreshError?.message);
+      return null;
+    }
+    console.log('[db] Token refreshed successfully, retrying fetchProfile...');
+    return this.fetchProfile(refreshed.session.user.id);
   }
 
   async login(email: string, pass: string): Promise<User | null> {
+    console.log('[db] login → attempting signInWithPassword for:', email);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) {
-      console.error('signInWithPassword error:', error.message, error.status);
+      console.error('[db] signInWithPassword error:', error.message, 'status:', error.status);
       return null;
     }
-    if (!data.user) return null;
+    if (!data.user) {
+      console.error('[db] signInWithPassword: no user returned despite no error');
+      return null;
+    }
+    console.log('[db] signInWithPassword OK → user id:', data.user.id);
     const profile = await this.fetchProfile(data.user.id);
-    if (!profile) console.error('fetchProfile returned null for user:', data.user.id);
+    if (!profile) console.error('[db] fetchProfile returned null after successful login for:', data.user.id);
     return profile;
   }
 
@@ -515,14 +548,24 @@ class SupabaseService implements DatabaseProvider {
   }
 
   subscribeToAuthChanges(callback: (user: User | null) => void): () => void {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-        const profile = await this.fetchProfile(session.user.id);
-        callback(profile);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      console.log('[db] onAuthStateChange event:', event, 'user:', session?.user?.id ?? 'none');
+      if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+        // IMPORTANT: defer fetchProfile to the next task via setTimeout.
+        // onAuthStateChange fires while the Supabase SDK still holds its internal
+        // Web Lock (used for token storage). Calling supabase.from() inside this
+        // callback synchronously tries to re-acquire the same lock, causing a
+        // deadlock where the DB query hangs forever. setTimeout(0) lets the lock
+        // release before we make the profiles query.
+        const userId = session.user.id;
+        setTimeout(async () => {
+          const profile = await this.fetchProfile(userId);
+          callback(profile);
+        }, 0);
       }
-      // SIGNED_OUT is intentionally ignored here — it fires on all tabs when
-      // any tab signs out, which would kill sessions in unrelated tabs.
-      // Logout is handled explicitly by the logout() call in StoreContext.
+      // SIGNED_OUT is intentionally ignored — it fires on all tabs when any tab
+      // signs out, which would kill sessions in unrelated tabs. Logout is handled
+      // explicitly by the logout() call in StoreContext.
     });
     return () => subscription.unsubscribe();
   }
