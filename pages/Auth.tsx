@@ -42,7 +42,7 @@ const FloatingInput: React.FC<FloatingInputProps> = ({
     />
     <label
       htmlFor={id}
-      className="pointer-events-none absolute left-4 top-4 text-sm text-white/50 transition-all duration-200 peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:text-white/50 peer-focus:top-1.5 peer-focus:text-xs peer-focus:text-rose-300 peer-[&:not(:placeholder-shown)]:top-1.5 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-white/70"
+      className="pointer-events-none absolute left-4 top-4 text-sm text-white/75 transition-all duration-200 peer-placeholder-shown:top-4 peer-placeholder-shown:text-sm peer-placeholder-shown:text-white/75 peer-focus:top-1.5 peer-focus:text-xs peer-focus:text-white peer-[&:not(:placeholder-shown)]:top-1.5 peer-[&:not(:placeholder-shown)]:text-xs peer-[&:not(:placeholder-shown)]:text-white"
     >
       {label}
     </label>
