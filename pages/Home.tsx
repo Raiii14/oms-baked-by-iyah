@@ -13,7 +13,7 @@ const Home: React.FC = () => {
       <div className="relative bg-rose-100 rounded-3xl overflow-hidden shadow-xl">
         <div className="absolute inset-0">
           <img 
-            src="https://picsum.photos/1200/600?grayscale&blur=2" 
+            src="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=1200&q=80" 
             alt="Bakery background" 
             className="w-full h-full object-cover opacity-20"
           />
@@ -54,7 +54,7 @@ const Home: React.FC = () => {
         </div>
         <div className="flex-1">
           <img 
-            src="https://picsum.photos/600/400?random=10" 
+            src="https://scontent-mnl3-2.xx.fbcdn.net/v/t39.30808-6/558939381_1210811791067334_6373385866712100654_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=107&ccb=1-7&_nc_sid=7b2446&_nc_ohc=Bdi3l90q9aYQ7kNvwF9woyd&_nc_oc=Adleq1tr14Fukr-0sol_TCO96Q8STKv-MZik09t9II1Reu8xPg3gCKlNAduKeirnDPw&_nc_zt=23&_nc_ht=scontent-mnl3-2.xx&_nc_gid=zBAs3kSBlvIZQcuqqOhBKw&_nc_ss=8&oh=00_AfzKyKwkLsWGkOHnvITTE3bbFSZxYkGKBzf-JXQoa-5AHw&oe=69B08129" 
             alt="Custom Cake Example" 
             className="rounded-xl shadow-md w-full object-cover h-64 md:h-80"
           />
