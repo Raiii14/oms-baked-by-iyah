@@ -88,6 +88,7 @@ Baked By Iyah OMS is a client-side single-page application (SPA) built with Reac
 oms-baked-by-iyah/
 ├── App.tsx                    # Root router and lazy-loaded route definitions
 ├── index.tsx                  # React DOM entry point
+├── index.css                  # Global stylesheet (Tailwind base + custom font)
 ├── types.ts                   # All TypeScript interfaces and enums
 ├── constants.ts               # Seed products and mock admin constant
 │
@@ -95,7 +96,10 @@ oms-baked-by-iyah/
 │   ├── Layout.tsx             # Shared navigation bar and footer wrapper
 │   ├── Modal.tsx              # Reusable modal dialog
 │   ├── NotificationToast.tsx  # Toast notification display
-│   └── skeletons/             # Loading skeleton screens for each page
+│   ├── StatusBadge.tsx        # Reusable color-coded order status pill badge
+│   └── skeletons/
+│       ├── SkeletonBase.tsx   # Base SkeletonBox and SkeletonText primitives
+│       └── *.tsx              # Per-page loading skeleton screens (one per route)
 │
 ├── context/
 │   └── StoreContext.tsx       # Global state: user, cart, products, orders, notifications
@@ -115,6 +119,7 @@ oms-baked-by-iyah/
 │   └── supabaseClient.ts      # Supabase client initialization
 │
 ├── utils/
+│   ├── dateUtils.ts           # formatTime() (24hr → AM/PM) and getMinDate() (tomorrow's date)
 │   └── imageCompression.ts    # Client-side image compression before upload
 │
 └── supabase/
