@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { OrderStatus, PaymentMethod, ProductCategory, Product } from '../types';
@@ -37,6 +38,17 @@ const AdminDashboard: React.FC = () => {
   // State for full product editing and deletion
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [deletingProductId, setDeletingProductId] = useState<string | null>(null);
+
+  // Lightbox for payment receipts and reference images
+  const [lightbox, setLightbox] = useState<{ url: string; title: string; customer: string; orderId: string } | null>(null);
+  const [isLightboxClosing, setIsLightboxClosing] = useState(false);
+  const closeLightbox = () => {
+    setIsLightboxClosing(true);
+    setTimeout(() => {
+      setLightbox(null);
+      setIsLightboxClosing(false);
+    }, 220);
+  };
 
   // Converts any Google Drive sharing/view URL into a direct-embeddable thumbnail URL.
   // Also accepts already-direct URLs untouched.
@@ -294,15 +306,13 @@ const AdminDashboard: React.FC = () => {
                      <p className="text-xs text-stone-400 mt-0.5">{order.paymentMethod}</p>
                    </div>
                    {order.paymentMethod === PaymentMethod.GCASH && order.paymentProof && (
-                     <a
-                       href={order.paymentProof}
-                       target="_blank"
-                       rel="noreferrer"
+                     <button
+                       onClick={() => setLightbox({ url: order.paymentProof!, title: 'Payment Receipt', customer: order.customerName, orderId: order.id })}
                        className="inline-flex items-center gap-1.5 text-sm text-rose-500 hover:text-rose-700 font-medium transition-colors"
                      >
                        <ImageIcon className="w-4 h-4" />
                        View Payment Receipt
-                     </a>
+                     </button>
                    )}
                  </div>
                </div>
@@ -397,15 +407,13 @@ const AdminDashboard: React.FC = () => {
                     </div>
                   )}
                   {inquiry.customDetails?.referenceImage && (
-                    <a
-                      href={inquiry.customDetails.referenceImage}
-                      target="_blank"
-                      rel="noreferrer"
+                    <button
+                      onClick={() => setLightbox({ url: inquiry.customDetails!.referenceImage!, title: 'Cake Reference Image', customer: inquiry.customerName, orderId: inquiry.id })}
                       className="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-700 font-medium transition-colors"
                     >
                       <ImageIcon className="w-4 h-4" />
                       View Reference Image
-                    </a>
+                    </button>
                   )}
                 </div>
 
@@ -939,6 +947,51 @@ const AdminDashboard: React.FC = () => {
         </div>
         );
       })()}
+
+      {/* Image Lightbox — portalled to document.body to escape all stacking contexts */}
+      {lightbox && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-6"
+          style={{ animation: isLightboxClosing ? 'lightboxBackdropOut 0.22s ease-in forwards' : 'lightboxBackdropIn 0.2s ease-out' }}
+          onClick={closeLightbox}
+        >
+          {/* Subtle frosted backdrop */}
+          <div className="absolute inset-0 bg-stone-900/30 backdrop-blur-sm" />
+
+          {/* Card */}
+          <div
+            className="relative z-10 bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden"
+            style={{ animation: isLightboxClosing ? 'lightboxImageOut 0.22s ease-in forwards' : 'lightboxImageIn 0.25s ease-out' }}
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-stone-100">
+              <div>
+                <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider">{lightbox.title}</p>
+                <p className="text-sm font-bold text-stone-800 mt-0.5">{lightbox.customer}</p>
+                <p className="text-xs font-mono text-stone-400 mt-0.5">{lightbox.orderId}</p>
+              </div>
+              <button
+                onClick={closeLightbox}
+                className="w-8 h-8 rounded-full bg-stone-100 hover:bg-stone-200 flex items-center justify-center text-stone-500 hover:text-stone-800 transition-colors"
+                aria-label="Close image"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Image */}
+            <div className="p-4 bg-stone-50">
+              <img
+                src={lightbox.url}
+                alt={lightbox.title}
+                className="w-full max-h-[65vh] object-contain rounded-2xl"
+              />
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };
