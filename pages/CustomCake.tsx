@@ -42,10 +42,7 @@ const CustomCake: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (user?.role === UserRole.ADMIN) {
-        alert("Admins cannot submit inquiries.");
-        return;
-    }
+    if (user?.role === UserRole.ADMIN) return;
 
     if (!user) {
       setShowLoginWarning(true);

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { ArrowRight } from 'lucide-react';
@@ -11,7 +11,7 @@ const WHY_CHOOSE_US = [
 
 const Home: React.FC = () => {
   const { products } = useStore();
-  const featured = products.slice(0, 3); // Just show first 3 as best sellers
+  const featured = useMemo(() => products.slice(0, 3), [products]);
 
   return (
     <div className="space-y-12">

@@ -114,28 +114,20 @@ class SupabaseService implements DatabaseProvider {
   }
 
   async getSessionUser(): Promise<User | null> {
-    console.log('[db] getSessionUser → checking session...');
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) console.error('[db] getSession error:', sessionError.message);
-    if (!session?.user) {
+    // getUser() verifies the token with the Supabase server on every call,
+    // preventing stale client-side session data from being trusted.
+    console.log('[db] getSessionUser → verifying with server...');
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error('[db] getUser error:', error.message);
+      return null;
+    }
+    if (!user) {
       console.log('[db] getSessionUser → no active session');
       return null;
     }
-    console.log('[db] getSessionUser → session found, user id:', session.user.id, 'expires:', new Date(session.expires_at! * 1000).toISOString());
-
-    const profile = await this.fetchProfile(session.user.id);
-    if (profile) return profile;
-
-    // fetchProfile returned null despite a valid-looking session — the cached
-    // token may be stale. Force a server-side refresh and retry once.
-    console.warn('[db] fetchProfile returned null, forcing token refresh...');
-    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError || !refreshed.session?.user) {
-      console.error('[db] Session refresh failed:', refreshError?.message);
-      return null;
-    }
-    console.log('[db] Token refreshed successfully, retrying fetchProfile...');
-    return this.fetchProfile(refreshed.session.user.id);
+    console.log('[db] getSessionUser → server-verified user id:', user.id);
+    return this.fetchProfile(user.id);
   }
 
   async login(email: string, pass: string): Promise<User | null> {

@@ -58,50 +58,61 @@ const AdminDashboard: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc'); // Date sort
 
   // Filter Orders (excluding inquiries)
-  const filteredOrders = orders
-    .filter(o => !o.isCustomInquiry)
-    .filter(o => filterStatus === 'all' || o.status === filterStatus)
-    .sort((a, b) => {
-      const dateA = new Date(a.scheduledDate + ' ' + a.scheduledTime).getTime();
-      const dateB = new Date(b.scheduledDate + ' ' + b.scheduledTime).getTime();
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
+  const filteredOrders = React.useMemo(() =>
+    orders
+      .filter(o => !o.isCustomInquiry)
+      .filter(o => filterStatus === 'all' || o.status === filterStatus)
+      .sort((a, b) => {
+        const dateA = new Date(a.scheduledDate + ' ' + a.scheduledTime).getTime();
+        const dateB = new Date(b.scheduledDate + ' ' + b.scheduledTime).getTime();
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      }),
+    [orders, filterStatus, sortOrder]
+  );
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-  const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedOrders = React.useMemo(
+    () => filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filteredOrders, currentPage]
+  );
 
   // Inquiries
-  const inquiries = orders.filter(o => o.isCustomInquiry);
+  const inquiries = React.useMemo(() => orders.filter(o => o.isCustomInquiry), [orders]);
 
   // Reports Data
   const validOrders = React.useMemo(() => orders.filter(o => o.status !== OrderStatus.CANCELLED), [orders]);
   
-  const totalRevenue = validOrders.reduce((acc, o) => acc + o.totalAmount, 0);
-  const completedOrders = orders.filter(o => o.status === OrderStatus.COMPLETED).length;
-  const pendingOrders = orders.filter(o => o.status === OrderStatus.PENDING).length;
-  const avgOrderValue = validOrders.length > 0 ? totalRevenue / validOrders.length : 0;
-  const needsPriceQuote = orders.filter(o => o.isCustomInquiry && (!o.totalAmount || o.totalAmount === 0)).length;
-  const lowStockCount = products.filter(p => p.stock <= 5).length;
-  
-  // Calculate Sales by Product (Iterating ORDERS to catch everything, including Custom Cakes)
-  const salesMap = new Map<string, number>();
-  
-  validOrders.forEach(order => {
-    if (order.isCustomInquiry) {
-        // Group all custom cakes together
-        const current = salesMap.get('Custom Cakes') || 0;
-        salesMap.set('Custom Cakes', current + 1);
-    } else {
-        order.items.forEach(item => {
-            const current = salesMap.get(item.name) || 0;
-            salesMap.set(item.name, current + item.quantity);
-        });
-    }
-  });
+  const { totalRevenue, completedOrders, pendingOrders, avgOrderValue, needsPriceQuote, lowStockCount } = React.useMemo(() => {
+    const rev = validOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+    return {
+      totalRevenue: rev,
+      completedOrders: orders.filter(o => o.status === OrderStatus.COMPLETED).length,
+      pendingOrders: orders.filter(o => o.status === OrderStatus.PENDING).length,
+      avgOrderValue: validOrders.length > 0 ? rev / validOrders.length : 0,
+      needsPriceQuote: orders.filter(o => o.isCustomInquiry && (!o.totalAmount || o.totalAmount === 0)).length,
+      lowStockCount: products.filter(p => p.stock <= 5).length,
+    };
+  }, [validOrders, orders, products]);
 
-  const productSales = Array.from(salesMap.entries())
-    .map(([name, sales]) => ({ name, sales }))
-    .sort((a, b) => b.sales - a.sales);
+  // Calculate Sales by Product (Iterating ORDERS to catch everything, including Custom Cakes)
+  const productSales = React.useMemo(() => {
+    const salesMap = new Map<string, number>();
+    validOrders.forEach(order => {
+      if (order.isCustomInquiry) {
+          // Group all custom cakes together
+          const current = salesMap.get('Custom Cakes') || 0;
+          salesMap.set('Custom Cakes', current + 1);
+      } else {
+          order.items.forEach(item => {
+              const current = salesMap.get(item.name) || 0;
+              salesMap.set(item.name, current + item.quantity);
+          });
+      }
+    });
+    return Array.from(salesMap.entries())
+      .map(([name, sales]) => ({ name, sales }))
+      .sort((a, b) => b.sales - a.sales);
+  }, [validOrders]);
 
   // Revenue Over Time Data
   const revenueData = React.useMemo(() => {

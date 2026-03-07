@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod, UserRole, UserNotification } from '../types';
 import { db } from '../services/db';
 
@@ -62,6 +62,18 @@ const StoreContext = createContext<StoreContextType | undefined>(undefined);
 const generateId = (): string => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   return Array.from({ length: 6 }, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+};
+
+// Pure helper — defined outside StoreProvider so it is never recreated on renders.
+const getOrderStatusMessage = (orderId: string, status: OrderStatus): string => {
+  const shortId = '#' + orderId.replace(/^(ORD|INQ)-/, '');
+  switch (status) {
+    case OrderStatus.CONFIRMED: return `Your order ${shortId} has been confirmed! We're getting started. 🎉`;
+    case OrderStatus.BAKING:    return `Your order ${shortId} is now being baked! 🧁`;
+    case OrderStatus.COMPLETED: return `Your order ${shortId} is ready! Come and enjoy. 🎂`;
+    case OrderStatus.CANCELLED: return `Your order ${shortId} has been cancelled. Please contact us for more info.`;
+    default:                    return `Your order ${shortId} status has been updated to ${status}.`;
+  }
 };
 
 export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -179,7 +191,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auth Logic
-  const login = async (email: string, pass: string) => {
+  const login = useCallback(async (email: string, pass: string) => {
     try {
       const foundUser = await db.login(email, pass);
       if (foundUser) {
@@ -191,9 +203,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Login error:', err);
       throw err; // re-throw so Auth.tsx catch block can show the message
     }
-  };
+  }, []);
 
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = useCallback(async () => {
     try {
       await db.loginWithGoogle();
       // Page redirects to Google — nothing else runs after this
@@ -201,29 +213,29 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error('Google login failed:', error);
       addNotification('Google login is not available.', 'error');
     }
-  };
+  }, [addNotification]);
 
-  const register = async (name: string, email: string, pass: string, phone: string) => {
+  const register = useCallback(async (name: string, email: string, pass: string, phone: string) => {
     const newUser = await db.register(name, email, pass, phone);
     setUser(newUser);
-  };
+  }, []);
 
-  const logout = async () => {
+  const logout = useCallback(async () => {
     await db.logout();
     setUser(null);
     setCart([]);
     sessionStorage.removeItem('bbi_cart');
-  };
+  }, []);
 
-  const updateUser = async (updates: Partial<User>) => {
+  const updateUser = useCallback(async (updates: Partial<User>) => {
     if (!user) return;
     const updatedUser = { ...user, ...updates };
     await db.updateUser(updatedUser);
     setUser(updatedUser);
-  };
+  }, [user]);
 
   // Cart Logic (Client-side mostly)
-  const addToCart = (product: Product, quantity: number = 1) => {
+  const addToCart = useCallback((product: Product, quantity: number = 1) => {
     if (product.stock <= 0) return;
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
@@ -237,13 +249,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       return [...prev, { ...product, quantity: Math.min(quantity, product.stock) }];
     });
     addNotification(`${product.name} added to cart!`);
-  };
+  }, [addNotification]);
 
-  const removeFromCart = (productId: string) => {
+  const removeFromCart = useCallback((productId: string) => {
     setCart(prev => prev.filter(item => item.id !== productId));
-  };
+  }, []);
 
-  const updateCartQuantity = (productId: string, quantity: number) => {
+  const updateCartQuantity = useCallback((productId: string, quantity: number) => {
     if (quantity <= 0) {
       removeFromCart(productId);
       return;
@@ -254,10 +266,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart(prev => prev.map(item => 
       item.id === productId ? { ...item, quantity: Math.min(quantity, product.stock) } : item
     ));
-  };
+  }, [products, removeFromCart]);
 
   // Order Logic
-  const placeOrder = async (details: {
+  const placeOrder = useCallback(async (details: {
     paymentMethod: PaymentMethod;
     deliveryMethod: DeliveryMethod;
     scheduledDate: string;
@@ -294,9 +306,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await db.createOrder(newOrder); // DB Update
     setOrders(prev => [newOrder, ...prev]); // Local Update
     setCart([]);
-  };
+  }, [user, cart, products]);
 
-  const submitCustomInquiry = async (details: any) => {
+  const submitCustomInquiry = useCallback(async (details: any) => {
     const newOrder: Order = {
       id: `INQ-${generateId()}`,
       userId: user?.id || 'guest',
@@ -319,21 +331,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     await db.createOrder(newOrder);
     setOrders(prev => [newOrder, ...prev]);
-  };
+  }, [user]);
 
   // Admin Logic
-  const getOrderStatusMessage = (orderId: string, status: OrderStatus): string => {
-    const shortId = '#' + orderId.replace(/^(ORD|INQ)-/, ''); // e.g. #A3B7K2
-    switch (status) {
-      case OrderStatus.CONFIRMED: return `Your order ${shortId} has been confirmed! We're getting started. 🎉`;
-      case OrderStatus.BAKING:    return `Your order ${shortId} is now being baked! 🧁`;
-      case OrderStatus.COMPLETED: return `Your order ${shortId} is ready! Come and enjoy. 🎂`;
-      case OrderStatus.CANCELLED: return `Your order ${shortId} has been cancelled. Please contact us for more info.`;
-      default:                    return `Your order ${shortId} status has been updated to ${status}.`;
-    }
-  };
-
-  const updateOrderStatus = async (orderId: string, status: OrderStatus) => {
+  const updateOrderStatus = useCallback(async (orderId: string, status: OrderStatus) => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
       const updatedOrder = { ...order, status };
@@ -353,18 +354,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         await db.addUserNotification(notif);
       }
     }
-  };
+  }, [orders]);
 
-  const updateInquiryPrice = async (orderId: string, price: number) => {
+  const updateInquiryPrice = useCallback(async (orderId: string, price: number) => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
         const updatedOrder = { ...order, totalAmount: price };
         await db.updateOrder(updatedOrder);
         setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
     }
-  };
+  }, [orders]);
 
-  const updateInventory = async (id: string, type: 'product' | 'ingredient', quantity: number) => {
+  const updateInventory = useCallback(async (id: string, type: 'product' | 'ingredient', quantity: number) => {
     if (type === 'product') {
       const product = products.find(p => p.id === id);
       if (product) {
@@ -373,24 +374,24 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
       }
     }
-  };
+  }, [products]);
 
-  const markNotificationRead = async (id: string) => {
+  const markNotificationRead = useCallback(async (id: string) => {
     await db.markNotificationRead(id);
     setUserNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
-  };
+  }, []);
 
-  const markAllNotificationsRead = async () => {
+  const markAllNotificationsRead = useCallback(async () => {
     if (!user) return;
     await db.markAllNotificationsRead(user.id);
     setUserNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
-  };
+  }, [user]);
 
-  const dismissToast = (id: string) => {
+  const dismissToast = useCallback((id: string) => {
     setToastQueue(prev => prev.filter(n => n.id !== id));
-  };
+  }, []);
 
-  const addProduct = async (product: Product) => {
+  const addProduct = useCallback(async (product: Product) => {
     try {
       await db.addProduct(product);
       setProducts(prev => [...prev, product]);
@@ -399,9 +400,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error("Failed to add product:", error);
       addNotification("Failed to add product", "error");
     }
-  };
+  }, [addNotification]);
 
-  const updateProduct = async (product: Product) => {
+  const updateProduct = useCallback(async (product: Product) => {
     try {
       await db.updateProduct(product);
       setProducts(prev => prev.map(p => p.id === product.id ? product : p));
@@ -410,9 +411,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error("Failed to update product:", error);
       addNotification("Failed to update product", "error");
     }
-  };
+  }, [addNotification]);
 
-  const deleteProduct = async (productId: string) => {
+  const deleteProduct = useCallback(async (productId: string) => {
     try {
       await db.deleteProduct(productId);
       setProducts(prev => prev.filter(p => p.id !== productId));
@@ -421,17 +422,26 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.error("Failed to delete product:", error);
       addNotification("Failed to remove product", "error");
     }
-  };
+  }, [addNotification]);
+
+  const contextValue = useMemo(() => ({
+    user, products, cart, orders, notifications, isLoading,
+    login, register, loginWithGoogle, logout, updateUser,
+    addToCart, removeFromCart, updateCartQuantity,
+    placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
+    addNotification, removeNotification,
+    userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
+  }), [
+    user, products, cart, orders, notifications, isLoading,
+    login, register, loginWithGoogle, logout, updateUser,
+    addToCart, removeFromCart, updateCartQuantity,
+    placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
+    addNotification, removeNotification,
+    userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
+  ]);
 
   return (
-    <StoreContext.Provider value={{
-      user, products, cart, orders, notifications, isLoading,
-      login, register, loginWithGoogle, logout, updateUser,
-      addToCart, removeFromCart, updateCartQuantity,
-      placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
-      addNotification, removeNotification,
-      userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
-    }}>
+    <StoreContext.Provider value={contextValue}>
       {children}
     </StoreContext.Provider>
   );

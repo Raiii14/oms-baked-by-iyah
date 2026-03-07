@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Trash2, ShoppingBag, History, Cake, ImageIcon } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import StatusBadge from '../components/StatusBadge';
 import { formatTime } from '../utils/dateUtils';
-import { UserRole, OrderStatus } from '../types';
+import { UserRole } from '../types';
 
 const CART_TABS = ['cart', 'history', 'custom'] as const;
 type CartTab = typeof CART_TABS[number];
@@ -20,10 +20,6 @@ const Cart: React.FC = () => {
   const setActiveTab = (tab: CartTab) => setSearchParams({ tab }, { replace: true });
   const [showLoginWarning, setShowLoginWarning] = useState(false);
 
-  useEffect(() => {
-    // Removed the automatic notification on mount to rely on the modal instead
-  }, [user]);
-
   // Redirect admins to dashboard
   useEffect(() => {
     if (user?.role === UserRole.ADMIN) {
@@ -31,7 +27,7 @@ const Cart: React.FC = () => {
     }
   }, [user, navigate]);
 
-  const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+  const subtotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0), [cart]);
 
   const handleProceedToCheckout = () => {
     if (user?.role === UserRole.ADMIN) {
