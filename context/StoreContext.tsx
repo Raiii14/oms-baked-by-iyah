@@ -290,8 +290,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     setProducts(newProducts); // Local Update
 
+    const orderId = `ORD-${generateId()}`;
+
+    let paymentProofUrl: string | undefined;
+    if (details.paymentProof) {
+      try {
+        paymentProofUrl = await db.uploadPaymentReceipt(user.id, orderId, details.paymentProof);
+      } catch (err) {
+        console.error('[placeOrder] Payment receipt upload failed:', err);
+      }
+    }
+
     const newOrder: Order = {
-      id: `ORD-${generateId()}`,
+      id: orderId,
       userId: user.id,
       customerName: user.name,
       customerEmail: user.email,
@@ -300,7 +311,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       status: OrderStatus.PENDING,
       createdAt: new Date().toISOString(),
       ...details,
-      paymentProof: details.paymentProof ? URL.createObjectURL(details.paymentProof) : undefined // Fake upload
+      paymentProof: paymentProofUrl,
     };
 
     await db.createOrder(newOrder); // DB Update
@@ -309,8 +320,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [user, cart, products]);
 
   const submitCustomInquiry = useCallback(async (details: any) => {
+    const inquiryId = `INQ-${generateId()}`;
+
+    let referenceImageUrl: string | undefined;
+    if (details.image && user) {
+      try {
+        referenceImageUrl = await db.uploadCustomCakeReference(user.id, inquiryId, details.image);
+      } catch (err) {
+        console.error('[submitCustomInquiry] Reference image upload failed:', err);
+      }
+    }
+
     const newOrder: Order = {
-      id: `INQ-${generateId()}`,
+      id: inquiryId,
       userId: user?.id || 'guest',
       customerName: user?.name || details.name,
       customerEmail: details.email || user?.email,
@@ -326,7 +348,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       customDetails: {
         size: details.size,
         notes: details.notes,
-        referenceImage: details.image ? URL.createObjectURL(details.image) : undefined
+        referenceImage: referenceImageUrl,
       }
     };
     await db.createOrder(newOrder);
