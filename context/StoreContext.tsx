@@ -115,7 +115,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      console.log('[StoreContext] loadData → start');
       try {
         // Session restoration is handled by subscribeToAuthChanges (INITIAL_SESSION).
         // We still call getSessionUser here as a fast-path for when the token is
@@ -125,21 +124,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         localStorage.removeItem('bbi_users_db');
 
         const sessionUser = await db.getSessionUser();
-        console.log('[StoreContext] loadData → sessionUser:', sessionUser ? `${sessionUser.email} (${sessionUser.role})` : 'null — waiting for INITIAL_SESSION event');
         if (sessionUser) setUser(sessionUser);
 
         // Products are public — always fetch regardless of auth state.
         const loadedProducts = await db.getProducts();
-        console.log('[StoreContext] loadData → products loaded:', loadedProducts.length);
         setProducts(loadedProducts);
         // Orders are fetched reactively in the user?.id effect below,
         // which covers both post-login and post-refresh cases.
       } catch (error) {
-        console.error('[StoreContext] loadData → FAILED:', error);
+        console.error('[StoreContext] loadData failed:', error);
         addNotification("Failed to load data from server", "error");
       } finally {
         setIsLoading(false);
-        console.log('[StoreContext] loadData → done');
       }
     };
     loadData();
@@ -150,7 +146,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // killing sessions in other concurrent tabs.
   useEffect(() => {
     const unsubscribe = db.subscribeToAuthChanges((sessionUser) => {
-      console.log('[StoreContext] subscribeToAuthChanges fired → user:', sessionUser ? `${sessionUser.email} (${sessionUser.role})` : 'null');
       if (sessionUser) {
         setUser(sessionUser);
       }
@@ -164,9 +159,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   //   2. Post-refresh: session restored via INITIAL_SESSION event → this fires.
   useEffect(() => {
     if (!user) { setOrders([]); return; }
-    console.log('[StoreContext] user changed → fetching orders for:', user.email);
     db.getOrders().then(orders => {
-      console.log('[StoreContext] orders fetched:', orders.length);
       setOrders(orders);
     }).catch(err => console.error('[StoreContext] getOrders failed:', err));
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -290,8 +283,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
     setProducts(newProducts); // Local Update
 
+    const orderId = `ORD-${generateId()}`;
+
+    let paymentProofUrl: string | undefined;
+    if (details.paymentProof) {
+      try {
+        paymentProofUrl = await db.uploadPaymentReceipt(user.id, orderId, details.paymentProof);
+      } catch (err) {
+        console.error('[placeOrder] Payment receipt upload failed:', err);
+      }
+    }
+
     const newOrder: Order = {
-      id: `ORD-${generateId()}`,
+      id: orderId,
       userId: user.id,
       customerName: user.name,
       customerEmail: user.email,
@@ -300,7 +304,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       status: OrderStatus.PENDING,
       createdAt: new Date().toISOString(),
       ...details,
-      paymentProof: details.paymentProof ? URL.createObjectURL(details.paymentProof) : undefined // Fake upload
+      paymentProof: paymentProofUrl,
     };
 
     await db.createOrder(newOrder); // DB Update
@@ -309,8 +313,19 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [user, cart, products]);
 
   const submitCustomInquiry = useCallback(async (details: any) => {
+    const inquiryId = `INQ-${generateId()}`;
+
+    let referenceImageUrl: string | undefined;
+    if (details.image && user) {
+      try {
+        referenceImageUrl = await db.uploadCustomCakeReference(user.id, inquiryId, details.image);
+      } catch (err) {
+        console.error('[submitCustomInquiry] Reference image upload failed:', err);
+      }
+    }
+
     const newOrder: Order = {
-      id: `INQ-${generateId()}`,
+      id: inquiryId,
       userId: user?.id || 'guest',
       customerName: user?.name || details.name,
       customerEmail: details.email || user?.email,
@@ -326,7 +341,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       customDetails: {
         size: details.size,
         notes: details.notes,
-        referenceImage: details.image ? URL.createObjectURL(details.image) : undefined
+        referenceImage: referenceImageUrl,
       }
     };
     await db.createOrder(newOrder);

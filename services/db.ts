@@ -44,6 +44,24 @@ export interface DatabaseProvider {
    * Returns an unsubscribe function.
    */
   subscribeToAuthChanges(callback: (user: User | null) => void): () => void;
+
+  /**
+   * Upload a compressed payment receipt to Supabase Storage.
+   * Returns a 1-hour signed URL that can be stored as order.paymentProof.
+   */
+  uploadPaymentReceipt(userId: string, orderId: string, file: File): Promise<string>;
+
+  /**
+   * Upload a compressed custom cake reference image to Supabase Storage.
+   * Returns a 1-hour signed URL that can be stored as customDetails.referenceImage.
+   */
+  uploadCustomCakeReference(userId: string, orderId: string, file: File): Promise<string>;
+
+  /**
+   * Generate a fresh 1-hour signed URL for any stored image.
+   * bucket: 'payment-receipts' | 'custom-cake-references'
+   */
+  getImageSignedUrl(bucket: 'payment-receipts' | 'custom-cake-references', path: string): Promise<string>;
 }
 
 
@@ -52,7 +70,6 @@ export interface DatabaseProvider {
 class SupabaseService implements DatabaseProvider {
   // Fetch and map a profiles row → User
   private async fetchProfile(userId: string): Promise<User | null> {
-    console.log('[db] fetchProfile → userId:', userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -63,10 +80,9 @@ class SupabaseService implements DatabaseProvider {
       return null;
     }
     if (!data) {
-      console.warn('[db] fetchProfile: no row found for user', userId);
+      console.error('[db] fetchProfile: no profile row found');
       return null;
     }
-    console.log('[db] fetchProfile → role:', data.role, 'name:', data.name);
     return {
       id: data.id as string,
       email: data.email as string,
@@ -116,34 +132,30 @@ class SupabaseService implements DatabaseProvider {
   async getSessionUser(): Promise<User | null> {
     // getUser() verifies the token with the Supabase server on every call,
     // preventing stale client-side session data from being trusted.
-    console.log('[db] getSessionUser → verifying with server...');
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) {
-      console.error('[db] getUser error:', error.message);
+      // 'Auth session missing' is the normal unauthenticated state — not an error worth logging.
+      if (error.message !== 'Auth session missing!') {
+        console.error('[db] getSessionUser error:', error.message);
+      }
       return null;
     }
-    if (!user) {
-      console.log('[db] getSessionUser → no active session');
-      return null;
-    }
-    console.log('[db] getSessionUser → server-verified user id:', user.id);
+    if (!user) return null;
     return this.fetchProfile(user.id);
   }
 
   async login(email: string, pass: string): Promise<User | null> {
-    console.log('[db] login → attempting signInWithPassword for:', email);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) {
-      console.error('[db] signInWithPassword error:', error.message, 'status:', error.status);
+      console.error('[db] login error:', error.message, 'status:', error.status);
       return null;
     }
     if (!data.user) {
-      console.error('[db] signInWithPassword: no user returned despite no error');
+      console.error('[db] login: no user returned despite no error');
       return null;
     }
-    console.log('[db] signInWithPassword OK → user id:', data.user.id);
     const profile = await this.fetchProfile(data.user.id);
-    if (!profile) console.error('[db] fetchProfile returned null after successful login for:', data.user.id);
+    if (!profile) console.error('[db] login: profile not found after successful auth');
     return profile;
   }
 
@@ -356,9 +368,58 @@ class SupabaseService implements DatabaseProvider {
     return () => { supabase.removeChannel(channel); };
   }
 
+  // ── Storage helpers ────────────────────────────────────────────────────────
+
+  private async uploadToStorage(
+    bucket: 'payment-receipts' | 'custom-cake-references',
+    path: string,
+    file: File,
+  ): Promise<string> {
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) {
+      console.error(`[db] uploadToStorage failed → bucket: ${bucket}`, uploadError.message);
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
+    }
+
+    const { data, error: urlError } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(path, 3600); // 1-hour TTL
+    if (urlError || !data?.signedUrl)
+      throw new Error(`Signed URL generation failed: ${urlError?.message ?? 'no URL returned'}`);
+
+    return data.signedUrl;
+  }
+
+  async uploadPaymentReceipt(userId: string, orderId: string, file: File): Promise<string> {
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${userId}/${orderId}.${ext}`;
+    return this.uploadToStorage('payment-receipts', path, file);
+  }
+
+  async uploadCustomCakeReference(userId: string, orderId: string, file: File): Promise<string> {
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${userId}/${orderId}-ref.${ext}`;
+    return this.uploadToStorage('custom-cake-references', path, file);
+  }
+
+  async getImageSignedUrl(
+    bucket: 'payment-receipts' | 'custom-cake-references',
+    path: string,
+  ): Promise<string> {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl)
+      throw new Error(`Signed URL generation failed: ${error?.message ?? 'no URL returned'}`);
+    return data.signedUrl;
+  }
+
+  // ── Auth subscriptions ───────────────────────────────────────────────────────
+
   subscribeToAuthChanges(callback: (user: User | null) => void): () => void {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[db] onAuthStateChange event:', event, 'user:', session?.user?.id ?? 'none');
       if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         // IMPORTANT: defer fetchProfile to the next task via setTimeout.
         // onAuthStateChange fires while the Supabase SDK still holds its internal
