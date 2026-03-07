@@ -381,10 +381,15 @@ class SupabaseService implements DatabaseProvider {
     path: string,
     file: File,
   ): Promise<string> {
+    console.log(`[db] uploadToStorage → bucket: ${bucket}, path: ${path}, size: ${file.size}B, type: ${file.type}`);
     const { error: uploadError } = await supabase.storage
       .from(bucket)
       .upload(path, file, { upsert: true, contentType: file.type });
-    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+    if (uploadError) {
+      console.error(`[db] uploadToStorage FAILED → bucket: ${bucket}, path: ${path}`, uploadError);
+      throw new Error(`Storage upload failed: ${uploadError.message}`);
+    }
+    console.log(`[db] uploadToStorage OK → bucket: ${bucket}, path: ${path}`);
 
     const { data, error: urlError } = await supabase.storage
       .from(bucket)
