@@ -1,4 +1,5 @@
 ﻿---
+name: api-protect
 description: Add authentication, authorization, and security to Supabase data operations
 model: claude-sonnet-4-6
 ---

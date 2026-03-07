@@ -1,4 +1,5 @@
 ﻿---
+name: page-new
 description: Create a new page for this Vite + React Router v6 project
 model: claude-sonnet-4-6
 ---

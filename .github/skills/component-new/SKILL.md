@@ -1,4 +1,5 @@
 ---
+name: component-new
 description: Create a new React component with TypeScript and modern best practices
 model: claude-sonnet-4-6
 ---

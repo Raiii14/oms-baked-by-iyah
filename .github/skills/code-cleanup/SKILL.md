@@ -1,4 +1,5 @@
 ﻿---
+name: code-cleanup
 description: "Use when: refactoring code for better readability, maintainability, and to follow best practices. Apply code smells fixes, modern patterns, and cleanup techniques. Tailored for this Vite + React 18 + TypeScript + Tailwind + Supabase project."
 model: claude-sonnet-4-6
 ---

@@ -1,4 +1,5 @@
 ﻿---
+name: api-new
 description: Create a new Next.js API route with validation, error handling, and TypeScript
 model: claude-sonnet-4-6
 ---
