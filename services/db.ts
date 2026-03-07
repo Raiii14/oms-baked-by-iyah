@@ -44,6 +44,24 @@ export interface DatabaseProvider {
    * Returns an unsubscribe function.
    */
   subscribeToAuthChanges(callback: (user: User | null) => void): () => void;
+
+  /**
+   * Upload a compressed payment receipt to Supabase Storage.
+   * Returns a 1-hour signed URL that can be stored as order.paymentProof.
+   */
+  uploadPaymentReceipt(userId: string, orderId: string, file: File): Promise<string>;
+
+  /**
+   * Upload a compressed custom cake reference image to Supabase Storage.
+   * Returns a 1-hour signed URL that can be stored as customDetails.referenceImage.
+   */
+  uploadCustomCakeReference(userId: string, orderId: string, file: File): Promise<string>;
+
+  /**
+   * Generate a fresh 1-hour signed URL for any stored image.
+   * bucket: 'payment-receipts' | 'custom-cake-references'
+   */
+  getImageSignedUrl(bucket: 'payment-receipts' | 'custom-cake-references', path: string): Promise<string>;
 }
 
 
@@ -355,6 +373,53 @@ class SupabaseService implements DatabaseProvider {
 
     return () => { supabase.removeChannel(channel); };
   }
+
+  // ── Storage helpers ────────────────────────────────────────────────────────
+
+  private async uploadToStorage(
+    bucket: 'payment-receipts' | 'custom-cake-references',
+    path: string,
+    file: File,
+  ): Promise<string> {
+    const { error: uploadError } = await supabase.storage
+      .from(bucket)
+      .upload(path, file, { upsert: true, contentType: file.type });
+    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+
+    const { data, error: urlError } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(path, 3600); // 1-hour TTL
+    if (urlError || !data?.signedUrl)
+      throw new Error(`Signed URL generation failed: ${urlError?.message ?? 'no URL returned'}`);
+
+    return data.signedUrl;
+  }
+
+  async uploadPaymentReceipt(userId: string, orderId: string, file: File): Promise<string> {
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${userId}/${orderId}.${ext}`;
+    return this.uploadToStorage('payment-receipts', path, file);
+  }
+
+  async uploadCustomCakeReference(userId: string, orderId: string, file: File): Promise<string> {
+    const ext = file.type === 'image/png' ? 'png' : file.type === 'image/webp' ? 'webp' : 'jpg';
+    const path = `${userId}/${orderId}-ref.${ext}`;
+    return this.uploadToStorage('custom-cake-references', path, file);
+  }
+
+  async getImageSignedUrl(
+    bucket: 'payment-receipts' | 'custom-cake-references',
+    path: string,
+  ): Promise<string> {
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .createSignedUrl(path, 3600);
+    if (error || !data?.signedUrl)
+      throw new Error(`Signed URL generation failed: ${error?.message ?? 'no URL returned'}`);
+    return data.signedUrl;
+  }
+
+  // ── Auth subscriptions ───────────────────────────────────────────────────────
 
   subscribeToAuthChanges(callback: (user: User | null) => void): () => void {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
