@@ -3,6 +3,12 @@ import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { ArrowRight } from 'lucide-react';
 
+const WHY_CHOOSE_US = [
+  { emoji: '🎂', bg: 'bg-rose-100',    text: 'text-rose-500',    title: 'Quality Ingredients',  desc: 'We use only premium ingredients to ensure the best taste and texture.' },
+  { emoji: '🍪', bg: 'bg-amber-100',   text: 'text-amber-500',   title: 'Freshly Baked',        desc: 'Baked fresh daily or upon order. You get it straight from the oven.' },
+  { emoji: '🚚', bg: 'bg-emerald-100', text: 'text-emerald-500', title: 'Convenient Delivery',  desc: 'Delivery available within Obando and Valenzuela areas.' },
+];
+
 const Home: React.FC = () => {
   const { products } = useStore();
   const featured = products.slice(0, 3); // Just show first 3 as best sellers
@@ -100,27 +106,15 @@ const Home: React.FC = () => {
       <div className="bg-white rounded-2xl p-8 md:p-12 shadow-sm border border-stone-100">
         <h2 className="text-3xl font-bold text-stone-800 text-center mb-10">Why Choose Baked by Iyah?</h2>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-          <div className="p-4">
-            <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4 text-rose-500 text-2xl">
-              🎂
+          {WHY_CHOOSE_US.map((item) => (
+            <div key={item.title} className="p-4">
+              <div className={`w-16 h-16 ${item.bg} rounded-full flex items-center justify-center mx-auto mb-4 ${item.text} text-2xl`}>
+                {item.emoji}
+              </div>
+              <h3 className="font-semibold text-lg mb-2">{item.title}</h3>
+              <p className="text-stone-600">{item.desc}</p>
             </div>
-            <h3 className="font-semibold text-lg mb-2">Quality Ingredients</h3>
-            <p className="text-stone-600">We use only premium ingredients to ensure the best taste and texture.</p>
-          </div>
-          <div className="p-4">
-            <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4 text-amber-500 text-2xl">
-              🍪
-            </div>
-            <h3 className="font-semibold text-lg mb-2">Freshly Baked</h3>
-            <p className="text-stone-600">Baked fresh daily or upon order. You get it straight from the oven.</p>
-          </div>
-          <div className="p-4">
-            <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500 text-2xl">
-              🚚
-            </div>
-            <h3 className="font-semibold text-lg mb-2">Convenient Delivery</h3>
-            <p className="text-stone-600">Delivery available within Obando and Valenzuela areas.</p>
-          </div>
+          ))}
         </div>
       </div>
     </div>

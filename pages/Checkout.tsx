@@ -5,6 +5,7 @@ import { Calendar, Clock, ArrowLeft } from 'lucide-react';
 import { DeliveryMethod, PaymentMethod } from '../types';
 import { Modal } from '../components/Modal';
 import { compressImage } from '../utils/imageCompression';
+import { getMinDate } from '../utils/dateUtils';
 
 const Checkout: React.FC = () => {
   const { cart, placeOrder, user, addNotification } = useStore();
@@ -31,17 +32,6 @@ const Checkout: React.FC = () => {
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const deliveryFee = deliveryMethod === DeliveryMethod.DELIVERY ? 50 : 0;
   const total = subtotal + deliveryFee;
-
-  // Calculate minimum date (tomorrow)
-  const getMinDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    // Format to YYYY-MM-DD using local time to avoid UTC issues
-    const year = tomorrow.getFullYear();
-    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-    const day = String(tomorrow.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
 
   const handleCheckout = (e: React.FormEvent) => {
     e.preventDefault();

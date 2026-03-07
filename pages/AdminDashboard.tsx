@@ -4,20 +4,17 @@ import { useStore } from '../context/StoreContext';
 import { OrderStatus, PaymentMethod, ProductCategory, Product } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, LabelList } from 'recharts';
 import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
+import { formatTime } from '../utils/dateUtils';
 
 type AdminTab = 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu';
 const VALID_TABS: AdminTab[] = ['orders', 'inquiries', 'inventory', 'reports', 'menu'];
 
-// Converts "HH:MM" 24-hr to "H:MM AM/PM"
-const formatTime = (t: string): string => {
-  if (!t || t === 'TBD') return t;
-  if (/AM|PM/i.test(t)) return t;
-  const [hStr, mStr = '00'] = t.split(':');
-  let h = parseInt(hStr, 10);
-  const meridiem = h >= 12 ? 'PM' : 'AM';
-  if (h === 0) h = 12;
-  else if (h > 12) h -= 12;
-  return `${h}:${mStr} ${meridiem}`;
+const STATUS_SELECT_STYLES: Record<OrderStatus, string> = {
+  [OrderStatus.PENDING]:   'bg-amber-100 text-amber-700',
+  [OrderStatus.CONFIRMED]: 'bg-blue-100 text-blue-700',
+  [OrderStatus.BAKING]:    'bg-orange-100 text-orange-700',
+  [OrderStatus.COMPLETED]: 'bg-green-100 text-green-700',
+  [OrderStatus.CANCELLED]: 'bg-stone-100 text-stone-600',
 };
 
 const AdminDashboard: React.FC = () => {
@@ -246,13 +243,7 @@ const AdminDashboard: React.FC = () => {
                    <select
                      value={order.status}
                      onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                     className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
-                       order.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                       order.status === OrderStatus.PENDING   ? 'bg-amber-100 text-amber-700' :
-                       order.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
-                       order.status === OrderStatus.BAKING    ? 'bg-orange-100 text-orange-700' :
-                       'bg-stone-100 text-stone-600'
-                     }`}
+                     className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${STATUS_SELECT_STYLES[order.status]}`}
                    >
                      {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                    </select>
@@ -359,13 +350,7 @@ const AdminDashboard: React.FC = () => {
                     <select
                       value={inquiry.status}
                       onChange={(e) => updateOrderStatus(inquiry.id, e.target.value as OrderStatus)}
-                      className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
-                        inquiry.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                        inquiry.status === OrderStatus.PENDING   ? 'bg-amber-100 text-amber-700' :
-                        inquiry.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
-                        inquiry.status === OrderStatus.BAKING    ? 'bg-orange-100 text-orange-700' :
-                        'bg-stone-100 text-stone-600'
-                      }`}
+                      className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${STATUS_SELECT_STYLES[inquiry.status]}`}
                     >
                       {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>

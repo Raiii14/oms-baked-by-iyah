@@ -3,22 +3,12 @@ import { useStore } from '../context/StoreContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Trash2, ShoppingBag, History, Cake, ImageIcon } from 'lucide-react';
 import { Modal } from '../components/Modal';
+import StatusBadge from '../components/StatusBadge';
+import { formatTime } from '../utils/dateUtils';
 import { UserRole, OrderStatus } from '../types';
 
 const CART_TABS = ['cart', 'history', 'custom'] as const;
 type CartTab = typeof CART_TABS[number];
-
-// Converts "HH:MM" 24-hr to "H:MM AM/PM"
-const formatTime = (t: string): string => {
-  if (!t || t === 'TBD') return t;
-  if (/AM|PM/i.test(t)) return t;
-  const [hStr, mStr = '00'] = t.split(':');
-  let h = parseInt(hStr, 10);
-  const meridiem = h >= 12 ? 'PM' : 'AM';
-  if (h === 0) h = 12;
-  else if (h > 12) h -= 12;
-  return `${h}:${mStr} ${meridiem}`;
-};
 
 const Cart: React.FC = () => {
   const { cart, updateCartQuantity, removeFromCart, user, orders } = useStore();
@@ -249,13 +239,7 @@ const Cart: React.FC = () => {
                     </div>
                     <span className="text-base font-bold font-mono tracking-wide bg-stone-100 text-stone-700 px-3 py-1 rounded-lg">{order.id}</span>
                   </div>
-                  <span className={`self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold ${
-                    order.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                    order.status === OrderStatus.CANCELLED ? 'bg-red-100 text-red-600' :
-                    order.status === OrderStatus.BAKING    ? 'bg-orange-100 text-orange-700' :
-                    order.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
-                    'bg-amber-100 text-amber-700'
-                  }`}>{order.status}</span>
+                  <StatusBadge status={order.status} className="self-start sm:self-auto" />
                 </div>
 
                 {/* Meta */}
@@ -325,13 +309,7 @@ const Cart: React.FC = () => {
                     </div>
                     <span className="text-base font-bold font-mono tracking-wide bg-stone-100 text-stone-700 px-3 py-1 rounded-lg">{inquiry.id}</span>
                   </div>
-                  <span className={`self-start sm:self-auto px-3 py-1 rounded-full text-xs font-bold ${
-                    inquiry.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                    inquiry.status === OrderStatus.CANCELLED ? 'bg-red-100 text-red-600' :
-                    inquiry.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
-                    inquiry.status === OrderStatus.BAKING    ? 'bg-orange-100 text-orange-700' :
-                    'bg-amber-100 text-amber-700'
-                  }`}>{inquiry.status}</span>
+                  <StatusBadge status={inquiry.status} className="self-start sm:self-auto" />
                 </div>
 
                 {/* Meta */}

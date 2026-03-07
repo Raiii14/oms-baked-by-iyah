@@ -1,10 +1,10 @@
 import React from 'react';
-import { Check, AlertTriangle } from 'lucide-react';
+import { Check, AlertTriangle, XCircle } from 'lucide-react';
 
 interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
-  type: 'success' | 'warning';
+  type: 'success' | 'warning' | 'error';
   title: string;
   message: string;
   primaryAction: {
@@ -44,6 +44,10 @@ export const Modal: React.FC<ModalProps> = ({
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
                 <Check className="h-6 w-6 text-green-600" aria-hidden="true" />
               </div>
+            ) : type === 'error' ? (
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100">
+                <XCircle className="h-6 w-6 text-red-600" aria-hidden="true" />
+              </div>
             ) : (
               <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-amber-100">
                 <AlertTriangle className="h-6 w-6 text-amber-600" aria-hidden="true" />
@@ -66,8 +70,10 @@ export const Modal: React.FC<ModalProps> = ({
               className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${
                 !secondaryAction ? 'sm:col-span-2' : 'sm:col-start-2'
               } ${
-                type === 'success' 
-                  ? 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500' 
+                type === 'success'
+                  ? 'bg-indigo-600 hover:bg-indigo-700 focus:ring-indigo-500'
+                  : type === 'error'
+                  ? 'bg-red-600 hover:bg-red-700 focus:ring-red-500'
                   : 'bg-amber-600 hover:bg-amber-700 focus:ring-amber-500'
               }`}
               onClick={primaryAction.onClick}
