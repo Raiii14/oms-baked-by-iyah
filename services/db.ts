@@ -1,5 +1,5 @@
 import { User, Product, Order, UserRole, UserNotification, OrderStatus, PaymentMethod, DeliveryMethod, ProductCategory } from '../types';
-import { INITIAL_PRODUCTS, MOCK_ADMIN } from '../constants';
+
 import { supabase } from './supabaseClient';
 
 // ─── DatabaseProvider Interface ───────────────────────────────────────────────
@@ -46,17 +46,7 @@ export interface DatabaseProvider {
   subscribeToAuthChanges(callback: (user: User | null) => void): () => void;
 }
 
-// ─── LocalStorage Implementation (Fallback / Dev) ────────────────────────────
 
-class LocalStorageService implements DatabaseProvider {
-  private async delay(ms = 300) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  private get<T>(key: string, defaultVal: T): T {
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : defaultVal;
-  }
 
   private set(key: string, val: unknown) {
     localStorage.setItem(key, JSON.stringify(val));
@@ -222,13 +212,6 @@ class LocalStorageService implements DatabaseProvider {
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }
-
-  subscribeToAuthChanges(_callback: (user: User | null) => void): () => void {
-    // LocalStorage has no real auth events — no-op
-    return () => {};
-  }
-}
-
 
 // ─── Supabase Implementation ──────────────────────────────────────────────────
 
@@ -578,5 +561,4 @@ class SupabaseService implements DatabaseProvider {
 // export const db: DatabaseProvider = new LocalStorageService();
 export const db: DatabaseProvider = new SupabaseService();
 
-// Both implementations are exported so they can be referenced in tests or swapped in.
-export { LocalStorageService, SupabaseService };
+export { SupabaseService };

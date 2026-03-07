@@ -74,7 +74,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('bbi_cart');
+    const saved = sessionStorage.getItem('bbi_cart');
     return saved ? JSON.parse(saved) : [];
   });
   const [orders, setOrders] = useState<Order[]>([]);
@@ -82,10 +82,9 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [toastQueue, setToastQueue] = useState<UserNotification[]>([]);
 
 
-  // Persistence Effects for Client-Side only (User Session & Cart)
-  // We don't persist products/orders here anymore because they come from the "DB"
-  useEffect(() => localStorage.setItem('bbi_user', JSON.stringify(user)), [user]);
-  useEffect(() => localStorage.setItem('bbi_cart', JSON.stringify(cart)), [cart]);
+  // Persist cart to sessionStorage (survives tab refresh; cleared when tab closes).
+  // User session is managed entirely by Supabase — no localStorage write needed.
+  useEffect(() => sessionStorage.setItem('bbi_cart', JSON.stringify(cart)), [cart]);
 
   const addNotification = useCallback((message: string, type: 'success' | 'error' | 'info' = 'success') => {
     const id = Date.now().toString();
@@ -109,6 +108,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         // Session restoration is handled by subscribeToAuthChanges (INITIAL_SESSION).
         // We still call getSessionUser here as a fast-path for when the token is
         // still valid and getSession() returns immediately without a lock.
+        // One-time migration: remove legacy bbi_user key (exposed full user profile as plain JSON).
+        localStorage.removeItem('bbi_user');
+        localStorage.removeItem('bbi_users_db');
+
         const sessionUser = await db.getSessionUser();
         console.log('[StoreContext] loadData → sessionUser:', sessionUser ? `${sessionUser.email} (${sessionUser.role})` : 'null — waiting for INITIAL_SESSION event');
         if (sessionUser) setUser(sessionUser);
@@ -209,6 +212,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await db.logout();
     setUser(null);
     setCart([]);
+    sessionStorage.removeItem('bbi_cart');
   };
 
   const updateUser = async (updates: Partial<User>) => {
