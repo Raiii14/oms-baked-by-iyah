@@ -115,7 +115,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true);
-      console.log('[StoreContext] loadData → start');
       try {
         // Session restoration is handled by subscribeToAuthChanges (INITIAL_SESSION).
         // We still call getSessionUser here as a fast-path for when the token is
@@ -125,21 +124,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         localStorage.removeItem('bbi_users_db');
 
         const sessionUser = await db.getSessionUser();
-        console.log('[StoreContext] loadData → sessionUser:', sessionUser ? `${sessionUser.email} (${sessionUser.role})` : 'null — waiting for INITIAL_SESSION event');
         if (sessionUser) setUser(sessionUser);
 
         // Products are public — always fetch regardless of auth state.
         const loadedProducts = await db.getProducts();
-        console.log('[StoreContext] loadData → products loaded:', loadedProducts.length);
         setProducts(loadedProducts);
         // Orders are fetched reactively in the user?.id effect below,
         // which covers both post-login and post-refresh cases.
       } catch (error) {
-        console.error('[StoreContext] loadData → FAILED:', error);
+        console.error('[StoreContext] loadData failed:', error);
         addNotification("Failed to load data from server", "error");
       } finally {
         setIsLoading(false);
-        console.log('[StoreContext] loadData → done');
       }
     };
     loadData();
@@ -150,7 +146,6 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // killing sessions in other concurrent tabs.
   useEffect(() => {
     const unsubscribe = db.subscribeToAuthChanges((sessionUser) => {
-      console.log('[StoreContext] subscribeToAuthChanges fired → user:', sessionUser ? `${sessionUser.email} (${sessionUser.role})` : 'null');
       if (sessionUser) {
         setUser(sessionUser);
       }
@@ -164,9 +159,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   //   2. Post-refresh: session restored via INITIAL_SESSION event → this fires.
   useEffect(() => {
     if (!user) { setOrders([]); return; }
-    console.log('[StoreContext] user changed → fetching orders for:', user.email);
     db.getOrders().then(orders => {
-      console.log('[StoreContext] orders fetched:', orders.length);
       setOrders(orders);
     }).catch(err => console.error('[StoreContext] getOrders failed:', err));
   }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps

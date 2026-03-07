@@ -70,7 +70,6 @@ export interface DatabaseProvider {
 class SupabaseService implements DatabaseProvider {
   // Fetch and map a profiles row → User
   private async fetchProfile(userId: string): Promise<User | null> {
-    console.log('[db] fetchProfile → userId:', userId);
     const { data, error } = await supabase
       .from('profiles')
       .select('*')
@@ -81,10 +80,9 @@ class SupabaseService implements DatabaseProvider {
       return null;
     }
     if (!data) {
-      console.warn('[db] fetchProfile: no row found for user', userId);
+      console.error('[db] fetchProfile: no profile row found');
       return null;
     }
-    console.log('[db] fetchProfile → role:', data.role, 'name:', data.name);
     return {
       id: data.id as string,
       email: data.email as string,
@@ -134,34 +132,30 @@ class SupabaseService implements DatabaseProvider {
   async getSessionUser(): Promise<User | null> {
     // getUser() verifies the token with the Supabase server on every call,
     // preventing stale client-side session data from being trusted.
-    console.log('[db] getSessionUser → verifying with server...');
     const { data: { user }, error } = await supabase.auth.getUser();
     if (error) {
-      console.error('[db] getUser error:', error.message);
+      // 'Auth session missing' is the normal unauthenticated state — not an error worth logging.
+      if (error.message !== 'Auth session missing!') {
+        console.error('[db] getSessionUser error:', error.message);
+      }
       return null;
     }
-    if (!user) {
-      console.log('[db] getSessionUser → no active session');
-      return null;
-    }
-    console.log('[db] getSessionUser → server-verified user id:', user.id);
+    if (!user) return null;
     return this.fetchProfile(user.id);
   }
 
   async login(email: string, pass: string): Promise<User | null> {
-    console.log('[db] login → attempting signInWithPassword for:', email);
     const { data, error } = await supabase.auth.signInWithPassword({ email, password: pass });
     if (error) {
-      console.error('[db] signInWithPassword error:', error.message, 'status:', error.status);
+      console.error('[db] login error:', error.message, 'status:', error.status);
       return null;
     }
     if (!data.user) {
-      console.error('[db] signInWithPassword: no user returned despite no error');
+      console.error('[db] login: no user returned despite no error');
       return null;
     }
-    console.log('[db] signInWithPassword OK → user id:', data.user.id);
     const profile = await this.fetchProfile(data.user.id);
-    if (!profile) console.error('[db] fetchProfile returned null after successful login for:', data.user.id);
+    if (!profile) console.error('[db] login: profile not found after successful auth');
     return profile;
   }
 
@@ -381,15 +375,13 @@ class SupabaseService implements DatabaseProvider {
     path: string,
     file: File,
   ): Promise<string> {
-    console.log(`[db] uploadToStorage → bucket: ${bucket}, path: ${path}, size: ${file.size}B, type: ${file.type}`);
     const { error: uploadError } = await supabase.storage
       .from(bucket)
       .upload(path, file, { upsert: true, contentType: file.type });
     if (uploadError) {
-      console.error(`[db] uploadToStorage FAILED → bucket: ${bucket}, path: ${path}`, uploadError);
+      console.error(`[db] uploadToStorage failed → bucket: ${bucket}`, uploadError.message);
       throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
-    console.log(`[db] uploadToStorage OK → bucket: ${bucket}, path: ${path}`);
 
     const { data, error: urlError } = await supabase.storage
       .from(bucket)
@@ -428,7 +420,6 @@ class SupabaseService implements DatabaseProvider {
 
   subscribeToAuthChanges(callback: (user: User | null) => void): () => void {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log('[db] onAuthStateChange event:', event, 'user:', session?.user?.id ?? 'none');
       if ((event === 'INITIAL_SESSION' || event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         // IMPORTANT: defer fetchProfile to the next task via setTimeout.
         // onAuthStateChange fires while the Supabase SDK still holds its internal
