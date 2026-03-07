@@ -1,7 +1,6 @@
 ---
 name: component-new
 description: Create a new React component with TypeScript and modern best practices
-model: claude-sonnet-4-6
 ---
 
 Generate a new React component for this Vite + React Router v6 + React 18 project.

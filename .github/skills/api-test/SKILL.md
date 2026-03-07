@@ -1,7 +1,6 @@
 ---
 name: api-test
 description: Test API endpoints with automated test generation
-model: claude-sonnet-4-6
 ---
 
 Generate comprehensive API tests for the specified endpoint.
