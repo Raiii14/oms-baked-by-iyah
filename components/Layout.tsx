@@ -279,7 +279,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                             to={link.path}
                             onMouseEnter={() => preload(link.path)}
                             onClick={() => setIsMenuOpen(false)}
-                            className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${`
+                            className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                                 location.pathname === link.path 
                                     ? 'bg-rose-50 text-rose-600' 
                                     : 'text-stone-600 hover:bg-stone-50 hover:text-stone-900'
