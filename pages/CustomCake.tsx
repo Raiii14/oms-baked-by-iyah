@@ -5,6 +5,7 @@ import { Modal } from '../components/Modal';
 import { useNavigate } from 'react-router-dom';
 import { UserRole } from '../types';
 import { compressImage } from '../utils/imageCompression';
+import { getMinDate } from '../utils/dateUtils';
 
 const CustomCake: React.FC = () => {
   const { submitCustomInquiry, user } = useStore();
@@ -41,10 +42,7 @@ const CustomCake: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (user?.role === UserRole.ADMIN) {
-        alert("Admins cannot submit inquiries.");
-        return;
-    }
+    if (user?.role === UserRole.ADMIN) return;
 
     if (!user) {
       setShowLoginWarning(true);
@@ -76,17 +74,6 @@ const CustomCake: React.FC = () => {
         setFormData({ ...formData, image: file });
       }
     }
-  };
-
-  // Calculate minimum date (tomorrow)
-  const getMinDate = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    // Format to YYYY-MM-DD using local time to avoid UTC issues
-    const year = tomorrow.getFullYear();
-    const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
-    const day = String(tomorrow.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
   };
 
   return (

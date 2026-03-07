@@ -1,5 +1,5 @@
 import { User, Product, Order, UserRole, UserNotification, OrderStatus, PaymentMethod, DeliveryMethod, ProductCategory } from '../types';
-import { INITIAL_PRODUCTS, MOCK_ADMIN } from '../constants';
+
 import { supabase } from './supabaseClient';
 
 // ─── DatabaseProvider Interface ───────────────────────────────────────────────
@@ -44,189 +44,6 @@ export interface DatabaseProvider {
    * Returns an unsubscribe function.
    */
   subscribeToAuthChanges(callback: (user: User | null) => void): () => void;
-}
-
-// ─── LocalStorage Implementation (Fallback / Dev) ────────────────────────────
-
-class LocalStorageService implements DatabaseProvider {
-  private async delay(ms = 300) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-  }
-
-  private get<T>(key: string, defaultVal: T): T {
-    const saved = localStorage.getItem(key);
-    return saved ? JSON.parse(saved) : defaultVal;
-  }
-
-  private set(key: string, val: unknown) {
-    localStorage.setItem(key, JSON.stringify(val));
-  }
-
-  // Session is persisted as 'bbi_user' by StoreContext's localStorage effect
-  async getSessionUser(): Promise<User | null> {
-    await this.delay(50);
-    const saved = localStorage.getItem('bbi_user');
-    return saved ? JSON.parse(saved) : null;
-  }
-
-  async login(email: string, pass: string): Promise<User | null> {
-    await this.delay();
-    if (email === MOCK_ADMIN.email && pass === MOCK_ADMIN.password) {
-      return MOCK_ADMIN;
-    }
-
-    const hash = (str: string) => {
-      let h = 0;
-      for (let i = 0; i < str.length; i++) {
-        const c = str.charCodeAt(i);
-        h = ((h << 5) - h) + c;
-        h = h & h;
-      }
-      return h.toString();
-    };
-
-    const storedUsers = this.get<User[]>('bbi_users_db', []);
-    const hashed = hash(pass);
-    return storedUsers.find(u => u.email === email && (u.password === hashed || u.password === pass)) || null;
-  }
-
-  async register(name: string, email: string, pass: string, phone: string): Promise<User> {
-    await this.delay();
-    const hash = (str: string) => {
-      let h = 0;
-      for (let i = 0; i < str.length; i++) {
-        const c = str.charCodeAt(i);
-        h = ((h << 5) - h) + c;
-        h = h & h;
-      }
-      return h.toString();
-    };
-
-    const newUser: User = {
-      id: Date.now().toString(),
-      name,
-      email,
-      password: hash(pass),
-      role: UserRole.CUSTOMER,
-      phoneNumber: phone,
-    };
-
-    const storedUsers = this.get<User[]>('bbi_users_db', []);
-    this.set('bbi_users_db', [...storedUsers, newUser]);
-    return newUser;
-  }
-
-  async logout(): Promise<void> {
-    localStorage.removeItem('bbi_user');
-  }
-
-  async loginWithGoogle(): Promise<void> {
-    throw new Error('Google login is not available in offline mode.');
-  }
-
-  async updateUser(user: User): Promise<User> {
-    await this.delay();
-    const storedUsers = this.get<User[]>('bbi_users_db', []);
-    this.set('bbi_users_db', storedUsers.map(u => u.id === user.id ? user : u));
-    return user;
-  }
-
-  async getProducts(): Promise<Product[]> {
-    await this.delay(100);
-    const products = this.get<Product[]>('bbi_products', INITIAL_PRODUCTS);
-    return products.filter(p => p.id !== 'p5');
-  }
-
-  async getOrders(): Promise<Order[]> {
-    await this.delay(100);
-    return this.get<Order[]>('bbi_orders', []);
-  }
-
-  async createOrder(order: Order): Promise<Order> {
-    await this.delay();
-    const orders = this.get<Order[]>('bbi_orders', []);
-    this.set('bbi_orders', [order, ...orders]);
-    return order;
-  }
-
-  async updateOrder(order: Order): Promise<Order> {
-    await this.delay();
-    const orders = this.get<Order[]>('bbi_orders', []);
-    this.set('bbi_orders', orders.map(o => o.id === order.id ? order : o));
-    return order;
-  }
-
-  async addProduct(product: Product): Promise<Product> {
-    await this.delay();
-    const products = this.get<Product[]>('bbi_products', INITIAL_PRODUCTS);
-    this.set('bbi_products', [...products, product]);
-    return product;
-  }
-
-  async updateProduct(product: Product): Promise<Product> {
-    await this.delay();
-    const products = this.get<Product[]>('bbi_products', INITIAL_PRODUCTS);
-    this.set('bbi_products', products.map(p => p.id === product.id ? product : p));
-    return product;
-  }
-
-  async deleteProduct(productId: string): Promise<void> {
-    await this.delay();
-    const products = this.get<Product[]>('bbi_products', INITIAL_PRODUCTS);
-    this.set('bbi_products', products.filter(p => p.id !== productId));
-  }
-
-  async getUserNotifications(userId: string): Promise<UserNotification[]> {
-    await this.delay(50);
-    const all = this.get<UserNotification[]>('bbi_user_notifications', []);
-    return all.filter(n => n.userId === userId);
-  }
-
-  async addUserNotification(notification: UserNotification): Promise<void> {
-    await this.delay(50);
-    const all = this.get<UserNotification[]>('bbi_user_notifications', []);
-    this.set('bbi_user_notifications', [notification, ...all]);
-  }
-
-  async markNotificationRead(notificationId: string): Promise<void> {
-    await this.delay(50);
-    const all = this.get<UserNotification[]>('bbi_user_notifications', []);
-    this.set('bbi_user_notifications', all.map(n => n.id === notificationId ? { ...n, isRead: true } : n));
-  }
-
-  async markAllNotificationsRead(userId: string): Promise<void> {
-    await this.delay(50);
-    const all = this.get<UserNotification[]>('bbi_user_notifications', []);
-    this.set('bbi_user_notifications', all.map(n => n.userId === userId ? { ...n, isRead: true } : n));
-  }
-
-  subscribeToNotifications(userId: string, callback: (notif: UserNotification) => void): () => void {
-    // Seed known IDs so only truly new notifications trigger the callback
-    const knownIds = new Set<string>(
-      this.get<UserNotification[]>('bbi_user_notifications', [])
-        .filter(n => n.userId === userId)
-        .map(n => n.id)
-    );
-
-    const handleStorage = (e: StorageEvent) => {
-      if (e.key !== 'bbi_user_notifications') return;
-      const all = this.get<UserNotification[]>('bbi_user_notifications', []);
-      all
-        .filter(n => n.userId === userId && !knownIds.has(n.id))
-        .forEach(n => {
-          knownIds.add(n.id);
-          callback(n);
-        });
-    };
-
-    window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
-  }
-
-  subscribeToAuthChanges(_callback: (user: User | null) => void): () => void {
-    // LocalStorage has no real auth events — no-op
-    return () => {};
-  }
 }
 
 
@@ -297,28 +114,20 @@ class SupabaseService implements DatabaseProvider {
   }
 
   async getSessionUser(): Promise<User | null> {
-    console.log('[db] getSessionUser → checking session...');
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError) console.error('[db] getSession error:', sessionError.message);
-    if (!session?.user) {
+    // getUser() verifies the token with the Supabase server on every call,
+    // preventing stale client-side session data from being trusted.
+    console.log('[db] getSessionUser → verifying with server...');
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) {
+      console.error('[db] getUser error:', error.message);
+      return null;
+    }
+    if (!user) {
       console.log('[db] getSessionUser → no active session');
       return null;
     }
-    console.log('[db] getSessionUser → session found, user id:', session.user.id, 'expires:', new Date(session.expires_at! * 1000).toISOString());
-
-    const profile = await this.fetchProfile(session.user.id);
-    if (profile) return profile;
-
-    // fetchProfile returned null despite a valid-looking session — the cached
-    // token may be stale. Force a server-side refresh and retry once.
-    console.warn('[db] fetchProfile returned null, forcing token refresh...');
-    const { data: refreshed, error: refreshError } = await supabase.auth.refreshSession();
-    if (refreshError || !refreshed.session?.user) {
-      console.error('[db] Session refresh failed:', refreshError?.message);
-      return null;
-    }
-    console.log('[db] Token refreshed successfully, retrying fetchProfile...');
-    return this.fetchProfile(refreshed.session.user.id);
+    console.log('[db] getSessionUser → server-verified user id:', user.id);
+    return this.fetchProfile(user.id);
   }
 
   async login(email: string, pass: string): Promise<User | null> {
@@ -573,10 +382,6 @@ class SupabaseService implements DatabaseProvider {
 
 
 // ─── Active export ────────────────────────────────────────────────────────────
-// To roll back to localStorage, swap the two lines below — nothing else changes.
-//
-// export const db: DatabaseProvider = new LocalStorageService();
 export const db: DatabaseProvider = new SupabaseService();
 
-// Both implementations are exported so they can be referenced in tests or swapped in.
-export { LocalStorageService, SupabaseService };
+export { SupabaseService };

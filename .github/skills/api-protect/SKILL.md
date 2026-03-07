@@ -1,6 +1,6 @@
 ﻿---
+name: api-protect
 description: Add authentication, authorization, and security to Supabase data operations
-model: claude-sonnet-4-6
 ---
 
 Add comprehensive security to a Supabase data operation in this Vite + React + Supabase project.

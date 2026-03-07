@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useStore } from '../context/StoreContext';
 import { Navigate } from 'react-router-dom';
-import { Edit2, AlertCircle } from 'lucide-react';
+import { Edit2 } from 'lucide-react';
+import { Modal } from '../components/Modal';
 
 const Profile: React.FC = () => {
   const { user, updateUser, addNotification } = useStore();
@@ -84,6 +85,28 @@ const Profile: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+      <Modal
+        isOpen={showInvalidPhoneModal}
+        onClose={() => setShowInvalidPhoneModal(false)}
+        type="error"
+        title="Invalid Phone Number"
+        message="Please enter a valid Philippine mobile number. Accepted formats: 09XXXXXXXXX or +639XXXXXXXXX"
+        primaryAction={{ label: 'OK', onClick: () => setShowInvalidPhoneModal(false) }}
+      />
+
+      <Modal
+        isOpen={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        type="warning"
+        title="Confirm Change"
+        message={`Are you sure you want to change your ${fieldToUpdate} to "${fieldToUpdate === 'name' ? newName : newPhone}"?${
+          fieldToUpdate === 'name'
+            ? ' Note: You will only be able to edit your name again after 7 days.'
+            : ' Note: Make sure your phone number is correct — it will be used for order-related communications.'
+        }`}
+        primaryAction={{ label: 'Confirm', onClick: confirmChange }}
+        secondaryAction={{ label: 'Cancel', onClick: () => setShowConfirmModal(false) }}
+      />
       <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-stone-200">
         <div className="px-4 py-5 sm:px-6">
           <h3 className="text-lg leading-6 font-medium text-stone-900">
@@ -161,67 +184,6 @@ const Profile: React.FC = () => {
         </div>
       </div>
 
-      {/* Invalid Phone Modal */}
-      {showInvalidPhoneModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-            <div className="flex items-center gap-3 text-red-500 mb-4">
-              <AlertCircle className="w-6 h-6" />
-              <h3 className="text-lg font-bold text-stone-900">Invalid Phone Number</h3>
-            </div>
-            <p className="text-stone-600 mb-2">
-              Please enter a valid Philippine mobile number.
-            </p>
-            <p className="text-sm text-stone-500 mb-6">
-              Accepted formats: <strong>09XXXXXXXXX</strong> or <strong>+639XXXXXXXXX</strong>
-            </p>
-            <div className="flex justify-end">
-              <button
-                onClick={() => setShowInvalidPhoneModal(false)}
-                className="px-4 py-2 bg-rose-600 text-white rounded-lg font-medium hover:bg-rose-700"
-              >
-                OK
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Confirmation Modal */}
-      {showConfirmModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black bg-opacity-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
-            <div className="flex items-center gap-3 text-amber-500 mb-4">
-              <AlertCircle className="w-6 h-6" />
-              <h3 className="text-lg font-bold text-stone-900">Confirm Change</h3>
-            </div>
-            <p className="text-stone-600 mb-6">
-              Are you sure you want to change your {fieldToUpdate} to <strong>{fieldToUpdate === 'name' ? newName : newPhone}</strong>? 
-              <br/><br/>
-              {fieldToUpdate === 'name' && (
-                <span className="text-xs font-semibold text-rose-600">Note: You will only be able to edit your name again after 7 days.</span>
-              )}
-              {fieldToUpdate === 'phone' && (
-                <span className="text-xs font-semibold text-rose-600">Note: You can only change this after 7 days. Make sure your phone number is correct as it will be used for order-related communications.</span>
-              )}
-            </p>
-            <div className="flex justify-end gap-3">
-              <button 
-                onClick={() => setShowConfirmModal(false)}
-                className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg font-medium"
-              >
-                Cancel
-              </button>
-              <button 
-                onClick={confirmChange}
-                className="px-4 py-2 bg-rose-600 text-white rounded-lg font-medium hover:bg-rose-700"
-              >
-                Confirm
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

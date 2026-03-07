@@ -1,6 +1,6 @@
 ﻿---
+name: code-optimize
 description: Analyze and optimize code for performance, memory, and efficiency in this Vite + React 18 + Supabase project
-model: claude-sonnet-4-6
 ---
 
 Optimize the following code for performance and efficiency.

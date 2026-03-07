@@ -4,20 +4,17 @@ import { useStore } from '../context/StoreContext';
 import { OrderStatus, PaymentMethod, ProductCategory, Product } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, LabelList } from 'recharts';
 import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
+import { formatTime } from '../utils/dateUtils';
 
 type AdminTab = 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu';
 const VALID_TABS: AdminTab[] = ['orders', 'inquiries', 'inventory', 'reports', 'menu'];
 
-// Converts "HH:MM" 24-hr to "H:MM AM/PM"
-const formatTime = (t: string): string => {
-  if (!t || t === 'TBD') return t;
-  if (/AM|PM/i.test(t)) return t;
-  const [hStr, mStr = '00'] = t.split(':');
-  let h = parseInt(hStr, 10);
-  const meridiem = h >= 12 ? 'PM' : 'AM';
-  if (h === 0) h = 12;
-  else if (h > 12) h -= 12;
-  return `${h}:${mStr} ${meridiem}`;
+const STATUS_SELECT_STYLES: Record<OrderStatus, string> = {
+  [OrderStatus.PENDING]:   'bg-amber-100 text-amber-700',
+  [OrderStatus.CONFIRMED]: 'bg-blue-100 text-blue-700',
+  [OrderStatus.BAKING]:    'bg-orange-100 text-orange-700',
+  [OrderStatus.COMPLETED]: 'bg-green-100 text-green-700',
+  [OrderStatus.CANCELLED]: 'bg-stone-100 text-stone-600',
 };
 
 const AdminDashboard: React.FC = () => {
@@ -61,50 +58,61 @@ const AdminDashboard: React.FC = () => {
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc'); // Date sort
 
   // Filter Orders (excluding inquiries)
-  const filteredOrders = orders
-    .filter(o => !o.isCustomInquiry)
-    .filter(o => filterStatus === 'all' || o.status === filterStatus)
-    .sort((a, b) => {
-      const dateA = new Date(a.scheduledDate + ' ' + a.scheduledTime).getTime();
-      const dateB = new Date(b.scheduledDate + ' ' + b.scheduledTime).getTime();
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
+  const filteredOrders = React.useMemo(() =>
+    orders
+      .filter(o => !o.isCustomInquiry)
+      .filter(o => filterStatus === 'all' || o.status === filterStatus)
+      .sort((a, b) => {
+        const dateA = new Date(a.scheduledDate + ' ' + a.scheduledTime).getTime();
+        const dateB = new Date(b.scheduledDate + ' ' + b.scheduledTime).getTime();
+        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+      }),
+    [orders, filterStatus, sortOrder]
+  );
 
   const totalPages = Math.ceil(filteredOrders.length / itemsPerPage);
-  const paginatedOrders = filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  const paginatedOrders = React.useMemo(
+    () => filteredOrders.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage),
+    [filteredOrders, currentPage]
+  );
 
   // Inquiries
-  const inquiries = orders.filter(o => o.isCustomInquiry);
+  const inquiries = React.useMemo(() => orders.filter(o => o.isCustomInquiry), [orders]);
 
   // Reports Data
   const validOrders = React.useMemo(() => orders.filter(o => o.status !== OrderStatus.CANCELLED), [orders]);
   
-  const totalRevenue = validOrders.reduce((acc, o) => acc + o.totalAmount, 0);
-  const completedOrders = orders.filter(o => o.status === OrderStatus.COMPLETED).length;
-  const pendingOrders = orders.filter(o => o.status === OrderStatus.PENDING).length;
-  const avgOrderValue = validOrders.length > 0 ? totalRevenue / validOrders.length : 0;
-  const needsPriceQuote = orders.filter(o => o.isCustomInquiry && (!o.totalAmount || o.totalAmount === 0)).length;
-  const lowStockCount = products.filter(p => p.stock <= 5).length;
-  
-  // Calculate Sales by Product (Iterating ORDERS to catch everything, including Custom Cakes)
-  const salesMap = new Map<string, number>();
-  
-  validOrders.forEach(order => {
-    if (order.isCustomInquiry) {
-        // Group all custom cakes together
-        const current = salesMap.get('Custom Cakes') || 0;
-        salesMap.set('Custom Cakes', current + 1);
-    } else {
-        order.items.forEach(item => {
-            const current = salesMap.get(item.name) || 0;
-            salesMap.set(item.name, current + item.quantity);
-        });
-    }
-  });
+  const { totalRevenue, completedOrders, pendingOrders, avgOrderValue, needsPriceQuote, lowStockCount } = React.useMemo(() => {
+    const rev = validOrders.reduce((acc, o) => acc + o.totalAmount, 0);
+    return {
+      totalRevenue: rev,
+      completedOrders: orders.filter(o => o.status === OrderStatus.COMPLETED).length,
+      pendingOrders: orders.filter(o => o.status === OrderStatus.PENDING).length,
+      avgOrderValue: validOrders.length > 0 ? rev / validOrders.length : 0,
+      needsPriceQuote: orders.filter(o => o.isCustomInquiry && (!o.totalAmount || o.totalAmount === 0)).length,
+      lowStockCount: products.filter(p => p.stock <= 5).length,
+    };
+  }, [validOrders, orders, products]);
 
-  const productSales = Array.from(salesMap.entries())
-    .map(([name, sales]) => ({ name, sales }))
-    .sort((a, b) => b.sales - a.sales);
+  // Calculate Sales by Product (Iterating ORDERS to catch everything, including Custom Cakes)
+  const productSales = React.useMemo(() => {
+    const salesMap = new Map<string, number>();
+    validOrders.forEach(order => {
+      if (order.isCustomInquiry) {
+          // Group all custom cakes together
+          const current = salesMap.get('Custom Cakes') || 0;
+          salesMap.set('Custom Cakes', current + 1);
+      } else {
+          order.items.forEach(item => {
+              const current = salesMap.get(item.name) || 0;
+              salesMap.set(item.name, current + item.quantity);
+          });
+      }
+    });
+    return Array.from(salesMap.entries())
+      .map(([name, sales]) => ({ name, sales }))
+      .sort((a, b) => b.sales - a.sales);
+  }, [validOrders]);
 
   // Revenue Over Time Data
   const revenueData = React.useMemo(() => {
@@ -246,13 +254,7 @@ const AdminDashboard: React.FC = () => {
                    <select
                      value={order.status}
                      onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                     className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
-                       order.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                       order.status === OrderStatus.PENDING   ? 'bg-amber-100 text-amber-700' :
-                       order.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
-                       order.status === OrderStatus.BAKING    ? 'bg-orange-100 text-orange-700' :
-                       'bg-stone-100 text-stone-600'
-                     }`}
+                     className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${STATUS_SELECT_STYLES[order.status]}`}
                    >
                      {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                    </select>
@@ -359,13 +361,7 @@ const AdminDashboard: React.FC = () => {
                     <select
                       value={inquiry.status}
                       onChange={(e) => updateOrderStatus(inquiry.id, e.target.value as OrderStatus)}
-                      className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${
-                        inquiry.status === OrderStatus.COMPLETED ? 'bg-green-100 text-green-700' :
-                        inquiry.status === OrderStatus.PENDING   ? 'bg-amber-100 text-amber-700' :
-                        inquiry.status === OrderStatus.CONFIRMED ? 'bg-blue-100 text-blue-700' :
-                        inquiry.status === OrderStatus.BAKING    ? 'bg-orange-100 text-orange-700' :
-                        'bg-stone-100 text-stone-600'
-                      }`}
+                      className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${STATUS_SELECT_STYLES[inquiry.status]}`}
                     >
                       {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>

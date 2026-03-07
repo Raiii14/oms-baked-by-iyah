@@ -3,8 +3,7 @@ import { useStore } from '../context/StoreContext';
 import { ProductCategory, UserRole, Product } from '../types';
 import { Search, Plus } from 'lucide-react';
 
-const ProductCard: React.FC<{ product: Product, addToCart: (product: Product, quantity: number) => void }> = ({ product, addToCart }) => {
-  const { user } = useStore();
+const ProductCard = React.memo<{ product: Product; addToCart: (product: Product, quantity: number) => void; isAdmin: boolean }>(({ product, addToCart, isAdmin }) => {
   const [quantity, setQuantity] = useState(1);
 
   const handleQuantityChange = (val: number) => {
@@ -12,8 +11,6 @@ const ProductCard: React.FC<{ product: Product, addToCart: (product: Product, qu
       setQuantity(val);
     }
   };
-
-  const isAdmin = user?.role === UserRole.ADMIN;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden flex flex-col hover:shadow-md transition-all duration-300">
@@ -95,10 +92,11 @@ const ProductCard: React.FC<{ product: Product, addToCart: (product: Product, qu
       </div>
     </div>
   );
-};
+});
 
 const Menu: React.FC = () => {
-  const { products, addToCart } = useStore();
+  const { products, addToCart, user } = useStore();
+  const isAdmin = user?.role === UserRole.ADMIN;
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [sortBy, setSortBy] = useState<'name' | 'price'>('name');
   const [searchQuery, setSearchQuery] = useState('');
@@ -169,7 +167,7 @@ const Menu: React.FC = () => {
       {/* Product Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filteredProducts.map((product) => (
-          <ProductCard key={product.id} product={product} addToCart={addToCart} />
+          <ProductCard key={product.id} product={product} addToCart={addToCart} isAdmin={isAdmin} />
         ))}
 
         {filteredProducts.length === 0 && (

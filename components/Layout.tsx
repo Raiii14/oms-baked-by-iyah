@@ -1,9 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { Menu, X, ShoppingCart, User as UserIcon, LogOut, Bell, Settings, Check, AlertCircle } from 'lucide-react';
 import { UserRole } from '../types';
 import { NotificationToast, getNotifConfig } from './NotificationToast';
+
+// Preload a page chunk on nav-link hover to eliminate skeleton flash on navigation.
+// Each entry maps a route path -> dynamic import for its page module.
+const preloadMap: Record<string, () => Promise<unknown>> = {
+  '/':            () => import('../pages/Home'),
+  '/menu':        () => import('../pages/Menu'),
+  '/custom-cake': () => import('../pages/CustomCake'),
+  '/cart':        () => import('../pages/Cart'),
+  '/checkout':    () => import('../pages/Checkout'),
+  '/profile':     () => import('../pages/Profile'),
+  '/admin':       () => import('../pages/AdminDashboard'),
+  '/login':       () => import('../pages/Auth'),
+  '/register':    () => import('../pages/Auth'),
+};
 
 // Scrolls to top whenever the route pathname changes
 const ScrollToTop: React.FC = () => {
@@ -94,6 +108,10 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     navigate('/');
   };
 
+  const preload = useCallback((path: string) => {
+    preloadMap[path]?.();
+  }, []);
+
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Menu', path: '/menu' },
@@ -119,6 +137,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 <Link
                   key={link.path}
                   to={link.path}
+                  onMouseEnter={() => preload(link.path)}
                   className={`${location.pathname === link.path ? 'text-rose-500 font-medium' : 'text-stone-600 hover:text-rose-400'} transition-colors whitespace-nowrap`}
                 >
                   {link.name}
@@ -155,7 +174,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               )}
 
               {user?.role !== UserRole.ADMIN && (
-                <Link to="/cart" className="relative p-2 text-stone-600 hover:text-rose-500">
+                <Link to="/cart" onMouseEnter={() => preload('/cart')} className="relative p-2 text-stone-600 hover:text-rose-500">
                   <ShoppingCart className="h-5 w-5" />
                   {cart.length > 0 && (
                     <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-rose-500 rounded-full">
@@ -168,11 +187,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
               {user ? (
                 <div className="flex items-center space-x-2">
                   {user.role === UserRole.ADMIN && (
-                    <Link to="/admin" className="text-amber-600 font-medium hover:text-amber-700 whitespace-nowrap text-sm border border-amber-200 bg-amber-50 px-3 py-1 rounded-full transition-colors">
+                    <Link to="/admin" onMouseEnter={() => preload('/admin')} className="text-amber-600 font-medium hover:text-amber-700 whitespace-nowrap text-sm border border-amber-200 bg-amber-50 px-3 py-1 rounded-full transition-colors">
                       Dashboard
                     </Link>
                   )}
-                  <Link to="/profile" className="p-2 text-stone-600 hover:text-rose-500" title="Profile Settings">
+                  <Link to="/profile" onMouseEnter={() => preload('/profile')} className="p-2 text-stone-600 hover:text-rose-500" title="Profile Settings">
                     <Settings className="h-5 w-5" />
                   </Link>
                   <div className="text-sm text-stone-600 font-medium whitespace-nowrap truncate max-w-[100px] xl:max-w-[150px]">
@@ -183,7 +202,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                   </button>
                 </div>
               ) : (
-                <Link to="/login" className="flex items-center space-x-1 text-stone-600 hover:text-rose-500 whitespace-nowrap">
+                <Link to="/login" onMouseEnter={() => preload('/login')} className="flex items-center space-x-1 text-stone-600 hover:text-rose-500 whitespace-nowrap">
                   <UserIcon className="h-5 w-5" />
                   <span>Login</span>
                 </Link>
@@ -258,6 +277,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                         <Link
                             key={link.path}
                             to={link.path}
+                            onMouseEnter={() => preload(link.path)}
                             onClick={() => setIsMenuOpen(false)}
                             className={`block px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
                                 location.pathname === link.path 
@@ -271,7 +291,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
                     {user?.role === UserRole.ADMIN && (
                         <Link 
-                            to="/admin" 
+                            to="/admin"
+                            onMouseEnter={() => preload('/admin')}
                             onClick={() => setIsMenuOpen(false)} 
                             className="block px-4 py-2.5 rounded-lg text-sm font-medium text-amber-600 hover:bg-amber-50 transition-colors"
                         >
@@ -281,7 +302,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
 
                     {user?.role !== UserRole.ADMIN && (
                         <Link 
-                            to="/cart" 
+                            to="/cart"
+                            onMouseEnter={() => preload('/cart')}
                             onClick={() => setIsMenuOpen(false)} 
                             className="block px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 flex justify-between items-center"
                         >
@@ -298,7 +320,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                         {user ? (
                             <>
                                 <Link 
-                                    to="/profile" 
+                                    to="/profile"
+                                    onMouseEnter={() => preload('/profile')}
                                     onClick={() => setIsMenuOpen(false)} 
                                     className="block px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900"
                                 >
@@ -313,7 +336,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                             </>
                         ) : (
                             <Link 
-                                to="/login" 
+                                to="/login"
+                                onMouseEnter={() => preload('/login')}
                                 onClick={() => setIsMenuOpen(false)} 
                                 className="block px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900"
                             >
