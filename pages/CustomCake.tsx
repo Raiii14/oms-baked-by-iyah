@@ -16,7 +16,7 @@ const PAST_CAKES: PastCake[] = [
   { name: 'Chocolate Overload Cake',     image: 'https://scontent-mnl1-2.xx.fbcdn.net/v/t39.30808-6/494786922_1086787506803097_4302366667543655730_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=7b2446&_nc_ohc=0VZ4dX5cG2cQ7kNvwEYXVbS&_nc_oc=AdkRbFuXL47cxGgXSYQO7Y3xwdS1RKdLD2Mt_SlG5GaLPLweufGZmU8IYTDCilQHO4A&_nc_zt=23&_nc_ht=scontent-mnl1-2.xx&_nc_gid=VuPPVMQYkgHpoeo9fwDsvA&_nc_ss=8&oh=00_AfymNH2jDrg5HUkI_j3bC4VHA0N-J_3_Bj9Vg6_esMnI5A&oe=69B315B2' },
   { name: 'Spiderman Themed Cake',       image: 'https://scontent-mnl3-2.xx.fbcdn.net/v/t39.30808-6/512003522_1127062139442300_1954159200695648108_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=107&ccb=1-7&_nc_sid=7b2446&_nc_ohc=6FBRMuzahowQ7kNvwG78_mU&_nc_oc=Adm40HWlr9VvJ92Kf6yVEXde5wL3p0hvBp6O38qrXU0v7F4_OfrLxr7FHmxFgnHIOGA&_nc_zt=23&_nc_ht=scontent-mnl3-2.xx&_nc_gid=sZJ2oXDNRws8bixey4-JvA&_nc_ss=8&oh=00_AfyfH2En_OXBExBP3oi74lQNRjS4WEsdOWm-CC6lNuODGw&oe=69B32F06' },
   { name: 'Vintage Themed Cake',         image: 'https://scontent-mnl3-3.xx.fbcdn.net/v/t39.30808-6/535778182_1171987488283098_379305248485660217_n.jpg?_nc_cat=109&ccb=1-7&_nc_sid=7b2446&_nc_ohc=ahK6J5JiVZEQ7kNvwGMv5Kr&_nc_oc=AdmDMRqR91uwQ6ENZ_AeiSPl78KoQYtx_R0NW9FXI87PKtZGCACHJUsUTI_nQ7--bos&_nc_zt=23&_nc_ht=scontent-mnl3-3.xx&_nc_gid=TIfQ1koNL81_XyZL5EI83w&_nc_ss=8&oh=00_AfyoYJ2XZtb-oPb5XpcfEvMj_7-YqHdfjvv82fC6e-hpXQ&oe=69B3051B' },
-  { name: 'Tulip Bouqcake',              image: 'https://scontent-mnl1-2.xx.fbcdn.net/v/t39.30808-6/547997162_1195820302566483_8910351040558425401_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=7b2446&_nc_ohc=L_SS7aQaEhkQ7kNvwFr6ISq&_nc_oc=AdkM6fRa5ov5-BEvlONah8XJSIwBpsv5RxklNc8xKNEGDwNCZ3zUb2QIZSqlrUnCi4g&_nc_zt=23&_nc_ht=scontent-mnl1-2.xx&_nc_gid=AFJbhdBEHHMvZ1_Qt2eamA&_nc_ss=8&oh=00_AfwILU6MuFqzRRJLRwb9Ejzu8pTsvsSzOJSznkYJ23xyyA&oe=69B31D30' },
+  { name: 'Tulip Bouqcake',              image: 'https://scontent-mnl3-3.xx.fbcdn.net/v/t39.30808-6/537023479_1171996674948846_5876839080930745082_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=101&ccb=1-7&_nc_sid=7b2446&_nc_ohc=AZ3993t3bKQQ7kNvwGdVDN8&_nc_oc=AdmapsczytBb0h9z2u9INaBlB-6jfcI5MEWRl0ZpL57EVqmXTVxCik1Kjz0goV4gZQM&_nc_zt=23&_nc_ht=scontent-mnl3-3.xx&_nc_gid=lc7CSi27fpHCIYBtgW5WqA&_nc_ss=8&oh=00_AfzM5cKkMjYvSlFo7t3FcexOhxNx-TyVzToMSPkF_B2Odw&oe=69B34F81' },
   { name: 'Interior Design Themed Cake', image: 'https://scontent-mnl3-1.xx.fbcdn.net/v/t39.30808-6/535926836_1171987581616422_5803633332250890303_n.jpg?_nc_cat=103&ccb=1-7&_nc_sid=7b2446&_nc_ohc=Qhn5MsVE_y8Q7kNvwHrFT3Z&_nc_oc=AdmDarXYFbscmDCNwtQfnthSFWr-CmUA9QLp8a6tuoRhH9DmVwU0yaAEo97qdjroUqA&_nc_zt=23&_nc_ht=scontent-mnl3-1.xx&_nc_gid=SpPINcF6o8Pt1wW6pk-_5Q&_nc_ss=8&oh=00_Afwepoo51Q_pag-fN973oaB9ted4WoNxD8JHkQHvFJ1iHA&oe=69B31089' },
   { name: 'SpongeBob Themed Cake',       image: 'https://scontent-mnl1-2.xx.fbcdn.net/v/t39.30808-6/547997162_1195820302566483_8910351040558425401_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=7b2446&_nc_ohc=L_SS7aQaEhkQ7kNvwFr6ISq&_nc_oc=AdkM6fRa5ov5-BEvlONah8XJSIwBpsv5RxklNc8xKNEGDwNCZ3zUb2QIZSqlrUnCi4g&_nc_zt=23&_nc_ht=scontent-mnl1-2.xx&_nc_gid=AFJbhdBEHHMvZ1_Qt2eamA&_nc_ss=8&oh=00_AfwILU6MuFqzRRJLRwb9Ejzu8pTsvsSzOJSznkYJ23xyyA&oe=69B31D30' },
   { name: 'Coding Themed Cake',          image: 'https://scontent-mnl1-1.xx.fbcdn.net/v/t39.30808-6/487567325_1060908922724289_5619092308825302151_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=7b2446&_nc_ohc=XnydoAVOKiUQ7kNvwHUjJVg&_nc_oc=Adn5nGxX2gFWjC6YGDhFUw99yEfeqQqzisXYpIzcXdM7p3xFfX3wUwvKDw7Lg51Jphg&_nc_zt=23&_nc_ht=scontent-mnl1-1.xx&_nc_gid=VV_1bRSnvrGYzSciXJfLTw&_nc_ss=8&oh=00_Afx9c1fJsi6TVJSZ7ygYeigvQ_ei-8Wss36BFdHTIDjDTw&oe=69B30B97' },
@@ -536,6 +536,18 @@ const CustomCake: React.FC = () => {
         </div>
       )}
 
+
+      {/* Floating Request FAB - only on this page, sits above the cart FAB */}
+      {!showForm && (
+        <button
+          onClick={() => openForm()}
+          className="fixed bottom-24 right-6 z-40 flex items-center gap-2 pl-4 pr-5 h-12 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-sm font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          aria-label="Request a custom cake"
+        >
+          <Sparkles className="w-4 h-4 flex-shrink-0" />
+          Request a Cake
+        </button>
+      )}
       {/* â”€â”€ Gallery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <div>
         <div className="text-center mb-8">
@@ -543,12 +555,6 @@ const CustomCake: React.FC = () => {
           <p className="text-stone-500 mt-2 max-w-xl mx-auto">
             Browse our past creations for inspiration, then tell us what you have in mind.
           </p>
-          <button
-            onClick={() => openForm()}
-            className="mt-5 inline-flex items-center gap-2 px-7 py-3 bg-rose-500 hover:bg-rose-600 text-white font-semibold rounded-full shadow-md transition-all hover:scale-105"
-          >
-            <Send className="w-4 h-4" /> Request a Custom Cake
-          </button>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {PAST_CAKES.map((cake) => (
