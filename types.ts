@@ -70,8 +70,18 @@ export interface Order {
   isCustomInquiry?: boolean;
   customDetails?: {
     size: string;
+    servings: string;
+    flavor: string;
+    cakeMessage: string;
+    color: string;
+    toppers: TopperType[];
+    toyTopperDetail: string;
+    fondantTopperDetail: string;
+    toppersOther: string;
     notes: string;
     referenceImage?: string;
+    inspirationCake: string;
+    inspirationElements: string;
   };
 }
 

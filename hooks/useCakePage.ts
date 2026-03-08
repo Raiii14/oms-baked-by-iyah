@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { compressImage } from '../utils/imageCompression';
-import { serializeCakeNotes } from '../utils/cakeSerializer';
 import { UserRole, PastCake, FormState, TopperType } from '../types';
 
 const blankForm = (user: { name: string; email: string } | null): FormState => ({
@@ -110,7 +109,17 @@ export function useCakePage() {
       email: formData.email,
       size:  formData.size === 'Other' ? (formData.sizeOther || 'Other') : formData.size,
       date:  formData.date,
-      notes: serializeCakeNotes(formData),
+      servings: formData.servings,
+      flavor: formData.flavor,
+      cakeMessage: formData.cakeMessage,
+      color: formData.color,
+      toppers: formData.toppers,
+      toyTopperDetail: formData.toyTopperDetail,
+      fondantTopperDetail: formData.fondantTopperDetail,
+      toppersOther: formData.toppersOther,
+      notes: formData.notes,
+      inspirationCake: formData.inspirationCake,
+      inspirationElements: formData.inspirationElements,
       image: formData.image,
     });
 

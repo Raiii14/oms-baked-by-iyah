@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod, UserRole, UserNotification } from '../types';
+import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod, UserRole, UserNotification, TopperType } from '../types';
 import { db } from '../services/db';
 
 interface Notification {
@@ -13,7 +13,17 @@ interface CustomInquiryDetails {
   email?: string;
   date: string;
   size: string;
+  servings: string;
+  flavor: string;
+  cakeMessage: string;
+  color: string;
+  toppers: TopperType[];
+  toyTopperDetail: string;
+  fondantTopperDetail: string;
+  toppersOther: string;
   notes: string;
+  inspirationCake: string;
+  inspirationElements: string;
   image?: File | null;
 }
 
@@ -312,7 +322,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart([]);
   }, [user, cart, products]);
 
-  const submitCustomInquiry = useCallback(async (details: any) => {
+  const submitCustomInquiry = useCallback(async (details: CustomInquiryDetails) => {
     const inquiryId = `INQ-${generateId()}`;
 
     let referenceImageUrl: string | undefined;
@@ -340,7 +350,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isCustomInquiry: true,
       customDetails: {
         size: details.size,
+        servings: details.servings,
+        flavor: details.flavor,
+        cakeMessage: details.cakeMessage,
+        color: details.color,
+        toppers: details.toppers,
+        toyTopperDetail: details.toyTopperDetail,
+        fondantTopperDetail: details.fondantTopperDetail,
+        toppersOther: details.toppersOther,
         notes: details.notes,
+        inspirationCake: details.inspirationCake,
+        inspirationElements: details.inspirationElements,
         referenceImage: referenceImageUrl,
       }
     };
