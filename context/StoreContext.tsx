@@ -241,7 +241,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return [...prev, { ...product, quantity: Math.min(quantity, product.stock) }];
     });
-    addNotification(`${product.name} added to cart!`);
+    addNotification(`${quantity}× ${product.name} added to cart!`);
   }, [addNotification]);
 
   const removeFromCart = useCallback((productId: string) => {

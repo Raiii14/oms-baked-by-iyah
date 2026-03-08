@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { Menu, X, ShoppingCart, User as UserIcon, LogOut, Bell, Settings, Check, AlertCircle } from 'lucide-react';
@@ -90,6 +90,43 @@ const NotificationPanelContent: React.FC<{ onClose: () => void }> = () => {
             );
           })
         )}
+      </div>
+    </div>
+  );
+};
+
+// ─── App-level toast with pop-in / pop-out + height-collapse animation ───────
+const AppToast: React.FC<{
+  n: { id: string; message: string; type: 'success' | 'error' | 'info' };
+}> = ({ n }) => {
+  const [visible, setVisible]   = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    // Pop in right after mount
+    const showTimer = setTimeout(() => setVisible(true), 20);
+    // At 2600 ms: start fade-out and simultaneously collapse the wrapper height.
+    // Both finish at ~2900 ms — well before the store removes the item at 3000 ms,
+    // so the remaining toasts slide smoothly instead of jumping.
+    const hideTimer = setTimeout(() => { setVisible(false); setCollapsed(true); }, 2600);
+    return () => { clearTimeout(showTimer); clearTimeout(hideTimer); };
+  }, []);
+
+  return (
+    // Outer wrapper animates max-height + margin so the gap closes smoothly
+    <div className={`overflow-hidden transition-all duration-300 ease-out ${
+      collapsed ? 'max-h-0 mb-0' : 'max-h-20 mb-2'
+    }`}>
+      <div className={`
+        pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg
+        text-sm font-medium text-white transition-all duration-300 ease-out
+        ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-3 scale-95'}
+        ${n.type === 'success' ? 'bg-emerald-500' : n.type === 'error' ? 'bg-rose-500' : 'bg-stone-700'}
+      `}>
+        {n.type === 'success' ? <Check className="w-4 h-4 flex-shrink-0" /> :
+         n.type === 'error'   ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> :
+                                <Bell className="w-4 h-4 flex-shrink-0" />}
+        <span>{n.message}</span>
       </div>
     </div>
   );
@@ -358,21 +395,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       )}
 
       {/* App-level toasts: add to cart, errors, etc. */}
-      <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse gap-2 items-end pointer-events-none">
-        {notifications.map(n => (
-          <div
-            key={n.id}
-            className={`pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium text-white ${
-              n.type === 'success' ? 'bg-emerald-500' :
-              n.type === 'error'   ? 'bg-rose-500'    : 'bg-stone-700'
-            }`}
-          >
-            {n.type === 'success' ? <Check className="w-4 h-4 flex-shrink-0" /> :
-             n.type === 'error'   ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> :
-                                    <Bell className="w-4 h-4 flex-shrink-0" />}
-            <span>{n.message}</span>
-          </div>
-        ))}
+      <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse items-end pointer-events-none">
+        {notifications.map(n => <AppToast key={n.id} n={n} />)}
       </div>
 
       {/* Order-status slide-in toasts (top-right) */}
