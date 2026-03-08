@@ -173,16 +173,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 </div>
               )}
 
-              {user?.role !== UserRole.ADMIN && (
-                <Link to="/cart" onMouseEnter={() => preload('/cart')} className="relative p-2 text-stone-600 hover:text-rose-500">
-                  <ShoppingCart className="h-5 w-5" />
-                  {cart.length > 0 && (
-                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-rose-500 rounded-full">
-                      {cart.reduce((acc, item) => acc + item.quantity, 0)}
-                    </span>
-                  )}
-                </Link>
-              )}
+
 
               {user ? (
                 <div className="flex items-center space-x-2">
@@ -300,21 +291,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                         </Link>
                     )}
 
-                    {user?.role !== UserRole.ADMIN && (
-                        <Link 
-                            to="/cart"
-                            onMouseEnter={() => preload('/cart')}
-                            onClick={() => setIsMenuOpen(false)} 
-                            className="block px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 flex justify-between items-center"
-                        >
-                            <span>Cart</span>
-                            {cart.length > 0 && (
-                                <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                    {cart.reduce((acc, item) => acc + item.quantity, 0)}
-                                </span>
-                            )}
-                        </Link>
-                    )}
+
 
                     <div className="border-t border-stone-100 my-2 pt-2">
                         {user ? (
@@ -363,8 +340,25 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       </footer>
 
+      {/* Floating Cart Button */}
+      {user?.role !== UserRole.ADMIN && (
+        <Link
+          to="/cart"
+          onMouseEnter={() => preload('/cart')}
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          aria-label={`Cart${cart.length > 0 ? `, ${cart.reduce((acc, item) => acc + item.quantity, 0)} items` : ''}`}
+        >
+          <ShoppingCart className="h-6 w-6" />
+          {cart.length > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold text-white bg-rose-700 rounded-full border-2 border-white">
+              {cart.reduce((acc, item) => acc + item.quantity, 0) > 99 ? '99+' : cart.reduce((acc, item) => acc + item.quantity, 0)}
+            </span>
+          )}
+        </Link>
+      )}
+
       {/* App-level toasts: add to cart, errors, etc. */}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-2 items-end pointer-events-none">
+      <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse gap-2 items-end pointer-events-none">
         {notifications.map(n => (
           <div
             key={n.id}
