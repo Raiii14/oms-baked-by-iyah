@@ -4,7 +4,7 @@ import { FormState } from '../types';
  * Serializes structured custom cake form fields into a single notes string
  * for storage in the backend (which only has a `notes` text column).
  */
-export function serializeCustomCakeNotes(form: FormState): string {
+export function serializeCakeNotes(form: FormState): string {
   const parts: string[] = [];
 
   if (form.servings)    parts.push(`Servings: ${form.servings}`);

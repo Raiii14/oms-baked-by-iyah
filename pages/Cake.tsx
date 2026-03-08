@@ -1,130 +1,30 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { useStore } from '../context/StoreContext';
+import React from 'react';
 import { Upload, Calendar, Send, X, Sparkles } from 'lucide-react';
 import { Modal } from '../components/Modal';
-import { useNavigate } from 'react-router-dom';
-import { UserRole, PastCake, FormState, TopperType, TOPPER_OPTIONS } from '../types';
+import { TOPPER_OPTIONS } from '../types';
 import { PAST_CAKES, SIZE_OPTIONS } from '../constants';
-import { compressImage } from '../utils/imageCompression';
 import { getMinDate } from '../utils/dateUtils';
-import { serializeCustomCakeNotes } from '../utils/customCakeSerializer';
+import { useCakePage } from '../hooks/useCakePage';
 
-const blankForm = (user: { name: string; email: string } | null): FormState => ({
-  name: user?.name || '',
-  email: user?.email || '',
-  size: '6 inch',
-  sizeOther: '',
-  date: '',
-  servings: '',
-  flavor: '',
-  cakeMessage: '',
-  color: '',
-  toppers: [],
-  toyTopperDetail: '',
-  fondantTopperDetail: '',
-  toppersOther: '',
-  notes: '',
-  image: null,
-  inspirationCake: '',
-  inspirationElements: '',
-});
-
-const CustomCake: React.FC = () => {
-  const { submitCustomInquiry, user } = useStore();
-  const navigate = useNavigate();
-
-  const [formData, setFormData] = useState<FormState>(() => blankForm(user));
-  const [showForm, setShowForm] = useState(false);
-  const [isClosingForm, setIsClosingForm] = useState(false);
-  const [showLoginWarning, setShowLoginWarning] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [lightboxCake, setLightboxCake] = useState<PastCake | null>(null);
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (user) setFormData(prev => ({ ...prev, name: user.name, email: user.email }));
-  }, [user]);
-
-  useEffect(() => {
-    if (user?.role === UserRole.ADMIN) navigate('/admin');
-  }, [user, navigate]);
-
-  // Lock body scroll when the form modal is open
-  useEffect(() => {
-    document.body.style.overflow = showForm ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [showForm]);
-
-  // Clear any pending close animation timer on unmount
-  useEffect(() => {
-    return () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); };
-  }, []);
-
-  const openForm = (inspiration?: PastCake) => {
-    setLightboxCake(null);
-    setFormData(prev => ({
-      ...prev,
-      inspirationCake: inspiration?.name ?? '',
-      inspirationElements: '',
-    }));
-    setShowForm(true);
-  };
-
-  const closeForm = () => {
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    setIsClosingForm(true);
-    closeTimerRef.current = setTimeout(() => {
-      setShowForm(false);
-      setIsClosingForm(false);
-    }, 220);
-  };
-
-  const toggleTopper = (topper: TopperType) => {
-    setFormData(prev => ({
-      ...prev,
-      toppers: prev.toppers.includes(topper)
-        ? prev.toppers.filter(t => t !== topper)
-        : [...prev.toppers, topper],
-    }));
-  };
-
-  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    try {
-      const compressed = await compressImage(file, 0.7, 1024);
-      setFormData(prev => ({ ...prev, image: compressed }));
-    } catch {
-      setFormData(prev => ({ ...prev, image: file }));
-    }
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!user) { setShowLoginWarning(true); return; }
-
-    submitCustomInquiry({
-      name:  formData.name,
-      email: formData.email,
-      size:  formData.size === 'Other' ? (formData.sizeOther || 'Other') : formData.size,
-      date:  formData.date,
-      notes: serializeCustomCakeNotes(formData),
-      image: formData.image,
-    });
-
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    setIsClosingForm(true);
-    closeTimerRef.current = setTimeout(() => {
-      setShowForm(false);
-      setIsClosingForm(false);
-      setFormData({ ...blankForm(null), name: user.name, email: user.email });
-      setShowSuccessModal(true);
-    }, 220);
-  };
-
-  const setField = (key: keyof FormState) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-      setFormData(prev => ({ ...prev, [key]: e.target.value } as FormState));
+const Cake: React.FC = () => {
+  const {
+    formData,
+    showForm,
+    isClosingForm,
+    showLoginWarning, setShowLoginWarning,
+    showSuccessModal, setShowSuccessModal,
+    lightboxCake, setLightboxCake,
+    user,
+    navigate,
+    openForm,
+    closeForm,
+    clearInspiration,
+    onSizeChange,
+    toggleTopper,
+    handleImageChange,
+    handleSubmit,
+    setField,
+  } = useCakePage();
 
   return (
     <div className="space-y-12">
@@ -213,7 +113,7 @@ const CustomCake: React.FC = () => {
                     <p className="text-sm text-rose-700 flex-1 font-medium">
                       Inspired by: <span className="font-semibold">{formData.inspirationCake}</span>
                     </p>
-                    <button type="button" onClick={() => setFormData(prev => ({ ...prev, inspirationCake: '', inspirationElements: '' }))} className="text-rose-300 hover:text-rose-500">
+                    <button type="button" onClick={clearInspiration} className="text-rose-300 hover:text-rose-500">
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -257,7 +157,7 @@ const CustomCake: React.FC = () => {
                     <button
                       key={opt.value}
                       type="button"
-                      onClick={() => setFormData(prev => ({ ...prev, size: opt.value, sizeOther: '' }))}
+                      onClick={() => onSizeChange(opt.value)}
                       className={`flex flex-col items-center justify-center w-16 h-16 rounded-xl border-2 text-center transition-all ${
                         formData.size === opt.value
                           ? 'border-rose-500 bg-rose-50 text-rose-600'
@@ -449,7 +349,7 @@ const CustomCake: React.FC = () => {
                     </div>
                     <p className="text-xs text-stone-500">PNG, JPG up to 5MB</p>
                     {formData.image && (
-                      <p className="text-xs text-emerald-600 font-medium">âœ“ {formData.image.name}</p>
+                      <p className="text-xs text-emerald-600 font-medium">&#x2713; {formData.image.name}</p>
                     )}
                   </div>
                 </div>
@@ -494,7 +394,7 @@ const CustomCake: React.FC = () => {
           Request a Cake
         </button>
       )}
-      {/* â”€â”€ Gallery â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+      {/* Gallery */}
       <div>
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-stone-800">Custom Cake Gallery</h1>
@@ -526,4 +426,4 @@ const CustomCake: React.FC = () => {
   );
 };
 
-export default CustomCake;
+export default Cake;

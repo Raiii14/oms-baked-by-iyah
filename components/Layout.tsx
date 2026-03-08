@@ -10,7 +10,7 @@ import { NotificationToast, AppToast, getNotifConfig } from './NotificationToast
 const preloadMap: Record<string, () => Promise<unknown>> = {
   '/':            () => import('../pages/Home'),
   '/menu':        () => import('../pages/Menu'),
-  '/custom-cake': () => import('../pages/CustomCake'),
+  '/custom-cake': () => import('../pages/Cake'),
   '/cart':        () => import('../pages/Cart'),
   '/checkout':    () => import('../pages/Checkout'),
   '/profile':     () => import('../pages/Profile'),

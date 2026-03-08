@@ -8,7 +8,7 @@ import { UserRole } from './types';
 // Skeleton fallbacks
 import HomeSkeleton from './components/skeletons/HomeSkeleton';
 import MenuSkeleton from './components/skeletons/MenuSkeleton';
-import CustomCakeSkeleton from './components/skeletons/CustomCakeSkeleton';
+import CakeSkeleton from './components/skeletons/CakeSkeleton';
 import CartSkeleton from './components/skeletons/CartSkeleton';
 import CheckoutSkeleton from './components/skeletons/CheckoutSkeleton';
 import ProfileSkeleton from './components/skeletons/ProfileSkeleton';
@@ -18,7 +18,7 @@ import AuthSkeleton from './components/skeletons/AuthSkeleton';
 // Lazy-loaded pages — each page becomes a separate JS chunk
 const Home = lazy(() => import('./pages/Home'));
 const Menu = lazy(() => import('./pages/Menu'));
-const CustomCake = lazy(() => import('./pages/CustomCake'));
+const Cake = lazy(() => import('./pages/Cake'));
 const Cart = lazy(() => import('./pages/Cart'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
@@ -79,8 +79,8 @@ const AppRoutes = () => (
             <Route
               path="/custom-cake"
               element={
-                <Suspense fallback={<CustomCakeSkeleton />}>
-                  <CustomCake />
+                <Suspense fallback={<CakeSkeleton />}>
+                  <Cake />
                 </Suspense>
               }
             />
