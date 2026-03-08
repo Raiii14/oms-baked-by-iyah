@@ -1,9 +1,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { Menu, X, ShoppingCart, User as UserIcon, LogOut, Bell, Settings, Check, AlertCircle } from 'lucide-react';
+import { Menu, X, ShoppingCart, User as UserIcon, LogOut, Bell, Settings } from 'lucide-react';
 import { UserRole } from '../types';
-import { NotificationToast, getNotifConfig } from './NotificationToast';
+import { NotificationToast, AppToast, getNotifConfig } from './NotificationToast';
 
 // Preload a page chunk on nav-link hover to eliminate skeleton flash on navigation.
 // Each entry maps a route path -> dynamic import for its page module.
@@ -22,7 +22,7 @@ const preloadMap: Record<string, () => Promise<unknown>> = {
 // Scrolls to top whenever the route pathname changes
 const ScrollToTop: React.FC = () => {
   const { pathname } = useLocation();
-  React.useEffect(() => {
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [pathname]);
   return null;
@@ -95,43 +95,6 @@ const NotificationPanelContent: React.FC<{ onClose: () => void }> = () => {
   );
 };
 
-// ─── App-level toast with pop-in / pop-out + height-collapse animation ───────
-const AppToast: React.FC<{
-  n: { id: string; message: string; type: 'success' | 'error' | 'info' };
-}> = ({ n }) => {
-  const [visible, setVisible]   = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
-
-  useEffect(() => {
-    // Pop in right after mount
-    const showTimer = setTimeout(() => setVisible(true), 20);
-    // At 2600 ms: start fade-out and simultaneously collapse the wrapper height.
-    // Both finish at ~2900 ms — well before the store removes the item at 3000 ms,
-    // so the remaining toasts slide smoothly instead of jumping.
-    const hideTimer = setTimeout(() => { setVisible(false); setCollapsed(true); }, 2600);
-    return () => { clearTimeout(showTimer); clearTimeout(hideTimer); };
-  }, []);
-
-  return (
-    // Outer wrapper animates max-height + margin so the gap closes smoothly
-    <div className={`overflow-hidden transition-all duration-300 ease-out ${
-      collapsed ? 'max-h-0 mb-0' : 'max-h-20 mb-2'
-    }`}>
-      <div className={`
-        pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg
-        text-sm font-medium text-white transition-all duration-300 ease-out
-        ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-3 scale-95'}
-        ${n.type === 'success' ? 'bg-emerald-500' : n.type === 'error' ? 'bg-rose-500' : 'bg-stone-700'}
-      `}>
-        {n.type === 'success' ? <Check className="w-4 h-4 flex-shrink-0" /> :
-         n.type === 'error'   ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> :
-                                <Bell className="w-4 h-4 flex-shrink-0" />}
-        <span>{n.message}</span>
-      </div>
-    </div>
-  );
-};
-
 export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, logout, cart, userNotifications, toastQueue, dismissToast, notifications } = useStore();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -154,6 +117,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { name: 'Menu', path: '/menu' },
     ...(user?.role !== UserRole.ADMIN ? [{ name: 'Cakes', path: '/custom-cake' }] : []),
   ];
+
+  const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
     <div className="min-h-screen flex flex-col bg-stone-50">
@@ -383,12 +348,12 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
           to="/cart"
           onMouseEnter={() => preload('/cart')}
           className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
-          aria-label={`Cart${cart.length > 0 ? `, ${cart.reduce((acc, item) => acc + item.quantity, 0)} items` : ''}`}
+          aria-label={`Cart${totalCartItems > 0 ? `, ${totalCartItems} items` : ''}`}
         >
           <ShoppingCart className="h-6 w-6" />
-          {cart.length > 0 && (
+          {totalCartItems > 0 && (
             <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold text-white bg-rose-700 rounded-full border-2 border-white">
-              {cart.reduce((acc, item) => acc + item.quantity, 0) > 99 ? '99+' : cart.reduce((acc, item) => acc + item.quantity, 0)}
+              {totalCartItems > 99 ? '99+' : totalCartItems}
             </span>
           )}
         </Link>

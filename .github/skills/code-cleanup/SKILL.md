@@ -38,6 +38,9 @@ $ARGUMENTS
 - Extract repeated logic to custom hooks (`hooks/useXxx.ts`)
 - Centralize constants in `constants.ts`
 - Use TypeScript generics for type reuse
+- **Type definitions always in `types.ts`** — never define interfaces/types inside a page file
+- **App-wide data constants always in `constants.ts`** — never define static data arrays in page/component files
+- **Reusable UI components always in `components/`** — never define them inline inside a page file
 
 ### Complexity
 - Reduce nested `if` statements (max depth 2-3)
@@ -51,6 +54,7 @@ $ARGUMENTS
 - Use utility types: `Pick`, `Omit`, `Partial`, `Record`, `Required`
 - Use discriminated unions for variant types (e.g. `type Shape = Square | Circle`)
 - Avoid `as` type assertions  narrow types properly instead
+- **Narrow string props to union literals** when the valid values are known — `'delay-0' | 'delay-100'` instead of `string`
 
 ## Modern Patterns to Apply
 
@@ -192,6 +196,59 @@ useEffect(() => {
   const channel = supabase.channel('...').on(...).subscribe();
   return () => { supabase.removeChannel(channel); };
 }, []);
+```
+
+### Timer Cleanup with `useRef`
+
+Never store a `setTimeout` ID in plain state or a local variable — it leaks on unmount.
+Use a `useRef` to hold the ID and always clean up:
+
+```typescript
+const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+// Mount-time cleanup
+useEffect(() => {
+  return () => { if (timerRef.current) clearTimeout(timerRef.current); };
+}, []);
+
+// When scheduling the timer
+if (timerRef.current) clearTimeout(timerRef.current);
+timerRef.current = setTimeout(() => {
+  // action
+}, 300);
+```
+
+### Named React Hook Imports
+
+Always import React hooks by name — never use `React.useEffect`, `React.useState`, etc.:
+
+```typescript
+// Avoid
+React.useEffect(() => { ... }, []);
+React.useRef(null);
+
+// Correct
+import { useEffect, useRef, useState } from 'react';
+useEffect(() => { ... }, []);
+```
+
+### Typed Form Field Helper (`setField`)
+
+Replace repeated `onChange` closures with a single typed helper:
+
+```typescript
+// Avoid: one closure per field, 12× repeated
+<input onChange={e => setFormData(prev => ({ ...prev, name: e.target.value }))} />
+<input onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))} />
+
+// Better: one helper, zero duplication
+const setField =
+  (key: keyof FormState) =>
+  (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
+    setFormData(prev => ({ ...prev, [key]: e.target.value }));
+
+<input onChange={setField('name')} />
+<input onChange={setField('email')} />
 ```
 
 ### Error Handling

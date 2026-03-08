@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, CheckCircle, ChefHat, XCircle, Bell } from 'lucide-react';
+import { X, CheckCircle, ChefHat, XCircle, Bell, Check, AlertCircle } from 'lucide-react';
 import { UserNotification, OrderStatus } from '../types';
 
 // Shared config used by both the toast and the notification panel in Layout
@@ -76,6 +76,41 @@ interface NotificationToastProps {
   toasts: UserNotification[];
   onDismiss: (id: string) => void;
 }
+
+// ─── App-level cart/error/info toast ────────────────────────────────────────
+
+export type AppNotification = { id: string; message: string; type: 'success' | 'error' | 'info' };
+
+export const AppToast: React.FC<{ n: AppNotification }> = ({ n }) => {
+  const [visible, setVisible] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    const showTimer = setTimeout(() => setVisible(true), 20);
+    const hideTimer = setTimeout(() => { setVisible(false); setCollapsed(true); }, 2600);
+    return () => { clearTimeout(showTimer); clearTimeout(hideTimer); };
+  }, []);
+
+  return (
+    <div className={`overflow-hidden transition-all duration-300 ease-out ${
+      collapsed ? 'max-h-0 mb-0' : 'max-h-20 mb-2'
+    }`}>
+      <div className={`
+        pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg
+        text-sm font-medium text-white transition-all duration-300 ease-out
+        ${visible ? 'opacity-100 translate-y-0 scale-100' : 'opacity-0 translate-y-3 scale-95'}
+        ${n.type === 'success' ? 'bg-emerald-500' : n.type === 'error' ? 'bg-rose-500' : 'bg-stone-700'}
+      `}>
+        {n.type === 'success' ? <Check className="w-4 h-4 flex-shrink-0" /> :
+         n.type === 'error'   ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> :
+                                <Bell className="w-4 h-4 flex-shrink-0" />}
+        <span>{n.message}</span>
+      </div>
+    </div>
+  );
+};
+
+// ─── Order-status slide-in toasts ────────────────────────────────────────────
 
 export const NotificationToast: React.FC<NotificationToastProps> = ({ toasts, onDismiss }) => {
   if (toasts.length === 0) return null;

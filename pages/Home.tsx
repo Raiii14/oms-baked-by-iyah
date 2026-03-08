@@ -1,37 +1,15 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { ArrowRight, Award, ChefHat, Truck, ShoppingCart } from 'lucide-react';
+import { ArrowRight, Award, ChefHat, Truck, ShoppingCart, LucideIcon } from 'lucide-react';
 import { UserRole } from '../types';
+import FadeIn from '../components/FadeIn';
 
-const WHY_CHOOSE_US = [
+const WHY_CHOOSE_US: { Icon: LucideIcon; bg: string; text: string; title: string; desc: string }[] = [
   { Icon: Award,   bg: 'bg-rose-100',    text: 'text-rose-500',    title: 'Quality Ingredients', desc: 'We use only premium ingredients to ensure the best taste and texture.' },
   { Icon: ChefHat, bg: 'bg-amber-100',   text: 'text-amber-500',   title: 'Freshly Baked',       desc: 'Baked fresh daily or upon order. You get it straight from the oven.' },
   { Icon: Truck,   bg: 'bg-emerald-100', text: 'text-emerald-500', title: 'Convenient Delivery', desc: 'Delivery available within Obando and Valenzuela areas.' },
 ];
-
-// Fade-slide-in on scroll via IntersectionObserver
-const FadeIn: React.FC<{ children: React.ReactNode; delay?: string }> = ({ children, delay = 'delay-0' }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
-      { threshold: 0.1 }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
-  return (
-    <div ref={ref} className={`transition-all duration-700 ease-out ${delay} ${visible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-6'}`}>
-      {children}
-    </div>
-  );
-};
 
 const Home: React.FC = () => {
   const { products, addToCart, user } = useStore();

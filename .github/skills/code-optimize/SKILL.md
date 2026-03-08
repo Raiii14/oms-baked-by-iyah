@@ -96,6 +96,26 @@ const OPTIONS = ['small', 'medium', 'large'] as const;
 const MyComponent = () => { /* ... */ };
 ```
 
+### Extract Repeated Array Operations Before JSX
+
+When the same `.reduce()`, `.filter()`, or `.map()` call runs on the same array multiple times in one render, extract it to a `const` (or `useMemo` when the source is reactive) **above the `return`**:
+
+```typescript
+// Avoid: iterates cart twice per render
+<span>{cart.reduce((s, i) => s + i.quantity, 0)} items</span>
+<div>{cart.reduce((s, i) => s + i.price * i.quantity, 0).toFixed(2)}</div>
+
+// Better: compute once
+const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+const totalPrice = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+return (
+  <>
+    <span>{totalItems} items</span>
+    <div>{totalPrice.toFixed(2)}</div>
+  </>
+);
+```
+
 ---
 
 ## 2. Supabase Query Optimization
