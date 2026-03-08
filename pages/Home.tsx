@@ -41,7 +41,7 @@ const Home: React.FC = () => {
     <div className="space-y-16">
 
       {/* ── Hero ─────────────────────────────────────────────────────────── */}
-      <div className="relative rounded-3xl overflow-hidden shadow-xl min-h-[480px] flex items-center">
+      <div className="relative rounded-3xl overflow-hidden shadow-xl min-h-[580px] flex items-center">
         <img
           src="https://images.unsplash.com/photo-1509440159596-0249088772ff?w=1200&q=80"
           alt=""
@@ -131,14 +131,14 @@ const Home: React.FC = () => {
 
       {/* ── Custom Cake Banner ───────────────────────────────────────────── */}
       <FadeIn delay="delay-100">
-        <div className="relative rounded-2xl overflow-hidden shadow-lg min-h-[320px] flex items-center">
+        <div className="relative rounded-2xl overflow-hidden shadow-lg min-h-[520px] flex items-center bg-rose-700">
           <img
             src="https://scontent-mnl3-2.xx.fbcdn.net/v/t39.30808-6/558939381_1210811791067334_6373385866712100654_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=107&ccb=1-7&_nc_sid=7b2446&_nc_ohc=Bdi3l90q9aYQ7kNvwF9woyd&_nc_oc=Adleq1tr14Fukr-0sol_TCO96Q8STKv-MZik09t9II1Reu8xPg3gCKlNAduKeirnDPw&_nc_zt=23&_nc_ht=scontent-mnl3-2.xx&_nc_gid=zBAs3kSBlvIZQcuqqOhBKw&_nc_ss=8&oh=00_AfzKyKwkLsWGkOHnvITTE3bbFSZxYkGKBzf-JXQoa-5AHw&oe=69B08129"
             alt=""
             aria-hidden="true"
             className="absolute inset-0 w-full h-full object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-r from-rose-950/92 via-rose-900/80 to-rose-800/40" />
+          <div className="absolute inset-0 bg-gradient-to-r from-rose-950/90 to-rose-950/45" />
           <div className="relative px-8 sm:px-14 py-14 max-w-lg">
             <span className="inline-block text-rose-300 text-xs font-bold uppercase tracking-widest mb-3">Made to order</span>
             <h2 className="text-3xl sm:text-4xl font-bold text-white leading-tight mb-4">
