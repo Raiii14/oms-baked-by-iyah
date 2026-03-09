@@ -147,3 +147,31 @@ export default MyComponent;
 - **Server Actions** for mutations
 
 Generate production-ready, accessible, and performant React components following Next.js 15 and React 19 patterns.
+
+---
+
+## In-Flight Guard Pattern (this project)
+
+Every button that triggers a DB write or email **must** have an in-flight state. Three variants:
+
+**Standard async button:**
+```tsx
+const [isSubmitting, setIsSubmitting] = useState(false);
+
+const handleAction = async () => {
+  setIsSubmitting(true);
+  try {
+    await db.someOperation();
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+<button disabled={isSubmitting} onClick={handleAction}>
+  {isSubmitting ? 'Saving...' : 'Save'}
+</button>
+```
+
+**Modal variant:** `Modal` component accepts `disabled?: boolean` on `primaryAction` and `secondaryAction`.
+
+**Resend with cooldown:** See `frontend-architect` skill for the countdown timer pattern.

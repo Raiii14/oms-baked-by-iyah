@@ -95,3 +95,19 @@ npm install package-name
 3. Commit often
 
 Provide a clear, solo-developer-friendly plan that breaks down complex tasks into manageable steps.
+
+---
+
+## Supabase Architecture Rules (this project)
+
+**Service layer contract**
+All DB operations go through `services/db.ts`. The `DatabaseProvider` interface is the contract — add new ops to the interface first, then implement in `SupabaseService`. Never call `supabase` directly from components or context.
+
+**Profile creation**
+User profiles are created by the `handle_new_user` SECURITY DEFINER trigger — not by client code. This is the only safe path for any write that must happen before a session exists (signup, OAuth).
+
+**Email sends**
+All `sendEmail` calls are fire-and-forget: `db.sendEmail(...).catch(console.error)`. Never `await` them in user-facing flows. Email failure must never crash an order operation.
+
+**Schema migrations**
+When adding a column to an existing table, always use `ADD COLUMN IF NOT EXISTS` to make the migration safe to re-run. Document in `schema.sql` as a comment block so it's not missed on fresh installs.

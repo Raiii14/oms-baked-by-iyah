@@ -98,6 +98,22 @@ describe('API Endpoint', () => {
    - Invalid permissions
 
 2. **Data Validation**
+
+---
+
+## Supabase-Specific Test Gotchas (this project)
+
+**RLS write after `signUp()`**
+With email confirmation ON, `signUp()` returns a user but no session (`auth.uid()` = null). Any client-side write to a RLS-protected table will fail. Test: verify no DB writes happen between `signUp()` and OTP verification.
+
+**Missing DB column kills unrelated flow**
+`placeOrder` calls `updateProduct` first. If the `products` table is missing `admin_only`, the entire order fails before `createOrder` is reached. Smoke test: verify `updateProduct` succeeds in isolation before testing order placement.
+
+**Supabase OTP range**
+Supabase sends 6–8 digit codes depending on settings. Test OTP input with both 6-digit and 8-digit values. Input `maxLength` must be 8; submit must be enabled at `length >= 6`.
+
+**Fire-and-forget emails**
+Email sends (`.catch(console.error)`) must never be awaited in tests of order operations — test the order result independently of email delivery.
    - Type mismatches
    - Out of range values
    - SQL/NoSQL injection

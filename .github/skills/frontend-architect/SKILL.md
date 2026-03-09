@@ -148,6 +148,66 @@ Prefer semantic elements over generic `<div>` — reach for ARIA only when nativ
 <button type="button" aria-label="Close modal">
   <X className="w-5 h-5" aria-hidden="true" />
 </button>
+```
+
+---
+
+## Supabase Auth — Protected Route Pattern
+
+Any page that redirects unauthenticated users **must** wait for `isLoading` before redirecting. Supabase session restore is async — without this guard, logged-in users get bounced to `/login` on every refresh.
+
+```tsx
+const { user, isLoading } = useStore();
+useEffect(() => {
+  if (isLoading) return; // wait for session
+  if (!user) navigate('/login');
+}, [isLoading, user, navigate]);
+```
+
+## Multi-Step Form Pattern (e.g. Register → OTP)
+
+Keep all steps in one component with a `step` state string. Avoids separate routes and keeps shared state (e.g. `email`) in scope.
+
+```tsx
+const [step, setStep] = useState<'form' | 'otp'>('form');
+
+// On register success:
+setStep('otp');
+
+// OTP input best practices:
+<input
+  type="text"
+  inputMode="numeric"
+  maxLength={8}           // Supabase sends 6–8 digit codes
+  autoComplete="one-time-code"
+  autoFocus
+  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+/>
+<button disabled={isVerifying || otp.length < 6}>Verify</button>
+```
+
+## Resend Cooldown Pattern
+
+No library needed — local state + `useEffect` tick:
+
+```tsx
+const [resendCooldown, setResendCooldown] = useState(0);
+
+// After resend:
+setResendCooldown(60);
+
+useEffect(() => {
+  if (resendCooldown <= 0) return;
+  const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+  return () => clearTimeout(t);
+}, [resendCooldown]);
+
+// In JSX:
+{resendCooldown > 0 ? (
+  <span>Resend in {resendCooldown}s</span>
+) : (
+  <button onClick={handleResend}>Resend code</button>
+)}
 
 // Loading indicator — announced to screen readers
 <div role="status" aria-live="polite">
