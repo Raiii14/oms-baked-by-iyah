@@ -112,7 +112,7 @@ export function orderPlacedCustomerHtml(order: Order): string {
     <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#1c1917;">Order Summary</p>
     ${itemsTable(order)}
     ${divider()}
-    <p style="margin:0;font-size:13px;color:#78716c;">You can track your order status in your profile. Note: Orders can only be cancelled before they are confirmed.</p>
+    <p style="margin:0;font-size:13px;color:#78716c;">You can track your order status in your profile. To request a cancellation, please message us on Facebook before your order is being prepared.</p>
   `);
 }
 
@@ -170,13 +170,17 @@ export function inquirySubmittedAdminHtml(order: Order): string {
 
 export function orderStatusChangedHtml(order: Order, newStatus: OrderStatus): string {
   const statusMessages: Partial<Record<OrderStatus, { emoji: string; body: string }>> = {
-    [OrderStatus.BAKING]: {
+    [OrderStatus.PREPARING]: {
       emoji: '🧁',
-      body: `Great news! Your order <strong>${order.id}</strong> is now being baked with love. We'll let you know as soon as it's ready.`,
+      body: `Your order <strong>${order.id}</strong> is confirmed and is now being prepared for delivery.`,
     },
     [OrderStatus.COMPLETED]: {
       emoji: '🎂',
       body: `Your order <strong>${order.id}</strong> is ready! Please come pick it up or expect your delivery soon. Thank you for choosing Baked by Iyah!`,
+    },
+    [OrderStatus.CANCELLED]: {
+      emoji: '❌',
+      body: `We regret to inform you that your order <strong>${order.id}</strong> has been cancelled. Please message us on Facebook if you have any concerns.`,
     },
   };
 
@@ -234,8 +238,9 @@ export function inquiryDeclinedAdminHtml(order: Order): string {
 
 export function getStatusSubject(status: OrderStatus): string {
   switch (status) {
-    case OrderStatus.BAKING:    return "Your order is being prepared!";
-    case OrderStatus.COMPLETED: return "Your order is ready!";
-    default:                    return `Order status updated: ${status}`;
+    case OrderStatus.PREPARING:  return "Your order is now being prepared!";
+    case OrderStatus.COMPLETED:  return "Your order is ready!";
+    case OrderStatus.CANCELLED:  return "Your order has been cancelled";
+    default:                     return `Order status updated: ${status}`;
   }
 }
