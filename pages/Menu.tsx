@@ -98,7 +98,7 @@ const Menu: React.FC = () => {
   const { products, addToCart, user } = useStore();
   const isAdmin = user?.role === UserRole.ADMIN;
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [sortBy, setSortBy] = useState<'name' | 'price'>('name');
+  const [sortBy, setSortBy] = useState<'name-asc' | 'name-desc' | 'price-asc' | 'price-desc'>('name-asc');
   const [searchQuery, setSearchQuery] = useState('');
 
   const filteredProducts = useMemo(() => {
@@ -106,11 +106,14 @@ const Menu: React.FC = () => {
       .filter(p => {
         const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-        return matchesCategory && matchesSearch;
+        const notAdminOnly = isAdmin || !p.adminOnly;
+        return matchesCategory && matchesSearch && notAdminOnly;
       })
       .sort((a, b) => {
-        if (sortBy === 'name') return a.name.localeCompare(b.name);
-        return a.price - b.price;
+        if (sortBy === 'name-asc') return a.name.localeCompare(b.name);
+        if (sortBy === 'name-desc') return b.name.localeCompare(a.name);
+        if (sortBy === 'price-asc') return a.price - b.price;
+        return b.price - a.price;
       });
   }, [products, selectedCategory, sortBy, searchQuery]);
 
@@ -155,11 +158,13 @@ const Menu: React.FC = () => {
           </div>
           <select 
             value={sortBy} 
-            onChange={(e) => setSortBy(e.target.value as 'name' | 'price')}
+            onChange={(e) => setSortBy(e.target.value as 'name-asc' | 'name-desc' | 'price-asc' | 'price-desc')}
             className="px-4 py-2 border border-stone-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 bg-white"
           >
-            <option value="name">Sort by Name</option>
-            <option value="price">Sort by Price</option>
+            <option value="name-asc">Name: A–Z</option>
+            <option value="name-desc">Name: Z–A</option>
+            <option value="price-asc">Price: Low → High</option>
+            <option value="price-desc">Price: High → Low</option>
           </select>
         </div>
       </div>

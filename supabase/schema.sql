@@ -5,7 +5,7 @@
 
 -- ── 0. IMPORTANT SETUP NOTES ─────────────────────────────────────────────────
 -- 1. In Supabase Dashboard → Authentication → Providers → Email:
---    Disable "Confirm email" so users can log in immediately after registering.
+--    Enable "Confirm email" — users must verify their email before logging in.
 -- 2. After running this schema, create the admin account:
 --    Dashboard → Authentication → Users → Add User
 --    Email: iyah.admin@bakedbyiyah.com  Password: BakedByIyah@2026
@@ -85,7 +85,8 @@ CREATE TABLE IF NOT EXISTS products (
   price       NUMERIC(10, 2) NOT NULL,
   category    TEXT        NOT NULL,
   image       TEXT,
-  stock       INTEGER     NOT NULL DEFAULT 0
+  stock       INTEGER     NOT NULL DEFAULT 0,
+  admin_only  BOOLEAN     NOT NULL DEFAULT FALSE
 );
 
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
@@ -175,6 +176,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE user_notifications;
 -- =============================================================================
 -- 6. SEED — Initial product catalog
 -- =============================================================================
+-- NOTE: If you already have a products table without admin_only, run this migration first:
+--   ALTER TABLE products ADD COLUMN IF NOT EXISTS admin_only BOOLEAN NOT NULL DEFAULT FALSE;
 INSERT INTO products (id, name, description, price, category, image, stock) VALUES
   ('p1', 'Classic Brookies',        'The perfect combination of brownies and cookies. A customer favorite!', 180, 'Cookies',  'https://picsum.photos/400/400?random=1', 20),
   ('p2', 'Banana Loaf',             'Moist and not too sweet banana bread, perfect for coffee.',             150, 'Pastries', 'https://picsum.photos/400/400?random=2', 15),

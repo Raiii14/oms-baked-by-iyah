@@ -8,7 +8,7 @@ import { compressImage } from '../utils/imageCompression';
 import { getMinDate } from '../utils/dateUtils';
 
 const Checkout: React.FC = () => {
-  const { cart, placeOrder, user, addNotification } = useStore();
+  const { cart, placeOrder, user, addNotification, isLoading } = useStore();
   const navigate = useNavigate();
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(DeliveryMethod.PICKUP);
@@ -19,21 +19,23 @@ const Checkout: React.FC = () => {
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isOrderPlaced, setIsOrderPlaced] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (isLoading) return; // wait for session to restore before redirecting
     if (!user) {
       addNotification("Please login to proceed to checkout.", "error");
       navigate('/login');
     } else if (cart.length === 0 && !isOrderPlaced) {
       navigate('/cart');
     }
-  }, [user, cart, navigate, addNotification, isOrderPlaced]);
+  }, [isLoading, user, cart, navigate, addNotification, isOrderPlaced]);
 
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const deliveryFee = deliveryMethod === DeliveryMethod.DELIVERY ? 50 : 0;
   const total = subtotal + deliveryFee;
 
-  const handleCheckout = (e: React.FormEvent) => {
+  const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (paymentMethod === PaymentMethod.GCASH && !paymentProof) {
@@ -46,16 +48,24 @@ const Checkout: React.FC = () => {
       return;
     }
 
-    placeOrder({
-      paymentMethod,
-      deliveryMethod,
-      scheduledDate,
-      scheduledTime,
-      paymentProof,
-      deliveryAddress: deliveryMethod === DeliveryMethod.DELIVERY ? deliveryAddress : undefined
-    });
-    setIsOrderPlaced(true);
-    setShowSuccessModal(true);
+    try {
+      setIsSubmitting(true);
+      await placeOrder({
+        paymentMethod,
+        deliveryMethod,
+        scheduledDate,
+        scheduledTime,
+        paymentProof,
+        deliveryAddress: deliveryMethod === DeliveryMethod.DELIVERY ? deliveryAddress : undefined
+      });
+      setIsOrderPlaced(true);
+      setShowSuccessModal(true);
+    } catch (err) {
+      console.error('[Checkout] placeOrder failed:', err);
+      addNotification('Failed to place order. Please try again.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleModalClose = () => {
@@ -72,7 +82,7 @@ const Checkout: React.FC = () => {
         onClose={handleModalClose}
         type="success"
         title="Order Placed Successfully!"
-        message="Thank you for your order. We have received it and will start processing it soon. You can track your order in your profile."
+        message="Thank you for your order. We have received it and will start processing it soon. You can track your order in your profile. Note: Orders can only be cancelled before they are confirmed."
         primaryAction={{
           label: 'Back to Cart',
           onClick: handleModalClose
@@ -248,9 +258,10 @@ const Checkout: React.FC = () => {
             <button 
               type="submit" 
               form="checkout-form"
-              className="w-full mt-6 py-3 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 shadow-md hover:shadow-lg transition-all"
+              disabled={isSubmitting}
+              className="w-full mt-6 py-3 bg-rose-600 text-white font-bold rounded-lg hover:bg-rose-700 shadow-md hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Place Order
+              {isSubmitting ? 'Placing Order…' : 'Place Order'}
             </button>
           </div>
         </div>

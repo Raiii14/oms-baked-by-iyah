@@ -51,7 +51,7 @@ const FloatingInput: React.FC<FloatingInputProps> = ({
 );
 
 const Auth: React.FC<AuthProps> = ({ mode }) => {
-  const { login, register, loginWithGoogle, user } = useStore();
+  const { login, register, verifyOtp, resendOtp, loginWithGoogle, user } = useStore();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get('redirect') || '/';
@@ -66,6 +66,11 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
   const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [step, setStep] = useState<'form' | 'otp'>('form');
+  const [otp, setOtp] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
   // Reset all form state when switching between login and register
   useEffect(() => {
@@ -77,6 +82,8 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
     setError('');
     setShowPassword(false);
     setShowConfirmPassword(false);
+    setStep('form');
+    setOtp('');
   }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -130,7 +137,8 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
         if (cleanPassword !== confirmPassword) { setError('Passwords do not match'); return; }
 
         await register(cleanName, cleanEmail, cleanPassword, cleanPhone);
-        setShowSuccessModal(true);
+        setError('');
+        setStep('otp');
       }
     } catch (err) {
       console.error('Auth error:', err);
@@ -146,9 +154,42 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
     if (mode === 'login') {
       navigate(user?.role === UserRole.ADMIN ? '/admin' : redirectTo);
     } else {
-      navigate(redirectTo);
+      navigate('/login');
     }
   };
+
+  const handleVerifyOtp = async () => {
+    if (otp.length < 6) { setError('Please enter the verification code.'); return; }
+    setError('');
+    setIsVerifying(true);
+    try {
+      await verifyOtp(email.trim(), otp);
+      setShowSuccessModal(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Verification failed. Please try again.');
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsResending(true);
+    try {
+      await resendOtp(email.trim());
+      setResendCooldown(60);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to resend code.');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
+  // Tick resend cooldown down every second
+  useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const t = setTimeout(() => setResendCooldown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [resendCooldown]);
 
   return (
     <div className="relative min-h-screen flex flex-col overflow-hidden bg-stone-900">
@@ -179,11 +220,11 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
           isOpen={showSuccessModal}
           onClose={handleModalClose}
           type="success"
-          title={mode === 'login' ? 'Login Successful' : 'Registration Successful'}
+          title={mode === 'login' ? 'Login Successful' : 'Email Verified'}
           message={
             mode === 'login'
               ? 'Welcome back! You have successfully logged in.'
-              : 'Your account has been created successfully. Welcome to Baked by Iyah!'
+              : 'Your email has been verified. You can now sign in to your account.'
           }
           primaryAction={{ label: 'Continue', onClick: handleModalClose }}
         />
@@ -198,6 +239,77 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
           style={{ animation: 'authFadeIn 0.35s ease both' }}
           className="w-full max-w-md rounded-3xl border border-white/20 bg-white/10 shadow-2xl backdrop-blur-2xl p-8 sm:p-10"
         >
+          {/* Heading */}
+          {step === 'otp' ? (
+            <div>
+              <button
+                type="button"
+                onClick={() => { setStep('form'); setError(''); setOtp(''); }}
+                className="inline-flex items-center gap-1 text-white/60 hover:text-white text-sm font-medium transition-colors mb-6"
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back
+              </button>
+              <div className="mb-7 text-center">
+                <h1 className="text-3xl font-extrabold text-white drop-shadow">Verify your email</h1>
+                <p className="mt-2 text-sm text-white/55">
+                  Enter the 6-digit code sent to{' '}
+                  <span className="text-white font-medium">{email}</span>
+                </p>
+              </div>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={8}
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 8))}
+                  placeholder="00000000"
+                  autoFocus
+                  autoComplete="one-time-code"
+                  aria-label="Verification code"
+                  className="block w-full rounded-xl border border-white/25 bg-white/10 px-4 py-4 text-center text-2xl font-mono tracking-[0.4em] text-white placeholder-white/20 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-rose-400/60 focus:border-rose-400/60 transition-colors"
+                />
+                {error && (
+                  <p role="alert" className="text-center text-sm font-medium text-rose-300 bg-rose-900/30 rounded-xl px-4 py-2.5">
+                    {error}
+                  </p>
+                )}
+                <button
+                  type="button"
+                  disabled={isVerifying || otp.length < 6}
+                  onClick={handleVerifyOtp}
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-rose-500 hover:bg-rose-600 disabled:bg-rose-500/50 text-white font-semibold py-3 text-sm transition-colors shadow-lg focus:outline-none focus:ring-2 focus:ring-rose-400 focus:ring-offset-2 focus:ring-offset-transparent"
+                >
+                  {isVerifying ? (
+                    <>
+                      <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                      </svg>
+                      Verifying...
+                    </>
+                  ) : 'Verify email'}
+                </button>
+                <p className="text-center text-sm text-white/50 pt-1">
+                  Didn&apos;t receive it?{' '}
+                  {resendCooldown > 0 ? (
+                    <span className="text-white/35">Resend in {resendCooldown}s</span>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={isResending}
+                      onClick={handleResendOtp}
+                      className="font-semibold text-rose-300 hover:text-rose-200 transition-colors underline underline-offset-2 disabled:opacity-50"
+                    >
+                      {isResending ? 'Sending...' : 'Resend code'}
+                    </button>
+                  )}
+                </p>
+              </div>
+            </div>
+          ) : (
+          <>
           {/* Heading */}
           <div className="mb-7 text-center">
             <h1 className="text-3xl font-extrabold text-white drop-shadow">
@@ -373,6 +485,8 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
               )}
             </p>
           </form>
+          </>
+          )}
         </div>
       </main>
     </div>

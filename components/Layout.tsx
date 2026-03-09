@@ -15,6 +15,7 @@ const preloadMap: Record<string, () => Promise<unknown>> = {
   '/checkout':    () => import('../pages/Checkout'),
   '/profile':     () => import('../pages/Profile'),
   '/admin':       () => import('../pages/AdminDashboard'),
+  '/contact':     () => import('../pages/Contact'),
   '/login':       () => import('../pages/Auth'),
   '/register':    () => import('../pages/Auth'),
 };
@@ -116,6 +117,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { name: 'Home', path: '/' },
     { name: 'Menu', path: '/menu' },
     ...(user?.role !== UserRole.ADMIN ? [{ name: 'Cakes', path: '/custom-cake' }] : []),
+    ...(user?.role !== UserRole.ADMIN ? [{ name: 'Contact', path: '/contact' }] : []),
   ];
 
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -338,7 +340,11 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <p className="font-bold text-lg mb-2">Baked by Iyah</p>
           <p className="text-stone-400 text-sm">Made with love in Obando, Bulacan</p>
-          <p className="text-stone-500 text-xs mt-4">© {new Date().getFullYear()} Baked by Iyah. All rights reserved.</p>
+          <div className="flex justify-center gap-4 mt-3 mb-1">
+            <a href="https://www.facebook.com/bakedbyiyah" target="_blank" rel="noopener noreferrer" className="text-stone-400 hover:text-white text-sm transition-colors">Facebook</a>
+            <Link to="/contact" className="text-stone-400 hover:text-white text-sm transition-colors">Contact Us</Link>
+          </div>
+          <p className="text-stone-500 text-xs mt-3">© {new Date().getFullYear()} Baked by Iyah. All rights reserved.</p>
         </div>
       </footer>
 

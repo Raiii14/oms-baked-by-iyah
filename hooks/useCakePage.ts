@@ -25,7 +25,7 @@ const blankForm = (user: { name: string; email: string } | null): FormState => (
 });
 
 export function useCakePage() {
-  const { submitCustomInquiry, user } = useStore();
+  const { submitCustomInquiry, user, addNotification } = useStore();
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<FormState>(() => blankForm(user));
@@ -33,6 +33,7 @@ export function useCakePage() {
   const [isClosingForm, setIsClosingForm] = useState(false);
   const [showLoginWarning, setShowLoginWarning] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [lightboxCake, setLightboxCake] = useState<PastCake | null>(null);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -100,37 +101,45 @@ export function useCakePage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) { setShowLoginWarning(true); return; }
 
-    submitCustomInquiry({
-      name:  formData.name,
-      email: formData.email,
-      size:  formData.size === 'Other' ? (formData.sizeOther || 'Other') : formData.size,
-      date:  formData.date,
-      servings: formData.servings,
-      flavor: formData.flavor,
-      cakeMessage: formData.cakeMessage,
-      color: formData.color,
-      toppers: formData.toppers,
-      toyTopperDetail: formData.toyTopperDetail,
-      fondantTopperDetail: formData.fondantTopperDetail,
-      toppersOther: formData.toppersOther,
-      notes: formData.notes,
-      inspirationCake: formData.inspirationCake,
-      inspirationElements: formData.inspirationElements,
-      image: formData.image,
-    });
+    setIsSubmitting(true);
+    try {
+      await submitCustomInquiry({
+        name:  formData.name,
+        email: formData.email,
+        size:  formData.size === 'Other' ? (formData.sizeOther || 'Other') : formData.size,
+        date:  formData.date,
+        servings: formData.servings,
+        flavor: formData.flavor,
+        cakeMessage: formData.cakeMessage,
+        color: formData.color,
+        toppers: formData.toppers,
+        toyTopperDetail: formData.toyTopperDetail,
+        fondantTopperDetail: formData.fondantTopperDetail,
+        toppersOther: formData.toppersOther,
+        notes: formData.notes,
+        inspirationCake: formData.inspirationCake,
+        inspirationElements: formData.inspirationElements,
+        image: formData.image,
+      });
 
-    if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
-    setIsClosingForm(true);
-    closeTimerRef.current = setTimeout(() => {
-      setShowForm(false);
-      setIsClosingForm(false);
-      setFormData({ ...blankForm(null), name: user.name, email: user.email });
-      setShowSuccessModal(true);
-    }, 220);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      setIsClosingForm(true);
+      closeTimerRef.current = setTimeout(() => {
+        setShowForm(false);
+        setIsClosingForm(false);
+        setFormData({ ...blankForm(null), name: user.name, email: user.email });
+        setShowSuccessModal(true);
+      }, 220);
+    } catch (err) {
+      console.error('[useCakePage] submitCustomInquiry failed:', err);
+      addNotification('Failed to submit inquiry. Please try again.', 'error');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const setField = (key: keyof FormState) =>
@@ -141,6 +150,7 @@ export function useCakePage() {
     formData,
     showForm,
     isClosingForm,
+    isSubmitting,
     showLoginWarning, setShowLoginWarning,
     showSuccessModal, setShowSuccessModal,
     lightboxCake, setLightboxCake,

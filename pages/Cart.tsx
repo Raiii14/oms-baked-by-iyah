@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Trash2, ShoppingBag, History, Cake, ImageIcon } from 'lucide-react';
+import { Trash2, ShoppingBag, History, Cake, ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import StatusBadge from '../components/StatusBadge';
 import { formatTime } from '../utils/dateUtils';
@@ -19,6 +19,9 @@ const Cart: React.FC = () => {
     : 'cart');
   const setActiveTab = (tab: CartTab) => setSearchParams({ tab }, { replace: true });
   const [showLoginWarning, setShowLoginWarning] = useState(false);
+  const ITEMS_PER_PAGE = 10;
+  const [historyPage, setHistoryPage] = useState(1);
+  const [customPage, setCustomPage] = useState(1);
 
   // Redirect admins to dashboard
   useEffect(() => {
@@ -28,6 +31,25 @@ const Cart: React.FC = () => {
   }, [user, navigate]);
 
   const subtotal = useMemo(() => cart.reduce((acc, item) => acc + (item.price * item.quantity), 0), [cart]);
+
+  const userOrders = useMemo(() =>
+    user ? orders.filter(o => o.userId === user.id && !o.isCustomInquiry) : [],
+    [orders, user]
+  );
+  const totalHistoryPages = Math.ceil(userOrders.length / ITEMS_PER_PAGE);
+  const paginatedUserOrders = useMemo(
+    () => userOrders.slice((historyPage - 1) * ITEMS_PER_PAGE, historyPage * ITEMS_PER_PAGE),
+    [userOrders, historyPage]
+  );
+  const userInquiries = useMemo(() =>
+    user ? orders.filter(o => o.userId === user.id && o.isCustomInquiry) : [],
+    [orders, user]
+  );
+  const totalCustomPages = Math.ceil(userInquiries.length / ITEMS_PER_PAGE);
+  const paginatedUserInquiries = useMemo(
+    () => userInquiries.slice((customPage - 1) * ITEMS_PER_PAGE, customPage * ITEMS_PER_PAGE),
+    [userInquiries, customPage]
+  );
 
   const handleProceedToCheckout = () => {
     if (user?.role === UserRole.ADMIN) {
@@ -218,13 +240,13 @@ const Cart: React.FC = () => {
               <p className="text-stone-500 mb-4">Please login to view your order history.</p>
               <button onClick={() => navigate('/login')} className="text-rose-600 font-medium hover:underline">Login Now</button>
             </div>
-          ) : orders.filter(o => o.userId === user.id && !o.isCustomInquiry).length === 0 ? (
+          ) : userOrders.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-stone-100">
               <History className="w-10 h-10 text-stone-200 mx-auto mb-3" />
               <p className="text-stone-500">No past orders found.</p>
             </div>
           ) : (
-            orders.filter(o => o.userId === user.id && !o.isCustomInquiry).map((order) => (
+            paginatedUserOrders.map((order) => (
               <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
                 {/* Card Header */}
@@ -276,6 +298,13 @@ const Cart: React.FC = () => {
               </div>
             ))
           )}
+          {user && userOrders.length > 0 && totalHistoryPages > 1 && (
+            <div className="flex justify-center items-center gap-4 mt-4">
+              <button onClick={() => setHistoryPage(p => Math.max(1, p - 1))} disabled={historyPage === 1} className="p-2 rounded-full hover:bg-stone-100 disabled:opacity-50"><ChevronLeft className="w-5 h-5" /></button>
+              <span className="text-sm font-medium">Page {historyPage} of {totalHistoryPages}</span>
+              <button onClick={() => setHistoryPage(p => Math.min(totalHistoryPages, p + 1))} disabled={historyPage === totalHistoryPages} className="p-2 rounded-full hover:bg-stone-100 disabled:opacity-50"><ChevronRight className="w-5 h-5" /></button>
+            </div>
+          )}
         </div>
       )}
 
@@ -287,14 +316,14 @@ const Cart: React.FC = () => {
               <p className="text-stone-500 mb-4">Please login to view your custom cake inquiries.</p>
               <button onClick={() => navigate('/login')} className="text-rose-600 font-medium hover:underline">Login Now</button>
             </div>
-          ) : orders.filter(o => o.userId === user.id && o.isCustomInquiry).length === 0 ? (
+          ) : userInquiries.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-stone-100">
               <Cake className="w-10 h-10 text-stone-200 mx-auto mb-3" />
               <p className="text-stone-500 mb-3">No custom cake inquiries found.</p>
               <button onClick={() => navigate('/custom-cake')} className="text-rose-600 font-medium hover:underline">Request a Quote</button>
             </div>
           ) : (
-            orders.filter(o => o.userId === user.id && o.isCustomInquiry).map((inquiry) => (
+            paginatedUserInquiries.map((inquiry) => (
               <div key={inquiry.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
                 {/* Card Header */}
@@ -404,6 +433,13 @@ const Cart: React.FC = () => {
 
               </div>
             ))
+          )}
+          {user && userInquiries.length > 0 && totalCustomPages > 1 && (
+            <div className="flex justify-center items-center gap-4 mt-4">
+              <button onClick={() => setCustomPage(p => Math.max(1, p - 1))} disabled={customPage === 1} className="p-2 rounded-full hover:bg-stone-100 disabled:opacity-50"><ChevronLeft className="w-5 h-5" /></button>
+              <span className="text-sm font-medium">Page {customPage} of {totalCustomPages}</span>
+              <button onClick={() => setCustomPage(p => Math.min(totalCustomPages, p + 1))} disabled={customPage === totalCustomPages} className="p-2 rounded-full hover:bg-stone-100 disabled:opacity-50"><ChevronRight className="w-5 h-5" /></button>
+            </div>
           )}
         </div>
       )}

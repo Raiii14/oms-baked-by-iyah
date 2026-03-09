@@ -11,6 +11,8 @@ export interface DatabaseProvider {
   login(email: string, pass: string): Promise<User | null>;
   loginWithGoogle(): Promise<void>;
   register(name: string, email: string, pass: string, phone: string): Promise<User>;
+  verifyOtp(email: string, token: string): Promise<void>;
+  resendOtp(email: string): Promise<void>;
   logout(): Promise<void>;
   updateUser(user: User): Promise<User>;
 
@@ -62,6 +64,12 @@ export interface DatabaseProvider {
    * bucket: 'payment-receipts' | 'custom-cake-references'
    */
   getImageSignedUrl(bucket: 'payment-receipts' | 'custom-cake-references', path: string): Promise<string>;
+
+  /**
+   * Send a transactional email via the send-email Edge Function.
+   * Never throws — email failures must not crash order operations.
+   */
+  sendEmail(to: string, subject: string, html: string): Promise<void>;
 }
 
 
@@ -160,25 +168,18 @@ class SupabaseService implements DatabaseProvider {
   }
 
   async register(name: string, email: string, pass: string, phone: string): Promise<User> {
-    // Pass name + phone_number as user metadata so the DB trigger can create
-    // the profiles row automatically (even for users added via dashboard).
+    // Pass name + phone_number as user metadata so the DB trigger (handle_new_user)
+    // can create the profiles row automatically. The trigger is SECURITY DEFINER so
+    // it bypasses RLS and runs even before the user confirms their email.
+    // We do NOT manually insert/upsert here because with email confirmation enabled
+    // the user has no active session after signUp(), which would cause RLS violations
+    // on any subsequent write to `profiles`.
     const { data, error } = await supabase.auth.signUp({
       email,
       password: pass,
       options: { data: { name, phone_number: phone, role: UserRole.CUSTOMER } },
     });
     if (error || !data.user) throw new Error(error?.message || 'Registration failed');
-
-    // Upsert as a fallback — if the trigger already created the row, this will
-    // fill in any fields the trigger couldn't (and never error on conflict).
-    const { error: profileError } = await supabase.from('profiles').upsert({
-      id: data.user.id,
-      name,
-      email,
-      phone_number: phone,
-      role: UserRole.CUSTOMER,
-    }, { onConflict: 'id' });
-    if (profileError) throw new Error(profileError.message);
 
     return {
       id: data.user.id,
@@ -187,6 +188,16 @@ class SupabaseService implements DatabaseProvider {
       role: UserRole.CUSTOMER,
       phoneNumber: phone,
     };
+  }
+
+  async verifyOtp(email: string, token: string): Promise<void> {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
+    if (error) throw new Error(error.message);
+  }
+
+  async resendOtp(email: string): Promise<void> {
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) throw new Error(error.message);
   }
 
   async logout(): Promise<void> {
@@ -226,6 +237,7 @@ class SupabaseService implements DatabaseProvider {
       category: p.category as ProductCategory,
       image: p.image as string,
       stock: p.stock as number,
+      adminOnly: (p.admin_only as boolean) ?? false,
     }));
   }
 
@@ -286,7 +298,16 @@ class SupabaseService implements DatabaseProvider {
   }
 
   async addProduct(product: Product): Promise<Product> {
-    const { error } = await supabase.from('products').insert(product);
+    const { error } = await supabase.from('products').insert({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      image: product.image,
+      stock: product.stock,
+      admin_only: product.adminOnly ?? false,
+    });
     if (error) throw error;
     return product;
   }
@@ -299,6 +320,7 @@ class SupabaseService implements DatabaseProvider {
       category: product.category,
       image: product.image,
       stock: product.stock,
+      admin_only: product.adminOnly ?? false,
     }).eq('id', product.id);
     if (error) throw error;
     return product;
@@ -438,6 +460,14 @@ class SupabaseService implements DatabaseProvider {
       // explicitly by the logout() call in StoreContext.
     });
     return () => subscription.unsubscribe();
+  }
+
+  async sendEmail(to: string, subject: string, html: string): Promise<void> {
+    const { error } = await supabase.functions.invoke('send-email', {
+      body: { to, subject, html },
+    });
+    if (error) console.error('[db] sendEmail error:', error);
+    // Never throw — email failure must not crash order operations
   }
 }
 

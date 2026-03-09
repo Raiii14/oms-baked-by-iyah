@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod, UserRole, UserNotification, TopperType } from '../types';
 import { db } from '../services/db';
+import {
+  orderPlacedCustomerHtml,
+  orderPlacedAdminHtml,
+  inquirySubmittedCustomerHtml,
+  inquirySubmittedAdminHtml,
+  orderStatusChangedHtml,
+  getStatusSubject,
+} from '../utils/emailTemplates';
+
+const ADMIN_EMAIL = 'bakedbyiyah@gmail.com';
 
 interface Notification {
   id: string;
@@ -36,6 +46,8 @@ interface StoreContextType {
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<boolean>;
   register: (name: string, email: string, pass: string, phone: string) => Promise<void>;
+  verifyOtp: (email: string, token: string) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -219,8 +231,16 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [addNotification]);
 
   const register = useCallback(async (name: string, email: string, pass: string, phone: string) => {
-    const newUser = await db.register(name, email, pass, phone);
-    setUser(newUser);
+    await db.register(name, email, pass, phone);
+    // Don't setUser — email confirmation is ON; there is no active session until the user verifies their email.
+  }, []);
+
+  const verifyOtp = useCallback(async (email: string, token: string) => {
+    await db.verifyOtp(email, token);
+  }, []);
+
+  const resendOtp = useCallback(async (email: string) => {
+    await db.resendOtp(email);
   }, []);
 
   const logout = useCallback(async () => {
@@ -320,6 +340,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await db.createOrder(newOrder); // DB Update
     setOrders(prev => [newOrder, ...prev]); // Local Update
     setCart([]);
+    db.sendEmail(user.email, 'Your order has been placed!', orderPlacedCustomerHtml(newOrder)).catch(console.error);
+    db.sendEmail(ADMIN_EMAIL, 'New Order Received', orderPlacedAdminHtml(newOrder)).catch(console.error);
   }, [user, cart, products]);
 
   const submitCustomInquiry = useCallback(async (details: CustomInquiryDetails) => {
@@ -366,6 +388,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     await db.createOrder(newOrder);
     setOrders(prev => [newOrder, ...prev]);
+    if (newOrder.customerEmail) {
+      db.sendEmail(newOrder.customerEmail, 'Your custom cake inquiry has been submitted', inquirySubmittedCustomerHtml(newOrder)).catch(console.error);
+    }
+    db.sendEmail(ADMIN_EMAIL, 'New Custom Cake Inquiry', inquirySubmittedAdminHtml(newOrder)).catch(console.error);
   }, [user]);
 
   // Admin Logic
@@ -375,6 +401,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const updatedOrder = { ...order, status };
       await db.updateOrder(updatedOrder);
       setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      if (order.customerEmail && (status === OrderStatus.BAKING || status === OrderStatus.COMPLETED)) {
+        db.sendEmail(
+          order.customerEmail,
+          getStatusSubject(status),
+          orderStatusChangedHtml(updatedOrder, status),
+        ).catch(console.error);
+      }
       // Write a notification for the customer (skip Pending — that's the default)
       if (status !== OrderStatus.PENDING && order.userId !== 'guest') {
         const notif: UserNotification = {
@@ -461,14 +494,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const contextValue = useMemo(() => ({
     user, products, cart, orders, notifications, isLoading,
-    login, register, loginWithGoogle, logout, updateUser,
+    login, register, verifyOtp, resendOtp, loginWithGoogle, logout, updateUser,
     addToCart, removeFromCart, updateCartQuantity,
     placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
     addNotification, removeNotification,
     userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
   }), [
     user, products, cart, orders, notifications, isLoading,
-    login, register, loginWithGoogle, logout, updateUser,
+    login, register, verifyOtp, resendOtp, loginWithGoogle, logout, updateUser,
     addToCart, removeFromCart, updateCartQuantity,
     placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
     addNotification, removeNotification,

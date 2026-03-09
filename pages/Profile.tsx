@@ -13,6 +13,7 @@ const Profile: React.FC = () => {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [fieldToUpdate, setFieldToUpdate] = useState<'name' | 'phone'>('name');
   const [showInvalidPhoneModal, setShowInvalidPhoneModal] = useState(false);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -66,21 +67,26 @@ const Profile: React.FC = () => {
   };
 
   const confirmChange = async () => {
-    if (fieldToUpdate === 'name') {
-      await updateUser({ 
-        name: newName.trim(),
-        lastNameUpdate: Date.now()
-      });
-      setIsEditingName(false);
-      addNotification('Name updated successfully!');
-    } else {
-      await updateUser({
-        phoneNumber: newPhone.trim()
-      });
-      setIsEditingPhone(false);
-      addNotification('Phone number updated successfully!');
+    setIsSavingProfile(true);
+    try {
+      if (fieldToUpdate === 'name') {
+        await updateUser({ 
+          name: newName.trim(),
+          lastNameUpdate: Date.now()
+        });
+        setIsEditingName(false);
+        addNotification('Name updated successfully!');
+      } else {
+        await updateUser({
+          phoneNumber: newPhone.trim()
+        });
+        setIsEditingPhone(false);
+        addNotification('Phone number updated successfully!');
+      }
+      setShowConfirmModal(false);
+    } finally {
+      setIsSavingProfile(false);
     }
-    setShowConfirmModal(false);
   };
 
   return (
@@ -104,8 +110,8 @@ const Profile: React.FC = () => {
             ? ' Note: You will only be able to edit your name again after 7 days.'
             : ' Note: Make sure your phone number is correct — it will be used for order-related communications.'
         }`}
-        primaryAction={{ label: 'Confirm', onClick: confirmChange }}
-        secondaryAction={{ label: 'Cancel', onClick: () => setShowConfirmModal(false) }}
+        primaryAction={{ label: isSavingProfile ? 'Saving…' : 'Confirm', onClick: confirmChange, disabled: isSavingProfile }}
+        secondaryAction={{ label: 'Cancel', onClick: () => setShowConfirmModal(false), disabled: isSavingProfile }}
       />
       <div className="bg-white shadow overflow-hidden sm:rounded-lg border border-stone-200">
         <div className="px-4 py-5 sm:px-6">
