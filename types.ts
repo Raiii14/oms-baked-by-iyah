@@ -37,8 +37,7 @@ export interface CartItem extends Product {
 
 export enum OrderStatus {
   PENDING = 'Pending',
-  CONFIRMED = 'Confirmed',
-  BAKING = 'Baking',
+  PREPARING = 'Preparing',
   COMPLETED = 'Completed',
   CANCELLED = 'Cancelled'
 }

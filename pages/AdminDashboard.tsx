@@ -12,8 +12,7 @@ const VALID_TABS: AdminTab[] = ['orders', 'inquiries', 'inventory', 'reports', '
 
 const STATUS_SELECT_STYLES: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]:   'bg-amber-100 text-amber-700',
-  [OrderStatus.CONFIRMED]: 'bg-blue-100 text-blue-700',
-  [OrderStatus.BAKING]:    'bg-orange-100 text-orange-700',
+  [OrderStatus.PREPARING]: 'bg-orange-100 text-orange-700',
   [OrderStatus.COMPLETED]: 'bg-green-100 text-green-700',
   [OrderStatus.CANCELLED]: 'bg-stone-100 text-stone-600',
 };

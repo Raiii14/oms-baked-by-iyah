@@ -5,10 +5,8 @@ import { UserNotification, OrderStatus } from '../types';
 // Shared config used by both the toast and the notification panel in Layout
 export const getNotifConfig = (status: OrderStatus) => {
   switch (status) {
-    case OrderStatus.CONFIRMED:
-      return { borderColor: 'border-l-blue-500', iconColor: 'text-blue-500', Icon: CheckCircle, label: 'Order Confirmed' };
-    case OrderStatus.BAKING:
-      return { borderColor: 'border-l-amber-500', iconColor: 'text-amber-500', Icon: ChefHat, label: 'Now Baking 🧁' };
+    case OrderStatus.PREPARING:
+      return { borderColor: 'border-l-orange-500', iconColor: 'text-orange-500', Icon: ChefHat, label: 'Being Prepared 🧁' };
     case OrderStatus.COMPLETED:
       return { borderColor: 'border-l-green-500', iconColor: 'text-green-500', Icon: CheckCircle, label: 'Order Ready! 🎂' };
     case OrderStatus.CANCELLED:
