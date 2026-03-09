@@ -321,19 +321,59 @@ const Cart: React.FC = () => {
                 {/* Cake Details */}
                 <div className="px-5 py-4">
                   <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Cake Details</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <div className="bg-violet-50 rounded-xl px-4 py-3">
-                      <p className="text-xs text-violet-400 font-medium mb-0.5">Size</p>
-                      <p className="text-sm font-semibold text-violet-800">{inquiry.customDetails?.size || '—'}</p>
+                  <div className="space-y-2 mb-3">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-xs text-stone-400 font-medium">Size</span>
+                      <span className="text-sm font-semibold text-stone-700">{inquiry.customDetails?.size || '—'}</span>
                     </div>
-                    <div className="bg-amber-50 rounded-xl px-4 py-3">
-                      <p className="text-xs text-amber-500 font-medium mb-0.5">Date Needed</p>
-                      <p className="text-sm font-semibold text-amber-800">{new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                    </div>
+                    {inquiry.customDetails?.servings && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-stone-400 font-medium">Servings</span>
+                        <span className="text-sm text-stone-700">{inquiry.customDetails.servings}</span>
+                      </div>
+                    )}
+                    {inquiry.customDetails?.flavor && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-stone-400 font-medium">Flavor</span>
+                        <span className="text-sm text-stone-700">{inquiry.customDetails.flavor}</span>
+                      </div>
+                    )}
+                    {inquiry.customDetails?.cakeMessage && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-stone-400 font-medium">Message on Cake</span>
+                        <span className="text-sm text-stone-700 text-right max-w-[60%]">{inquiry.customDetails.cakeMessage}</span>
+                      </div>
+                    )}
+                    {inquiry.customDetails?.color && (
+                      <div className="flex justify-between items-baseline">
+                        <span className="text-xs text-stone-400 font-medium">Color Preference</span>
+                        <span className="text-sm text-stone-700">{inquiry.customDetails.color}</span>
+                      </div>
+                    )}
+                    {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs text-stone-400 font-medium shrink-0">Toppers</span>
+                        <span className="text-sm text-stone-700 text-right max-w-[60%]">
+                          {inquiry.customDetails.toppers.join(', ')}
+                          {inquiry.customDetails.toyTopperDetail && <span className="block text-xs text-stone-500">Toy: {inquiry.customDetails.toyTopperDetail}</span>}
+                          {inquiry.customDetails.fondantTopperDetail && <span className="block text-xs text-stone-500">Fondant: {inquiry.customDetails.fondantTopperDetail}</span>}
+                          {inquiry.customDetails.toppersOther && <span className="block text-xs text-stone-500">Custom: {inquiry.customDetails.toppersOther}</span>}
+                        </span>
+                      </div>
+                    )}
+                    {inquiry.customDetails?.inspirationCake && (
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs text-stone-400 font-medium shrink-0">Inspired by</span>
+                        <span className="text-sm text-stone-700 text-right max-w-[60%]">
+                          {inquiry.customDetails.inspirationCake}
+                          {inquiry.customDetails.inspirationElements && <span className="block text-xs text-stone-500">{inquiry.customDetails.inspirationElements}</span>}
+                        </span>
+                      </div>
+                    )}
                   </div>
                   {inquiry.customDetails?.notes && (
                     <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Notes</p>
+                      <p className="text-xs text-stone-400 font-medium mb-1">Additional Notes</p>
                       <p className="text-sm text-stone-700 leading-relaxed">{inquiry.customDetails.notes}</p>
                     </div>
                   )}

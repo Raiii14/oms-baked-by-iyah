@@ -337,7 +337,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newOrder: Order = {
       id: inquiryId,
       userId: user?.id || 'guest',
-      customerName: user?.name || details.name,
+      customerName: user?.name || details.name || '',
       customerEmail: details.email || user?.email,
       items: [],
       totalAmount: 0, // TBD
