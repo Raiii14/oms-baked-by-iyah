@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { ArrowRight, Award, ChefHat, Truck, ShoppingCart, LucideIcon } from 'lucide-react';
-import { UserRole } from '../types';
+import { UserRole, OrderStatus } from '../types';
 import FadeIn from '../components/FadeIn';
 
 const WHY_CHOOSE_US: { Icon: LucideIcon; bg: string; text: string; title: string; desc: string }[] = [
@@ -12,8 +12,28 @@ const WHY_CHOOSE_US: { Icon: LucideIcon; bg: string; text: string; title: string
 ];
 
 const Home: React.FC = () => {
-  const { products, addToCart, user } = useStore();
-  const featured = useMemo(() => products.slice(0, 3), [products]);
+  const { products, addToCart, user, orders } = useStore();
+  const featured = useMemo(() => {
+    const unitCounts: Record<string, number> = {};
+    for (const order of orders) {
+      if (order.status !== OrderStatus.COMPLETED) continue;
+      for (const item of order.items) {
+        unitCounts[item.id] = (unitCounts[item.id] ?? 0) + item.quantity;
+      }
+    }
+    const visible = products.filter(p => !p.adminOnly);
+    const soldIds = new Set(Object.keys(unitCounts));
+    const topSellers = visible
+      .filter(p => soldIds.has(p.id))
+      .sort((a, b) => unitCounts[b.id] - unitCounts[a.id])
+      .slice(0, 3);
+    if (topSellers.length >= 3) return topSellers;
+    const topIds = new Set(topSellers.map(p => p.id));
+    const fallback = visible
+      .filter(p => !topIds.has(p.id) && p.stock > 0)
+      .sort((a, b) => b.stock - a.stock);
+    return [...topSellers, ...fallback].slice(0, 3);
+  }, [products, orders]);
 
   return (
     <div className="space-y-16">

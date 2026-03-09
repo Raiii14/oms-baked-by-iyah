@@ -37,9 +37,9 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS best_seller BOOLEAN NOT NULL DEFAU
 | Signup email confirmation | Customer | ✅ Live (Supabase Auth built-in) |
 | Order placed (regular) | Customer + Admin | ✅ Implemented |
 | Custom inquiry submitted | Customer + Admin | ✅ Implemented |
-| Status → Preparing | Customer only | ⚠️ Needs status refactor before live test |
-| Status → Completed | Customer only | ⚠️ Needs status refactor before live test |
-| Order cancelled by admin | Customer (email + in-app) | ❌ Not yet implemented |
+| Status → Preparing | Customer only | ✅ Implemented |
+| Status → Completed | Customer only | ✅ Implemented |
+| Order cancelled by admin | Customer (email + in-app) | ✅ Implemented |
 
 **Rules:**
 - `sendEmail` is always fire-and-forget: `.catch(console.error)`, never `await`ed in user flows.
@@ -54,7 +54,7 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS best_seller BOOLEAN NOT NULL DEFAU
 |---|---|
 | `bestSeller` column in DB + `db.ts` mapping | ✅ Done |
 | Admin toggle UI (AdminDashboard → Menu tab) | ✅ Done |
-| Home page best sellers section | ❌ Still uses `products.slice(0, 3)` |
+| Home page best sellers section | ✅ Done — top 3 by units in COMPLETED orders (fallback: in-stock by stock desc) |
 
 **Pending change:** `Home.tsx` best sellers section should compute top 3 by filtering `orders` for `COMPLETED` status, counting units per product ID, and taking the top 3.
 
@@ -74,11 +74,6 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS admin_only BOOLEAN NOT NULL DEFAUL
 
 | Feature | Notes |
 |---|---|
-| OrderStatus refactor (5→4 statuses) | Needs code changes + DB migration above |
-| Status → Preparing email (live test) | Works in code; needs refactor + deploy to verify |
-| Status → Completed email (live test) | Same as above |
-| Admin cancel → customer notify (email + in-app) | Not implemented; `updateOrderStatus` only notifies on PREPARING/COMPLETED |
-| Best seller auto-logic on Home page | `Home.tsx` still uses `slice(0,3)` |
 | Custom inquiry cancel/decline flow | Intentionally deferred — not yet decided |
 
 ---
