@@ -46,6 +46,8 @@ interface StoreContextType {
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<boolean>;
   register: (name: string, email: string, pass: string, phone: string) => Promise<void>;
+  verifyOtp: (email: string, token: string) => Promise<void>;
+  resendOtp: (email: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -231,6 +233,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const register = useCallback(async (name: string, email: string, pass: string, phone: string) => {
     await db.register(name, email, pass, phone);
     // Don't setUser — email confirmation is ON; there is no active session until the user verifies their email.
+  }, []);
+
+  const verifyOtp = useCallback(async (email: string, token: string) => {
+    await db.verifyOtp(email, token);
+  }, []);
+
+  const resendOtp = useCallback(async (email: string) => {
+    await db.resendOtp(email);
   }, []);
 
   const logout = useCallback(async () => {
@@ -484,14 +494,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const contextValue = useMemo(() => ({
     user, products, cart, orders, notifications, isLoading,
-    login, register, loginWithGoogle, logout, updateUser,
+    login, register, verifyOtp, resendOtp, loginWithGoogle, logout, updateUser,
     addToCart, removeFromCart, updateCartQuantity,
     placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
     addNotification, removeNotification,
     userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
   }), [
     user, products, cart, orders, notifications, isLoading,
-    login, register, loginWithGoogle, logout, updateUser,
+    login, register, verifyOtp, resendOtp, loginWithGoogle, logout, updateUser,
     addToCart, removeFromCart, updateCartQuantity,
     placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
     addNotification, removeNotification,

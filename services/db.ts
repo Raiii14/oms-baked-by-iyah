@@ -11,6 +11,8 @@ export interface DatabaseProvider {
   login(email: string, pass: string): Promise<User | null>;
   loginWithGoogle(): Promise<void>;
   register(name: string, email: string, pass: string, phone: string): Promise<User>;
+  verifyOtp(email: string, token: string): Promise<void>;
+  resendOtp(email: string): Promise<void>;
   logout(): Promise<void>;
   updateUser(user: User): Promise<User>;
 
@@ -188,6 +190,16 @@ class SupabaseService implements DatabaseProvider {
     };
   }
 
+  async verifyOtp(email: string, token: string): Promise<void> {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'signup' });
+    if (error) throw new Error(error.message);
+  }
+
+  async resendOtp(email: string): Promise<void> {
+    const { error } = await supabase.auth.resend({ type: 'signup', email });
+    if (error) throw new Error(error.message);
+  }
+
   async logout(): Promise<void> {
     await supabase.auth.signOut();
   }
@@ -225,6 +237,7 @@ class SupabaseService implements DatabaseProvider {
       category: p.category as ProductCategory,
       image: p.image as string,
       stock: p.stock as number,
+      adminOnly: (p.admin_only as boolean) ?? false,
     }));
   }
 
@@ -285,7 +298,16 @@ class SupabaseService implements DatabaseProvider {
   }
 
   async addProduct(product: Product): Promise<Product> {
-    const { error } = await supabase.from('products').insert(product);
+    const { error } = await supabase.from('products').insert({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: product.price,
+      category: product.category,
+      image: product.image,
+      stock: product.stock,
+      admin_only: product.adminOnly ?? false,
+    });
     if (error) throw error;
     return product;
   }
@@ -298,6 +320,7 @@ class SupabaseService implements DatabaseProvider {
       category: product.category,
       image: product.image,
       stock: product.stock,
+      admin_only: product.adminOnly ?? false,
     }).eq('id', product.id);
     if (error) throw error;
     return product;

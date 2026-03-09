@@ -8,7 +8,7 @@ import { compressImage } from '../utils/imageCompression';
 import { getMinDate } from '../utils/dateUtils';
 
 const Checkout: React.FC = () => {
-  const { cart, placeOrder, user, addNotification } = useStore();
+  const { cart, placeOrder, user, addNotification, isLoading } = useStore();
   const navigate = useNavigate();
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>(DeliveryMethod.PICKUP);
@@ -22,13 +22,14 @@ const Checkout: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
+    if (isLoading) return; // wait for session to restore before redirecting
     if (!user) {
       addNotification("Please login to proceed to checkout.", "error");
       navigate('/login');
     } else if (cart.length === 0 && !isOrderPlaced) {
       navigate('/cart');
     }
-  }, [user, cart, navigate, addNotification, isOrderPlaced]);
+  }, [isLoading, user, cart, navigate, addNotification, isOrderPlaced]);
 
   const subtotal = cart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
   const deliveryFee = deliveryMethod === DeliveryMethod.DELIVERY ? 50 : 0;

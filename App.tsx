@@ -14,6 +14,7 @@ import CheckoutSkeleton from './components/skeletons/CheckoutSkeleton';
 import ProfileSkeleton from './components/skeletons/ProfileSkeleton';
 import AdminSkeleton from './components/skeletons/AdminSkeleton';
 import AuthSkeleton from './components/skeletons/AuthSkeleton';
+import ContactSkeleton from './components/skeletons/ContactSkeleton';
 
 // Lazy-loaded pages — each page becomes a separate JS chunk
 const Home = lazy(() => import('./pages/Home'));
@@ -24,6 +25,7 @@ const Checkout = lazy(() => import('./pages/Checkout'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const Auth = lazy(() => import('./pages/Auth'));
 const Profile = lazy(() => import('./pages/Profile'));
+const Contact = lazy(() => import('./pages/Contact'));
 
 // Role-based Route Protection
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -116,6 +118,14 @@ const AppRoutes = () => (
                     <AdminDashboard />
                   </Suspense>
                 </AdminRoute>
+              }
+            />
+            <Route
+              path="/contact"
+              element={
+                <Suspense fallback={<ContactSkeleton />}>
+                  <Contact />
+                </Suspense>
               }
             />
           </Routes>

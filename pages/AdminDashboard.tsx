@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { OrderStatus, PaymentMethod, ProductCategory, Product } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, LabelList } from 'recharts';
-import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
+import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Image as ImageIcon, EyeOff } from 'lucide-react';
 import { formatTime } from '../utils/dateUtils';
 
 type AdminTab = 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu';
@@ -26,6 +26,7 @@ const AdminDashboard: React.FC = () => {
     : 'orders');
   const setActiveTab = (tab: AdminTab) => setSearchParams({ tab }, { replace: true });
   const [reportTimeframe, setReportTimeframe] = useState<'weekly' | 'monthly'>('weekly');
+  const [menuSortBy, setMenuSortBy] = useState<'name-asc' | 'price-asc' | 'price-desc'>('name-asc');
 
   // Local price input state per inquiry — only sent to DB on "Update" click
   const [inquiryPriceInputs, setInquiryPriceInputs] = useState<Record<string, string>>({});
@@ -36,6 +37,7 @@ const AdminDashboard: React.FC = () => {
   const [updatingPriceId, setUpdatingPriceId] = useState<string | null>(null);
   // Tracks which product's inventory +/− is in-flight
   const [updatingInventoryId, setUpdatingInventoryId] = useState<string | null>(null);
+  const [togglingAdminOnlyId, setTogglingAdminOnlyId] = useState<string | null>(null);
   // Guards for product add/edit/delete modals
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
@@ -86,6 +88,7 @@ const AdminDashboard: React.FC = () => {
 
   // Orders Pagination & Filtering
   const [currentPage, setCurrentPage] = useState(1);
+  const [currentInquiryPage, setCurrentInquiryPage] = useState(1);
   const itemsPerPage = 10;
   const [filterStatus, setFilterStatus] = useState<string>('all');
   const [sortOrder, setSortOrder] = useState<'desc' | 'asc'>('desc'); // Date sort
@@ -111,6 +114,19 @@ const AdminDashboard: React.FC = () => {
 
   // Inquiries
   const inquiries = React.useMemo(() => orders.filter(o => o.isCustomInquiry), [orders]);
+  const totalInquiryPages = Math.ceil(inquiries.length / itemsPerPage);
+  const paginatedInquiries = React.useMemo(
+    () => inquiries.slice((currentInquiryPage - 1) * itemsPerPage, currentInquiryPage * itemsPerPage),
+    [inquiries, currentInquiryPage]
+  );
+  const sortedMenuProducts = React.useMemo(() =>
+    [...products].sort((a, b) => {
+      if (menuSortBy === 'price-asc') return a.price - b.price;
+      if (menuSortBy === 'price-desc') return b.price - a.price;
+      return a.name.localeCompare(b.name);
+    }),
+    [products, menuSortBy]
+  );
 
   // Reports Data
   const validOrders = React.useMemo(() => orders.filter(o => o.status !== OrderStatus.CANCELLED), [orders]);
@@ -373,7 +389,7 @@ const AdminDashboard: React.FC = () => {
               <Cake className="w-12 h-12 text-stone-200 mx-auto mb-3" />
               <p className="text-stone-400 font-medium">No custom cake inquiries yet.</p>
             </div>
-          ) : inquiries.map(inquiry => {
+          ) : paginatedInquiries.map(inquiry => {
             const priceInput = inquiryPriceInputs[inquiry.id] ?? String(inquiry.totalAmount || '');
             return (
               <div key={inquiry.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
@@ -533,6 +549,25 @@ const AdminDashboard: React.FC = () => {
               </div>
             );
           })}
+          {totalInquiryPages > 1 && (
+            <div className="flex justify-center items-center gap-4 mt-8">
+              <button
+                onClick={() => setCurrentInquiryPage(p => Math.max(1, p - 1))}
+                disabled={currentInquiryPage === 1}
+                className="p-2 rounded-full hover:bg-stone-100 disabled:opacity-50"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <span className="text-sm font-medium">Page {currentInquiryPage} of {totalInquiryPages}</span>
+              <button
+                onClick={() => setCurrentInquiryPage(p => Math.min(totalInquiryPages, p + 1))}
+                disabled={currentInquiryPage === totalInquiryPages}
+                className="p-2 rounded-full hover:bg-stone-100 disabled:opacity-50"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -561,6 +596,9 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex-1">
                       <p className="font-bold text-stone-800 text-base">{product.name}</p>
                       <p className="text-sm text-stone-500 mt-0.5">₱{product.price.toLocaleString()}</p>
+                      {product.adminOnly && (
+                        <span className="inline-block text-xs bg-violet-50 text-violet-600 font-semibold px-2 py-0.5 rounded-full mt-1.5 border border-violet-100 mr-1">Admin Only</span>
+                      )}
                       {product.stock <= 5 && (
                         <span className="inline-block text-xs bg-red-50 text-red-600 font-semibold px-2 py-0.5 rounded-full mt-1.5 border border-red-100">⚠ Low Stock</span>
                       )}
@@ -655,7 +693,8 @@ const AdminDashboard: React.FC = () => {
                             price: Number(formData.get('price')),
                             category: formData.get('category') as ProductCategory,
                             image: imageUrl,
-                            stock: Number(formData.get('stock'))
+                            stock: Number(formData.get('stock')),
+                            adminOnly: formData.get('adminOnly') === 'on',
                         };
                         setIsAddingProduct(true);
                         try {
@@ -701,6 +740,16 @@ const AdminDashboard: React.FC = () => {
                             Paste any image URL or a Google Drive share/view link — it will be converted automatically. Leave empty to use a default image.
                         </p>
                     </div>
+                    <div className="col-span-2">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                name="adminOnly"
+                                className="w-4 h-4 rounded border-stone-300 accent-violet-600"
+                            />
+                            <span className="text-sm text-stone-700">Admin-only <span className="text-stone-400 font-normal">(hidden from customers)</span></span>
+                        </label>
+                    </div>
                     <div className="col-span-2 flex justify-end">
                         <button type="submit" disabled={isAddingProduct} className="bg-rose-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-rose-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                             {isAddingProduct ? 'Adding…' : 'Add Product'}
@@ -710,11 +759,20 @@ const AdminDashboard: React.FC = () => {
             </div>
 
             <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
-                <h3 className="text-lg font-bold text-stone-800 mb-4">
-                    Current Menu Items
-                </h3>
+                <div className="flex items-center justify-between mb-4 gap-3">
+                    <h3 className="text-lg font-bold text-stone-800">Current Menu Items</h3>
+                    <select
+                        value={menuSortBy}
+                        onChange={(e) => setMenuSortBy(e.target.value as 'name-asc' | 'price-asc' | 'price-desc')}
+                        className="text-sm border border-stone-200 rounded-lg px-3 py-1.5 outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50"
+                    >
+                        <option value="name-asc">Name: A–Z</option>
+                        <option value="price-asc">Price: Low → High</option>
+                        <option value="price-desc">Price: High → Low</option>
+                    </select>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {products.map(product => (
+                    {sortedMenuProducts.map(product => (
                         <div key={product.id} className="flex flex-col p-4 border border-stone-100 rounded-xl hover:shadow-md transition-all bg-stone-50/50">
                             <div className="flex gap-4">
                                 <div className="w-20 h-20 flex-shrink-0">
@@ -723,7 +781,12 @@ const AdminDashboard: React.FC = () => {
                                 <div className="flex-1 min-w-0">
                                     <div className="flex justify-between items-start gap-2">
                                         <h4 className="font-bold text-stone-800 truncate">{product.name}</h4>
-                                        <span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-full whitespace-nowrap">{product.category}</span>
+                                        <div className="flex gap-1 flex-shrink-0">
+                                            {product.adminOnly && (
+                                                <span className="text-xs bg-violet-100 text-violet-600 px-2 py-1 rounded-full whitespace-nowrap">Admin Only</span>
+                                            )}
+                                            <span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-full whitespace-nowrap">{product.category}</span>
+                                        </div>
                                     </div>
                                     <p className="text-sm text-stone-500 line-clamp-2 my-1">{product.description}</p>
                                     <div className="flex justify-between items-center mt-2">
@@ -733,6 +796,26 @@ const AdminDashboard: React.FC = () => {
                                 </div>
                             </div>
                             <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-stone-100">
+                                <button
+                                    type="button"
+                                    disabled={togglingAdminOnlyId === product.id}
+                                    onClick={async () => {
+                                        setTogglingAdminOnlyId(product.id);
+                                        try {
+                                          await updateProduct({ ...product, adminOnly: !product.adminOnly });
+                                        } finally {
+                                          setTogglingAdminOnlyId(null);
+                                        }
+                                    }}
+                                    className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 mr-auto ${
+                                        product.adminOnly
+                                            ? 'text-violet-600 hover:text-green-600 hover:bg-green-50'
+                                            : 'text-stone-500 hover:text-violet-500 hover:bg-violet-50'
+                                    }`}
+                                >
+                                    <EyeOff className="w-3.5 h-3.5" />
+                                    {product.adminOnly ? 'Make Public' : 'Admin Only'}
+                                </button>
                                 <button
                                     type="button"
                                     onClick={() => setEditingProduct({ ...product })}
@@ -987,6 +1070,15 @@ const AdminDashboard: React.FC = () => {
                   <img key={previewUrl} src={previewUrl} alt="Preview" className="w-full h-full object-cover" />
                 </div>
               )}
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={editingProduct.adminOnly ?? false}
+                  onChange={(e) => setEditingProduct(prev => prev ? { ...prev, adminOnly: e.target.checked } : null)}
+                  className="w-4 h-4 rounded border-stone-300 accent-violet-600"
+                />
+                <span className="text-sm font-medium text-stone-700">Admin-only <span className="text-stone-400 font-normal">(hidden from customers)</span></span>
+              </label>
             </div>
             <div className="flex justify-end gap-3 mt-6">
               <button
