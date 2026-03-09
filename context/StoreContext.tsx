@@ -90,8 +90,7 @@ const generateId = (): string => {
 const getOrderStatusMessage = (orderId: string, status: OrderStatus): string => {
   const shortId = '#' + orderId.replace(/^(ORD|INQ)-/, '');
   switch (status) {
-    case OrderStatus.CONFIRMED: return `Your order ${shortId} has been confirmed! We're getting started. 🎉`;
-    case OrderStatus.BAKING:    return `Your order ${shortId} is now being baked! 🧁`;
+    case OrderStatus.PREPARING: return `Your order ${shortId} is being prepared! 🧁`;
     case OrderStatus.COMPLETED: return `Your order ${shortId} is ready! Come and enjoy. 🎂`;
     case OrderStatus.CANCELLED: return `Your order ${shortId} has been cancelled. Please contact us for more info.`;
     default:                    return `Your order ${shortId} status has been updated to ${status}.`;
@@ -401,7 +400,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const updatedOrder = { ...order, status };
       await db.updateOrder(updatedOrder);
       setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
-      if (order.customerEmail && (status === OrderStatus.BAKING || status === OrderStatus.COMPLETED)) {
+      if (order.customerEmail && (status === OrderStatus.PREPARING || status === OrderStatus.COMPLETED || status === OrderStatus.CANCELLED)) {
         db.sendEmail(
           order.customerEmail,
           getStatusSubject(status),
