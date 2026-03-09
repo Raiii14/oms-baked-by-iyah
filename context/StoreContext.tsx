@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
-import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod, UserRole, UserNotification } from '../types';
+import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod, UserRole, UserNotification, TopperType } from '../types';
 import { db } from '../services/db';
 
 interface Notification {
@@ -13,7 +13,17 @@ interface CustomInquiryDetails {
   email?: string;
   date: string;
   size: string;
+  servings: string;
+  flavor: string;
+  cakeMessage: string;
+  color: string;
+  toppers: TopperType[];
+  toyTopperDetail: string;
+  fondantTopperDetail: string;
+  toppersOther: string;
   notes: string;
+  inspirationCake: string;
+  inspirationElements: string;
   image?: File | null;
 }
 
@@ -241,7 +251,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       return [...prev, { ...product, quantity: Math.min(quantity, product.stock) }];
     });
-    addNotification(`${product.name} added to cart!`);
+    addNotification(`${quantity}× ${product.name} added to cart!`);
   }, [addNotification]);
 
   const removeFromCart = useCallback((productId: string) => {
@@ -312,7 +322,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setCart([]);
   }, [user, cart, products]);
 
-  const submitCustomInquiry = useCallback(async (details: any) => {
+  const submitCustomInquiry = useCallback(async (details: CustomInquiryDetails) => {
     const inquiryId = `INQ-${generateId()}`;
 
     let referenceImageUrl: string | undefined;
@@ -327,7 +337,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newOrder: Order = {
       id: inquiryId,
       userId: user?.id || 'guest',
-      customerName: user?.name || details.name,
+      customerName: user?.name || details.name || '',
       customerEmail: details.email || user?.email,
       items: [],
       totalAmount: 0, // TBD
@@ -340,7 +350,17 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       isCustomInquiry: true,
       customDetails: {
         size: details.size,
+        servings: details.servings,
+        flavor: details.flavor,
+        cakeMessage: details.cakeMessage,
+        color: details.color,
+        toppers: details.toppers,
+        toyTopperDetail: details.toyTopperDetail,
+        fondantTopperDetail: details.fondantTopperDetail,
+        toppersOther: details.toppersOther,
         notes: details.notes,
+        inspirationCake: details.inspirationCake,
+        inspirationElements: details.inspirationElements,
         referenceImage: referenceImageUrl,
       }
     };

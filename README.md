@@ -93,6 +93,8 @@ oms-baked-by-iyah/
 ├── constants.ts               # Seed products and mock admin constant
 │
 ├── components/
+│   ├── CakeFormModal.tsx      # Custom cake inquiry form modal (props-driven, no store access)
+│   ├── CakeGallery.tsx        # Cake inspiration gallery grid
 │   ├── Layout.tsx             # Shared navigation bar and footer wrapper
 │   ├── Modal.tsx              # Reusable modal dialog
 │   ├── NotificationToast.tsx  # Toast notification display
@@ -104,10 +106,13 @@ oms-baked-by-iyah/
 ├── context/
 │   └── StoreContext.tsx       # Global state: user, cart, products, orders, notifications
 │
+├── hooks/
+│   └── useCakePage.ts         # Page-level logic: all state, effects, and handlers for the Cake page
+│
 ├── pages/
 │   ├── Home.tsx               # Landing page with hero, featured products, and highlights
 │   ├── Menu.tsx               # Product catalog with category filtering
-│   ├── CustomCake.tsx         # Custom cake inquiry form with image upload
+│   ├── Cake.tsx               # Custom cake inquiry page — thin orchestrator, delegates to useCakePage
 │   ├── Cart.tsx               # Shopping cart and order history
 │   ├── Checkout.tsx           # Order placement form
 │   ├── Profile.tsx            # User profile editor
@@ -119,6 +124,7 @@ oms-baked-by-iyah/
 │   └── supabaseClient.ts      # Supabase client initialization
 │
 ├── utils/
+│   ├── cakeSerializer.ts      # serializeCakeNotes() — builds the notes string from FormState for inquiries
 │   ├── dateUtils.ts           # formatTime() (24hr → AM/PM) and getMinDate() (tomorrow's date)
 │   └── imageCompression.ts    # Client-side image compression before upload
 │
@@ -335,6 +341,10 @@ StoreContext (global state)
     ├── orders         — all orders (customers see own; admin sees all)
     └── notifications  — in-app toast messages
 ```
+
+### Page-Level Logic Hooks
+
+When a page's state, effects, and handlers exceed ~40 lines, they are extracted into a custom hook in `hooks/`. The page file becomes a thin orchestrator — it calls the hook and renders JSX, nothing else. Currently `hooks/useCakePage.ts` owns all logic for the `/custom-cake` route.
 
 ### Data Layer
 

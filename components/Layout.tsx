@@ -1,16 +1,16 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { Menu, X, ShoppingCart, User as UserIcon, LogOut, Bell, Settings, Check, AlertCircle } from 'lucide-react';
+import { Menu, X, ShoppingCart, User as UserIcon, LogOut, Bell, Settings } from 'lucide-react';
 import { UserRole } from '../types';
-import { NotificationToast, getNotifConfig } from './NotificationToast';
+import { NotificationToast, AppToast, getNotifConfig } from './NotificationToast';
 
 // Preload a page chunk on nav-link hover to eliminate skeleton flash on navigation.
 // Each entry maps a route path -> dynamic import for its page module.
 const preloadMap: Record<string, () => Promise<unknown>> = {
   '/':            () => import('../pages/Home'),
   '/menu':        () => import('../pages/Menu'),
-  '/custom-cake': () => import('../pages/CustomCake'),
+  '/custom-cake': () => import('../pages/Cake'),
   '/cart':        () => import('../pages/Cart'),
   '/checkout':    () => import('../pages/Checkout'),
   '/profile':     () => import('../pages/Profile'),
@@ -22,7 +22,7 @@ const preloadMap: Record<string, () => Promise<unknown>> = {
 // Scrolls to top whenever the route pathname changes
 const ScrollToTop: React.FC = () => {
   const { pathname } = useLocation();
-  React.useEffect(() => {
+  useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [pathname]);
   return null;
@@ -118,6 +118,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     ...(user?.role !== UserRole.ADMIN ? [{ name: 'Cakes', path: '/custom-cake' }] : []),
   ];
 
+  const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+
   return (
     <div className="min-h-screen flex flex-col bg-stone-50">
       <ScrollToTop />
@@ -173,16 +175,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                 </div>
               )}
 
-              {user?.role !== UserRole.ADMIN && (
-                <Link to="/cart" onMouseEnter={() => preload('/cart')} className="relative p-2 text-stone-600 hover:text-rose-500">
-                  <ShoppingCart className="h-5 w-5" />
-                  {cart.length > 0 && (
-                    <span className="absolute top-0 right-0 inline-flex items-center justify-center px-1.5 py-0.5 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-rose-500 rounded-full">
-                      {cart.reduce((acc, item) => acc + item.quantity, 0)}
-                    </span>
-                  )}
-                </Link>
-              )}
+
 
               {user ? (
                 <div className="flex items-center space-x-2">
@@ -300,21 +293,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                         </Link>
                     )}
 
-                    {user?.role !== UserRole.ADMIN && (
-                        <Link 
-                            to="/cart"
-                            onMouseEnter={() => preload('/cart')}
-                            onClick={() => setIsMenuOpen(false)} 
-                            className="block px-4 py-2.5 rounded-lg text-sm font-medium text-stone-600 hover:bg-stone-50 hover:text-stone-900 flex justify-between items-center"
-                        >
-                            <span>Cart</span>
-                            {cart.length > 0 && (
-                                <span className="bg-rose-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                                    {cart.reduce((acc, item) => acc + item.quantity, 0)}
-                                </span>
-                            )}
-                        </Link>
-                    )}
+
 
                     <div className="border-t border-stone-100 my-2 pt-2">
                         {user ? (
@@ -363,22 +342,26 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
         </div>
       </footer>
 
+      {/* Floating Cart Button */}
+      {user?.role !== UserRole.ADMIN && (
+        <Link
+          to="/cart"
+          onMouseEnter={() => preload('/cart')}
+          className="fixed bottom-6 right-6 z-40 flex items-center justify-center w-14 h-14 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          aria-label={`Cart${totalCartItems > 0 ? `, ${totalCartItems} items` : ''}`}
+        >
+          <ShoppingCart className="h-6 w-6" />
+          {totalCartItems > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 inline-flex items-center justify-center min-w-[20px] h-5 px-1 text-xs font-bold text-white bg-rose-700 rounded-full border-2 border-white">
+              {totalCartItems > 99 ? '99+' : totalCartItems}
+            </span>
+          )}
+        </Link>
+      )}
+
       {/* App-level toasts: add to cart, errors, etc. */}
-      <div className="fixed bottom-4 right-4 z-50 flex flex-col-reverse gap-2 items-end pointer-events-none">
-        {notifications.map(n => (
-          <div
-            key={n.id}
-            className={`pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-lg shadow-lg text-sm font-medium text-white ${
-              n.type === 'success' ? 'bg-emerald-500' :
-              n.type === 'error'   ? 'bg-rose-500'    : 'bg-stone-700'
-            }`}
-          >
-            {n.type === 'success' ? <Check className="w-4 h-4 flex-shrink-0" /> :
-             n.type === 'error'   ? <AlertCircle className="w-4 h-4 flex-shrink-0" /> :
-                                    <Bell className="w-4 h-4 flex-shrink-0" />}
-            <span>{n.message}</span>
-          </div>
-        ))}
+      <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse items-end pointer-events-none">
+        {notifications.map(n => <AppToast key={n.id} n={n} />)}
       </div>
 
       {/* Order-status slide-in toasts (top-right) */}

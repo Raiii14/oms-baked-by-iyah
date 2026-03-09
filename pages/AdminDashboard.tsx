@@ -399,10 +399,58 @@ const AdminDashboard: React.FC = () => {
                       <p className="text-xs text-amber-500 font-medium mb-0.5">Date Needed</p>
                       <p className="text-sm font-semibold text-amber-800">{new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                     </div>
+                    {inquiry.customDetails?.servings && (
+                      <div className="bg-amber-50 rounded-xl px-4 py-3">
+                        <p className="text-xs text-amber-500 font-medium mb-0.5">Servings</p>
+                        <p className="text-sm font-semibold text-amber-800">{inquiry.customDetails.servings}</p>
+                      </div>
+                    )}
+                    {inquiry.customDetails?.flavor && (
+                      <div className="bg-rose-50 rounded-xl px-4 py-3">
+                        <p className="text-xs text-rose-400 font-medium mb-0.5">Flavor</p>
+                        <p className="text-sm font-semibold text-rose-800">{inquiry.customDetails.flavor}</p>
+                      </div>
+                    )}
                   </div>
+                  {inquiry.customDetails?.cakeMessage && (
+                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
+                      <p className="text-xs text-stone-400 font-medium mb-1">Message on Cake</p>
+                      <p className="text-sm text-stone-700">{inquiry.customDetails.cakeMessage}</p>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.color && (
+                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
+                      <p className="text-xs text-stone-400 font-medium mb-1">Color Preference</p>
+                      <p className="text-sm text-stone-700">{inquiry.customDetails.color}</p>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
+                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
+                      <p className="text-xs text-stone-400 font-medium mb-1">Cake Toppers</p>
+                      <p className="text-sm text-stone-700">{inquiry.customDetails.toppers.join(', ')}</p>
+                      {inquiry.customDetails.toyTopperDetail && (
+                        <p className="text-xs text-stone-500 mt-1">Toy Topper: {inquiry.customDetails.toyTopperDetail}</p>
+                      )}
+                      {inquiry.customDetails.fondantTopperDetail && (
+                        <p className="text-xs text-stone-500 mt-1">Fondant Topper: {inquiry.customDetails.fondantTopperDetail}</p>
+                      )}
+                      {inquiry.customDetails.toppersOther && (
+                        <p className="text-xs text-stone-500 mt-1">Custom Topper: {inquiry.customDetails.toppersOther}</p>
+                      )}
+                    </div>
+                  )}
+                  {inquiry.customDetails?.inspirationCake && (
+                    <div className="bg-violet-50 rounded-xl px-4 py-3 mb-3">
+                      <p className="text-xs text-violet-400 font-medium mb-1">Inspired by</p>
+                      <p className="text-sm font-semibold text-violet-800">{inquiry.customDetails.inspirationCake}</p>
+                      {inquiry.customDetails.inspirationElements && (
+                        <p className="text-xs text-violet-600 mt-1">{inquiry.customDetails.inspirationElements}</p>
+                      )}
+                    </div>
+                  )}
                   {inquiry.customDetails?.notes && (
                     <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Notes from Customer</p>
+                      <p className="text-xs text-stone-400 font-medium mb-1">Additional Notes</p>
                       <p className="text-sm text-stone-700 leading-relaxed">{inquiry.customDetails.notes}</p>
                     </div>
                   )}

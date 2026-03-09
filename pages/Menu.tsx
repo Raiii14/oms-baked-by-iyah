@@ -117,7 +117,7 @@ const Menu: React.FC = () => {
   return (
     <div className="space-y-8">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-stone-800">Our Menu</h1>
+        <h1 className="text-4xl font-bold text-stone-800">Menu</h1>
         <p className="text-stone-500 mt-2">Delicious treats baked with love.</p>
       </div>
 

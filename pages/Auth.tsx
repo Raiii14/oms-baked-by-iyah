@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { Modal } from '../components/Modal';
@@ -66,6 +66,18 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
   const [error, setError] = useState('');
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Reset all form state when switching between login and register
+  useEffect(() => {
+    setName('');
+    setEmail('');
+    setPhoneNumber('');
+    setPassword('');
+    setConfirmPassword('');
+    setError('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
+  }, [mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

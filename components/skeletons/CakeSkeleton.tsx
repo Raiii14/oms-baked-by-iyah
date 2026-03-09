@@ -1,7 +1,7 @@
 import React from 'react';
 import { SkeletonBox, SkeletonText } from './SkeletonBase';
 
-const CustomCakeSkeleton: React.FC = () => (
+const CakeSkeleton: React.FC = () => (
   <div className="max-w-2xl mx-auto space-y-8">
     {/* Page title */}
     <div className="space-y-2">
@@ -30,4 +30,4 @@ const CustomCakeSkeleton: React.FC = () => (
   </div>
 );
 
-export default CustomCakeSkeleton;
+export default CakeSkeleton;
