@@ -38,7 +38,7 @@ const FloatingInput: React.FC<FloatingInputProps> = ({
       placeholder=" "
       value={value}
       onChange={onChange}
-      className="peer block w-full rounded-xl border border-white/25 bg-white/10 px-4 pt-6 pb-2 text-sm text-white placeholder-transparent backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-rose-400/60 focus:border-rose-400/60 transition-colors"
+      className="auth-input peer block w-full rounded-xl border border-white/25 bg-white/10 px-4 pt-6 pb-2 text-sm text-white placeholder-transparent backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-rose-400/60 focus:border-rose-400/60 transition-colors"
     />
     <label
       htmlFor={id}
@@ -268,7 +268,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
                   autoFocus
                   autoComplete="one-time-code"
                   aria-label="Verification code"
-                  className="block w-full rounded-xl border border-white/25 bg-white/10 px-4 py-4 text-center text-2xl font-mono tracking-[0.4em] text-white placeholder-white/20 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-rose-400/60 focus:border-rose-400/60 transition-colors"
+                  className="auth-input block w-full rounded-xl border border-white/25 bg-white/10 px-4 py-4 text-center text-2xl font-mono tracking-[0.4em] text-white placeholder-white/20 backdrop-blur-sm focus:outline-none focus:ring-2 focus:ring-rose-400/60 focus:border-rose-400/60 transition-colors"
                 />
                 {error && (
                   <p role="alert" className="text-center text-sm font-medium text-rose-300 bg-rose-900/30 rounded-xl px-4 py-2.5">
