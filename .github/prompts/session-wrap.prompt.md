@@ -25,7 +25,14 @@ Summarize this conversation and update the project memory files. Be concise — 
    - `new-task` — service layer rules, migration patterns, planning notes
    - `backend-architect.agent.md` — DB/RLS/auth design patterns
 
-4. **Output a handoff summary** with three sections:
+4. **Check git state** — verify the repo is in a clean, push-ready state:
+   - `git status` — working tree should be clean (no uncommitted changes)
+   - `git branch` — HEAD should be on a **local** branch (e.g. `main`), not detached from `origin/main`
+   - If there are unpushed commits: `git pull --rebase && git push`
+   - If HEAD is detached: `git checkout -b <rescue-branch>` to save work, then merge into `main`
+   - Note in the handoff summary if any branch/push action is still pending
+
+5. **Output a handoff summary** with three sections:
    - **Done** — what was completed and verified
    - **Pending** — what still needs action (code or manual steps)
    - **Carry forward** — open questions or decisions deferred to next chat
