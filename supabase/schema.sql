@@ -86,7 +86,9 @@ CREATE TABLE IF NOT EXISTS products (
   category    TEXT        NOT NULL,
   image       TEXT,
   stock       INTEGER     NOT NULL DEFAULT 0,
-  admin_only  BOOLEAN     NOT NULL DEFAULT FALSE
+  admin_only  BOOLEAN     NOT NULL DEFAULT FALSE,
+  best_seller BOOLEAN     NOT NULL DEFAULT FALSE
+  -- Migration for existing DBs: ALTER TABLE products ADD COLUMN IF NOT EXISTS best_seller BOOLEAN NOT NULL DEFAULT FALSE;
 );
 
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;

@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { OrderStatus, PaymentMethod, ProductCategory, Product } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, LabelList } from 'recharts';
-import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Image as ImageIcon, EyeOff } from 'lucide-react';
+import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Image as ImageIcon, EyeOff, Star } from 'lucide-react';
 import { formatTime } from '../utils/dateUtils';
 
 type AdminTab = 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu';
@@ -38,6 +38,7 @@ const AdminDashboard: React.FC = () => {
   // Tracks which product's inventory +/− is in-flight
   const [updatingInventoryId, setUpdatingInventoryId] = useState<string | null>(null);
   const [togglingAdminOnlyId, setTogglingAdminOnlyId] = useState<string | null>(null);
+  const [togglingBestSellerId, setTogglingBestSellerId] = useState<string | null>(null);
   // Guards for product add/edit/delete modals
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
@@ -599,6 +600,9 @@ const AdminDashboard: React.FC = () => {
                       {product.adminOnly && (
                         <span className="inline-block text-xs bg-violet-50 text-violet-600 font-semibold px-2 py-0.5 rounded-full mt-1.5 border border-violet-100 mr-1">Admin Only</span>
                       )}
+                      {product.bestSeller && (
+                        <span className="inline-block text-xs bg-amber-50 text-amber-600 font-semibold px-2 py-0.5 rounded-full mt-1.5 border border-amber-100 mr-1">Best Seller</span>
+                      )}
                       {product.stock <= 5 && (
                         <span className="inline-block text-xs bg-red-50 text-red-600 font-semibold px-2 py-0.5 rounded-full mt-1.5 border border-red-100">⚠ Low Stock</span>
                       )}
@@ -695,6 +699,7 @@ const AdminDashboard: React.FC = () => {
                             image: imageUrl,
                             stock: Number(formData.get('stock')),
                             adminOnly: formData.get('adminOnly') === 'on',
+                            bestSeller: formData.get('bestSeller') === 'on',
                         };
                         setIsAddingProduct(true);
                         try {
@@ -750,6 +755,16 @@ const AdminDashboard: React.FC = () => {
                             <span className="text-sm text-stone-700">Admin-only <span className="text-stone-400 font-normal">(hidden from customers)</span></span>
                         </label>
                     </div>
+                    <div className="col-span-2">
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                name="bestSeller"
+                                className="w-4 h-4 rounded border-stone-300 accent-amber-500"
+                            />
+                            <span className="text-sm text-stone-700">Best Seller <span className="text-stone-400 font-normal">(shows badge on menu)</span></span>
+                        </label>
+                    </div>
                     <div className="col-span-2 flex justify-end">
                         <button type="submit" disabled={isAddingProduct} className="bg-rose-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-rose-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                             {isAddingProduct ? 'Adding…' : 'Add Product'}
@@ -785,6 +800,9 @@ const AdminDashboard: React.FC = () => {
                                             {product.adminOnly && (
                                                 <span className="text-xs bg-violet-100 text-violet-600 px-2 py-1 rounded-full whitespace-nowrap">Admin Only</span>
                                             )}
+                                            {product.bestSeller && (
+                                                <span className="text-xs bg-amber-100 text-amber-600 px-2 py-1 rounded-full whitespace-nowrap flex items-center gap-1"><Star className="w-3 h-3 fill-amber-500" />Best Seller</span>
+                                            )}
                                             <span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-full whitespace-nowrap">{product.category}</span>
                                         </div>
                                     </div>
@@ -815,6 +833,26 @@ const AdminDashboard: React.FC = () => {
                                 >
                                     <EyeOff className="w-3.5 h-3.5" />
                                     {product.adminOnly ? 'Make Public' : 'Admin Only'}
+                                </button>
+                                <button
+                                    type="button"
+                                    disabled={togglingBestSellerId === product.id}
+                                    onClick={async () => {
+                                        setTogglingBestSellerId(product.id);
+                                        try {
+                                          await updateProduct({ ...product, bestSeller: !product.bestSeller });
+                                        } finally {
+                                          setTogglingBestSellerId(null);
+                                        }
+                                    }}
+                                    className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 ${
+                                        product.bestSeller
+                                            ? 'text-amber-600 hover:text-stone-500 hover:bg-stone-50'
+                                            : 'text-stone-500 hover:text-amber-500 hover:bg-amber-50'
+                                    }`}
+                                >
+                                    <Star className="w-3.5 h-3.5" />
+                                    {product.bestSeller ? 'Remove Best Seller' : 'Mark Best Seller'}
                                 </button>
                                 <button
                                     type="button"
@@ -1078,6 +1116,15 @@ const AdminDashboard: React.FC = () => {
                   className="w-4 h-4 rounded border-stone-300 accent-violet-600"
                 />
                 <span className="text-sm font-medium text-stone-700">Admin-only <span className="text-stone-400 font-normal">(hidden from customers)</span></span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={editingProduct.bestSeller ?? false}
+                  onChange={(e) => setEditingProduct(prev => prev ? { ...prev, bestSeller: e.target.checked } : null)}
+                  className="w-4 h-4 rounded border-stone-300 accent-amber-500"
+                />
+                <span className="text-sm font-medium text-stone-700">Best Seller <span className="text-stone-400 font-normal">(shows badge on menu)</span></span>
               </label>
             </div>
             <div className="flex justify-end gap-3 mt-6">

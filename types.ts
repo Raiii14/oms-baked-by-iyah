@@ -28,6 +28,7 @@ export interface Product {
   image: string;
   stock: number;
   adminOnly?: boolean;
+  bestSeller?: boolean;
 }
 
 export interface CartItem extends Product {
