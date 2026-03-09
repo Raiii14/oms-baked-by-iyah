@@ -102,7 +102,7 @@ const Cake: React.FC = () => {
       {!showForm && (
         <button
           onClick={() => openForm()}
-          className="fixed bottom-24 right-6 z-40 flex items-center gap-2 pl-4 pr-5 h-12 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-sm font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          className={`fixed ${user?.role === UserRole.ADMIN ? 'bottom-6' : 'bottom-24'} right-6 z-40 flex items-center gap-2 pl-4 pr-5 h-12 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-sm font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200`}
           aria-label="Request a custom cake"
         >
           <Sparkles className="w-4 h-4 flex-shrink-0" />

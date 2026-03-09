@@ -395,122 +395,121 @@ const AdminDashboard: React.FC = () => {
               <div key={inquiry.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
                 {/* Card Header */}
-                <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-stone-100 bg-stone-50/60">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Cake className="w-4 h-4 text-rose-500" />
+                <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-start gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Cake className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-white text-base leading-tight">{inquiry.customerName}</h3>
+                        <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-white/20 text-white/80 px-2 py-0.5 rounded-md">{inquiry.id}</span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-stone-800 text-base leading-tight">{inquiry.customerName}</h3>
-                      <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{inquiry.id}</span>
-                    </div>
-                  </div>
-                  <div className="relative flex-shrink-0">
-                    <select
-                      value={inquiry.status}
-                      disabled={updatingOrderId === inquiry.id}
-                      onChange={(e) => handleStatusChange(inquiry.id, e.target.value as OrderStatus)}
-                      className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${STATUS_SELECT_STYLES[inquiry.status]}`}
-                    >
-                      {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center">
-                      <svg className="fill-current h-3 w-3 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    <div className="relative flex-shrink-0">
+                      <select
+                        value={inquiry.status}
+                        disabled={updatingOrderId === inquiry.id}
+                        onChange={(e) => handleStatusChange(inquiry.id, e.target.value as OrderStatus)}
+                        className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${STATUS_SELECT_STYLES[inquiry.status]}`}
+                      >
+                        {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center">
+                        <svg className="fill-current h-3 w-3 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Customer Meta */}
-                <div className="px-6 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
-                  <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">{inquiry.customerEmail || 'No email provided'}</span>
-                  <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                <div className="px-6 py-3 flex flex-wrap items-center gap-2 bg-stone-50 border-b border-stone-100">
+                  <span className="bg-white border border-stone-200 text-stone-500 text-xs px-2.5 py-1 rounded-full">{inquiry.customerEmail || 'No email provided'}</span>
+                  <span className="bg-amber-50 border border-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-medium">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
 
                 {/* Cake Details */}
-                <div className="px-6 py-5">
-                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Cake Details</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <div className="bg-violet-50 rounded-xl px-4 py-3">
-                      <p className="text-xs text-violet-400 font-medium mb-0.5">Size</p>
-                      <p className="text-sm font-semibold text-violet-800">{inquiry.customDetails?.size || '—'}</p>
-                    </div>
-                    <div className="bg-amber-50 rounded-xl px-4 py-3">
-                      <p className="text-xs text-amber-500 font-medium mb-0.5">Date Needed</p>
-                      <p className="text-sm font-semibold text-amber-800">{new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                    </div>
-                    {inquiry.customDetails?.servings && (
-                      <div className="bg-amber-50 rounded-xl px-4 py-3">
-                        <p className="text-xs text-amber-500 font-medium mb-0.5">Servings</p>
-                        <p className="text-sm font-semibold text-amber-800">{inquiry.customDetails.servings}</p>
-                      </div>
-                    )}
-                    {inquiry.customDetails?.flavor && (
-                      <div className="bg-rose-50 rounded-xl px-4 py-3">
-                        <p className="text-xs text-rose-400 font-medium mb-0.5">Flavor</p>
-                        <p className="text-sm font-semibold text-rose-800">{inquiry.customDetails.flavor}</p>
-                      </div>
-                    )}
+                <div className="divide-y divide-stone-100 px-6">
+                  <div className="flex justify-between items-center py-2.5">
+                    <span className="text-xs text-stone-400 font-medium">Size</span>
+                    <span className="text-sm font-medium text-stone-800">{inquiry.customDetails?.size || '—'}</span>
                   </div>
-                  {inquiry.customDetails?.cakeMessage && (
-                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Message on Cake</p>
-                      <p className="text-sm text-stone-700">{inquiry.customDetails.cakeMessage}</p>
+                  {inquiry.customDetails?.flavor && (
+                    <div className="flex justify-between items-center py-2.5">
+                      <span className="text-xs text-stone-400 font-medium">Flavor</span>
+                      <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.flavor}</span>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.servings && (
+                    <div className="flex justify-between items-center py-2.5">
+                      <span className="text-xs text-stone-400 font-medium">Servings</span>
+                      <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.servings}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.color && (
-                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Color Preference</p>
-                      <p className="text-sm text-stone-700">{inquiry.customDetails.color}</p>
-                    </div>
-                  )}
-                  {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
-                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Cake Toppers</p>
-                      <p className="text-sm text-stone-700">{inquiry.customDetails.toppers.join(', ')}</p>
-                      {inquiry.customDetails.toyTopperDetail && (
-                        <p className="text-xs text-stone-500 mt-1">Toy Topper: {inquiry.customDetails.toyTopperDetail}</p>
-                      )}
-                      {inquiry.customDetails.fondantTopperDetail && (
-                        <p className="text-xs text-stone-500 mt-1">Fondant Topper: {inquiry.customDetails.fondantTopperDetail}</p>
-                      )}
-                      {inquiry.customDetails.toppersOther && (
-                        <p className="text-xs text-stone-500 mt-1">Custom Topper: {inquiry.customDetails.toppersOther}</p>
-                      )}
+                    <div className="flex justify-between items-center py-2.5">
+                      <span className="text-xs text-stone-400 font-medium">Color</span>
+                      <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.color}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.inspirationCake && (
-                    <div className="bg-violet-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-violet-400 font-medium mb-1">Inspired by</p>
-                      <p className="text-sm font-semibold text-violet-800">{inquiry.customDetails.inspirationCake}</p>
-                      {inquiry.customDetails.inspirationElements && (
-                        <p className="text-xs text-violet-600 mt-1">{inquiry.customDetails.inspirationElements}</p>
+                    <div className="flex justify-between items-start gap-4 py-2.5">
+                      <span className="text-xs text-stone-400 font-medium shrink-0">Inspired by</span>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-stone-800">{inquiry.customDetails.inspirationCake}</p>
+                        {inquiry.customDetails.inspirationElements && <p className="text-xs text-stone-500 mt-0.5">{inquiry.customDetails.inspirationElements}</p>}
+                      </div>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
+                    <div className="py-3">
+                      <span className="text-xs text-stone-400 font-medium">Toppers</span>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {inquiry.customDetails.toppers.map(t => (
+                          <span key={t} className="text-xs bg-stone-100 text-stone-700 px-2.5 py-1 rounded-full">{t}</span>
+                        ))}
+                      </div>
+                      {(inquiry.customDetails.toyTopperDetail || inquiry.customDetails.fondantTopperDetail || inquiry.customDetails.toppersOther) && (
+                        <div className="mt-1.5 space-y-0.5">
+                          {inquiry.customDetails.toyTopperDetail && <p className="text-xs text-stone-500">Toy: {inquiry.customDetails.toyTopperDetail}</p>}
+                          {inquiry.customDetails.fondantTopperDetail && <p className="text-xs text-stone-500">Fondant: {inquiry.customDetails.fondantTopperDetail}</p>}
+                          {inquiry.customDetails.toppersOther && <p className="text-xs text-stone-500">Custom: {inquiry.customDetails.toppersOther}</p>}
+                        </div>
                       )}
                     </div>
                   )}
+                  {inquiry.customDetails?.cakeMessage && (
+                    <div className="py-3">
+                      <span className="text-xs text-stone-400 font-medium">Message on Cake</span>
+                      <p className="mt-1.5 text-sm text-stone-700 italic border-l-2 border-rose-200 pl-3">&ldquo;{inquiry.customDetails.cakeMessage}&rdquo;</p>
+                    </div>
+                  )}
                   {inquiry.customDetails?.notes && (
-                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Additional Notes</p>
-                      <p className="text-sm text-stone-700 leading-relaxed">{inquiry.customDetails.notes}</p>
+                    <div className="py-3">
+                      <span className="text-xs text-stone-400 font-medium">Notes</span>
+                      <p className="mt-1.5 text-sm text-stone-600 leading-relaxed">{inquiry.customDetails.notes}</p>
                     </div>
                   )}
                   {inquiry.customDetails?.referenceImage && (
-                    <button
-                      onClick={() => setLightbox({ url: inquiry.customDetails!.referenceImage!, title: 'Cake Reference Image', customer: inquiry.customerName, orderId: inquiry.id })}
-                      className="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-700 font-medium transition-colors"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                      View Reference Image
-                    </button>
+                    <div className="py-3">
+                      <button
+                        onClick={() => setLightbox({ url: inquiry.customDetails!.referenceImage!, title: 'Cake Reference Image', customer: inquiry.customerName, orderId: inquiry.id })}
+                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                        View Reference Image
+                      </button>
+                    </div>
                   )}
                 </div>
 
                 {/* Price Quote */}
-                <div className="px-6 py-4 bg-stone-50 border-t border-stone-100">
+                <div className="px-6 py-4 bg-gradient-to-r from-rose-50 to-pink-50 border-t border-rose-100">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className="flex-1">
-                      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Price Quote</p>
-                      <p className="text-2xl font-bold text-stone-800">
-                        {inquiry.totalAmount > 0 ? `₱${inquiry.totalAmount.toLocaleString()}` : <span className="text-stone-300">Not set yet</span>}
+                      <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-1">Price Quote</p>
+                      <p className="text-2xl font-bold text-rose-600">
+                        {inquiry.totalAmount > 0 ? `₱${inquiry.totalAmount.toLocaleString()}` : <span className="text-stone-300 text-lg italic font-normal">Not set yet</span>}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -538,7 +537,7 @@ const AdminDashboard: React.FC = () => {
                             }
                           }
                         }}
-                        className="px-4 py-2 bg-stone-800 text-white text-sm font-semibold rounded-lg hover:bg-stone-700 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+                        className="px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-lg hover:bg-rose-700 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
                       >
                         {updatingPriceId === inquiry.id ? 'Saving…' : 'Set Price'}
                       </button>

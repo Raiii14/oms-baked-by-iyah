@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Trash2, ShoppingBag, History, Cake, ImageIcon, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Trash2, ShoppingBag, History, Cake, ImageIcon, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import StatusBadge from '../components/StatusBadge';
 import { formatTime } from '../utils/dateUtils';
@@ -138,11 +138,13 @@ const Cart: React.FC = () => {
         <>
           {cart.length === 0 ? (
             <div className="text-center py-20 bg-white rounded-2xl shadow-sm border border-stone-100">
-              <ShoppingBag className="w-12 h-12 text-stone-200 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-stone-800 mb-3">Your cart is empty</h2>
+              <div className="w-20 h-20 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-5">
+                <ShoppingBag className="w-9 h-9 text-rose-300" />
+              </div>
+              <h2 className="text-2xl font-bold text-stone-800 mb-2">Your cart is empty</h2>
               <p className="text-stone-500 mb-8">Looks like you haven't added any sweets yet.</p>
-              <button onClick={() => navigate('/menu')} className="text-rose-500 font-medium hover:text-rose-600">
-                Go to Menu &rarr;
+              <button onClick={() => navigate('/menu')} className="inline-flex items-center gap-1.5 px-6 py-2.5 bg-rose-500 text-white font-semibold rounded-full hover:bg-rose-600 transition-colors text-sm shadow-sm hover:shadow-md">
+                Browse Menu <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           ) : (
@@ -150,9 +152,9 @@ const Cart: React.FC = () => {
               {/* Cart Items */}
               <div className="lg:col-span-2 space-y-3">
                 {cart.map((item) => (
-                  <div key={item.id} className="bg-white rounded-2xl border border-stone-200 shadow-sm overflow-hidden flex gap-0">
+                  <div key={item.id} className="group bg-white rounded-2xl border border-stone-200 shadow-sm hover:shadow-md hover:border-rose-200 overflow-hidden flex gap-0 transition-all duration-200">
                     {/* Image */}
-                    <div className="w-28 sm:w-32 flex-shrink-0">
+                    <div className="w-28 sm:w-32 h-28 sm:h-32 flex-shrink-0">
                       <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                     </div>
                     {/* Content */}
@@ -193,7 +195,7 @@ const Cart: React.FC = () => {
                           </button>
                         </div>
                         {/* Item subtotal */}
-                        <p className="font-bold text-stone-800 text-base">₱{(item.price * item.quantity).toLocaleString()}</p>
+                        <p className="font-bold text-rose-600 text-base">₱{(item.price * item.quantity).toLocaleString()}</p>
                       </div>
                     </div>
                   </div>
@@ -202,29 +204,35 @@ const Cart: React.FC = () => {
 
               {/* Summary card */}
               <div className="lg:col-span-1">
-                <div className="bg-white rounded-2xl shadow-sm border border-stone-200 p-6 sticky top-24">
-                  <h3 className="font-bold text-stone-800 mb-5 text-lg">Order Summary</h3>
-                  <div className="space-y-3 mb-5">
-                    {cart.map(item => (
-                      <div key={item.id} className="flex justify-between text-sm text-stone-500">
-                        <span className="truncate mr-2">{item.quantity}× {item.name}</span>
-                        <span className="font-medium text-stone-700 flex-shrink-0">₱{(item.price * item.quantity).toLocaleString()}</span>
-                      </div>
-                    ))}
+                <div className="bg-white rounded-2xl shadow-sm border border-stone-200 sticky top-24 overflow-hidden">
+                  <div className="bg-gradient-to-br from-rose-500 to-rose-600 px-6 py-4">
+                    <h3 className="font-bold text-white text-base">Order Summary</h3>
+                    <p className="text-rose-100 text-xs mt-0.5">{cart.length} item{cart.length !== 1 ? 's' : ''} in your cart</p>
                   </div>
-                  <div className="border-t border-stone-100 pt-4 mb-1">
-                    <div className="flex justify-between font-bold text-stone-900 text-lg">
-                      <span>Subtotal</span>
-                      <span>₱{subtotal.toLocaleString()}</span>
+                  <div className="p-6">
+                    <div className="space-y-3 mb-5">
+                      {cart.map(item => (
+                        <div key={item.id} className="flex justify-between text-sm text-stone-500">
+                          <span className="truncate mr-2">{item.quantity}× {item.name}</span>
+                          <span className="font-medium text-stone-700 flex-shrink-0">₱{(item.price * item.quantity).toLocaleString()}</span>
+                        </div>
+                      ))}
                     </div>
-                    <p className="text-xs text-stone-400 mt-1">Delivery fees & taxes at checkout.</p>
+                    <div className="border-t border-stone-100 pt-4 mb-1">
+                      <div className="flex justify-between font-bold text-stone-900 text-lg">
+                        <span>Subtotal</span>
+                        <span className="text-rose-600">₱{subtotal.toLocaleString()}</span>
+                      </div>
+                      <p className="text-xs text-stone-400 mt-1">Delivery fees & taxes at checkout.</p>
+                    </div>
+                    <button
+                      onClick={handleProceedToCheckout}
+                      className="w-full mt-5 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    >
+                      Proceed to Checkout
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
-                  <button
-                    onClick={handleProceedToCheckout}
-                    className="w-full mt-5 py-3 bg-rose-600 text-white font-bold rounded-xl hover:bg-rose-700 shadow-md hover:shadow-lg transition-all"
-                  >
-                    Proceed to Checkout
-                  </button>
                 </div>
               </div>
             </div>
@@ -312,124 +320,138 @@ const Cart: React.FC = () => {
         <div className="space-y-4">
           {!user ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-stone-100">
-              <Cake className="w-10 h-10 text-stone-200 mx-auto mb-3" />
-              <p className="text-stone-500 mb-4">Please login to view your custom cake inquiries.</p>
-              <button onClick={() => navigate('/login')} className="text-rose-600 font-medium hover:underline">Login Now</button>
+              <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
+                <Cake className="w-7 h-7 text-rose-300" />
+              </div>
+              <p className="text-stone-500 mb-5">Please login to view your custom cake inquiries.</p>
+              <button onClick={() => navigate('/login')} className="inline-flex items-center gap-1.5 px-6 py-2.5 bg-rose-500 text-white font-semibold rounded-full hover:bg-rose-600 transition-colors text-sm shadow-sm hover:shadow-md">Login Now</button>
             </div>
           ) : userInquiries.length === 0 ? (
             <div className="text-center py-16 bg-white rounded-2xl border border-stone-100">
-              <Cake className="w-10 h-10 text-stone-200 mx-auto mb-3" />
-              <p className="text-stone-500 mb-3">No custom cake inquiries found.</p>
-              <button onClick={() => navigate('/custom-cake')} className="text-rose-600 font-medium hover:underline">Request a Quote</button>
+              <div className="w-16 h-16 rounded-full bg-rose-50 flex items-center justify-center mx-auto mb-4">
+                <Cake className="w-7 h-7 text-rose-300" />
+              </div>
+              <p className="text-stone-500 mb-1">No custom cake inquiries yet.</p>
+              <p className="text-stone-400 text-sm mb-5">Design your dream cake and we'll make it happen.</p>
+              <button onClick={() => navigate('/custom-cake')} className="inline-flex items-center gap-1.5 px-6 py-2.5 bg-rose-500 text-white font-semibold rounded-full hover:bg-rose-600 transition-colors text-sm shadow-sm hover:shadow-md"><Sparkles className="w-4 h-4" /> Request a Quote</button>
             </div>
           ) : (
             paginatedUserInquiries.map((inquiry) => (
               <div key={inquiry.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
                 {/* Card Header */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 bg-stone-50/60 border-b border-stone-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0">
-                      <Cake className="w-4 h-4 text-rose-500" />
+                <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                        <Cake className="w-4 h-4 text-white" />
+                      </div>
+                      <span className="text-sm font-bold font-mono tracking-wide text-white/80">{inquiry.id}</span>
                     </div>
-                    <span className="text-base font-bold font-mono tracking-wide bg-stone-100 text-stone-700 px-3 py-1 rounded-lg">{inquiry.id}</span>
+                    <StatusBadge status={inquiry.status} className="self-start sm:self-auto" />
                   </div>
-                  <StatusBadge status={inquiry.status} className="self-start sm:self-auto" />
                 </div>
 
                 {/* Meta */}
-                <div className="px-5 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
-                  {[
-                    `Submitted: ${new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-                    `Needed: ${new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
-                  ].map((item, i) => (
-                    <span key={i} className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">{item}</span>
-                  ))}
+                <div className="px-5 py-3 flex flex-wrap items-center gap-2 bg-stone-50 border-b border-stone-100">
+                  <span className="bg-white border border-stone-200 text-stone-500 text-xs px-2.5 py-1 rounded-full">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  <span className="bg-amber-50 border border-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-medium">Needed: {new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
 
                 {/* Cake Details */}
-                <div className="px-5 py-4">
-                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Cake Details</p>
-                  <div className="space-y-2 mb-3">
-                    <div className="flex justify-between items-baseline">
-                      <span className="text-xs text-stone-400 font-medium">Size</span>
-                      <span className="text-sm font-semibold text-stone-700">{inquiry.customDetails?.size || '—'}</span>
-                    </div>
-                    {inquiry.customDetails?.servings && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs text-stone-400 font-medium">Servings</span>
-                        <span className="text-sm text-stone-700">{inquiry.customDetails.servings}</span>
-                      </div>
-                    )}
-                    {inquiry.customDetails?.flavor && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs text-stone-400 font-medium">Flavor</span>
-                        <span className="text-sm text-stone-700">{inquiry.customDetails.flavor}</span>
-                      </div>
-                    )}
-                    {inquiry.customDetails?.cakeMessage && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs text-stone-400 font-medium">Message on Cake</span>
-                        <span className="text-sm text-stone-700 text-right max-w-[60%]">{inquiry.customDetails.cakeMessage}</span>
-                      </div>
-                    )}
-                    {inquiry.customDetails?.color && (
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-xs text-stone-400 font-medium">Color Preference</span>
-                        <span className="text-sm text-stone-700">{inquiry.customDetails.color}</span>
-                      </div>
-                    )}
-                    {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs text-stone-400 font-medium shrink-0">Toppers</span>
-                        <span className="text-sm text-stone-700 text-right max-w-[60%]">
-                          {inquiry.customDetails.toppers.join(', ')}
-                          {inquiry.customDetails.toyTopperDetail && <span className="block text-xs text-stone-500">Toy: {inquiry.customDetails.toyTopperDetail}</span>}
-                          {inquiry.customDetails.fondantTopperDetail && <span className="block text-xs text-stone-500">Fondant: {inquiry.customDetails.fondantTopperDetail}</span>}
-                          {inquiry.customDetails.toppersOther && <span className="block text-xs text-stone-500">Custom: {inquiry.customDetails.toppersOther}</span>}
-                        </span>
-                      </div>
-                    )}
-                    {inquiry.customDetails?.inspirationCake && (
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs text-stone-400 font-medium shrink-0">Inspired by</span>
-                        <span className="text-sm text-stone-700 text-right max-w-[60%]">
-                          {inquiry.customDetails.inspirationCake}
-                          {inquiry.customDetails.inspirationElements && <span className="block text-xs text-stone-500">{inquiry.customDetails.inspirationElements}</span>}
-                        </span>
-                      </div>
-                    )}
+                <div className="divide-y divide-stone-100 px-5">
+                  <div className="flex justify-between items-center py-2.5">
+                    <span className="text-xs text-stone-400 font-medium">Size</span>
+                    <span className="text-sm font-medium text-stone-800">{inquiry.customDetails?.size || '—'}</span>
                   </div>
+                  {inquiry.customDetails?.flavor && (
+                    <div className="flex justify-between items-center py-2.5">
+                      <span className="text-xs text-stone-400 font-medium">Flavor</span>
+                      <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.flavor}</span>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.servings && (
+                    <div className="flex justify-between items-center py-2.5">
+                      <span className="text-xs text-stone-400 font-medium">Servings</span>
+                      <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.servings}</span>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.color && (
+                    <div className="flex justify-between items-center py-2.5">
+                      <span className="text-xs text-stone-400 font-medium">Color</span>
+                      <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.color}</span>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.inspirationCake && (
+                    <div className="flex justify-between items-start gap-4 py-2.5">
+                      <span className="text-xs text-stone-400 font-medium shrink-0">Inspired by</span>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-stone-800">{inquiry.customDetails.inspirationCake}</p>
+                        {inquiry.customDetails.inspirationElements && <p className="text-xs text-stone-500 mt-0.5">{inquiry.customDetails.inspirationElements}</p>}
+                      </div>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
+                    <div className="py-3">
+                      <span className="text-xs text-stone-400 font-medium">Toppers</span>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {inquiry.customDetails.toppers.map(t => (
+                          <span key={t} className="text-xs bg-stone-100 text-stone-700 px-2.5 py-1 rounded-full">{t}</span>
+                        ))}
+                      </div>
+                      {(inquiry.customDetails.toyTopperDetail || inquiry.customDetails.fondantTopperDetail || inquiry.customDetails.toppersOther) && (
+                        <div className="mt-1.5 space-y-0.5">
+                          {inquiry.customDetails.toyTopperDetail && <p className="text-xs text-stone-500">Toy: {inquiry.customDetails.toyTopperDetail}</p>}
+                          {inquiry.customDetails.fondantTopperDetail && <p className="text-xs text-stone-500">Fondant: {inquiry.customDetails.fondantTopperDetail}</p>}
+                          {inquiry.customDetails.toppersOther && <p className="text-xs text-stone-500">Custom: {inquiry.customDetails.toppersOther}</p>}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {inquiry.customDetails?.cakeMessage && (
+                    <div className="py-3">
+                      <span className="text-xs text-stone-400 font-medium">Message on Cake</span>
+                      <p className="mt-1.5 text-sm text-stone-700 italic border-l-2 border-rose-200 pl-3">&ldquo;{inquiry.customDetails.cakeMessage}&rdquo;</p>
+                    </div>
+                  )}
                   {inquiry.customDetails?.notes && (
-                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Additional Notes</p>
-                      <p className="text-sm text-stone-700 leading-relaxed">{inquiry.customDetails.notes}</p>
+                    <div className="py-3">
+                      <span className="text-xs text-stone-400 font-medium">Notes</span>
+                      <p className="mt-1.5 text-sm text-stone-600 leading-relaxed">{inquiry.customDetails.notes}</p>
                     </div>
                   )}
                   {inquiry.customDetails?.referenceImage && (
-                    <a
-                      href={inquiry.customDetails.referenceImage}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-700 font-medium transition-colors"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                      View Reference Image
-                    </a>
+                    <div className="py-3">
+                      <a
+                        href={inquiry.customDetails.referenceImage}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                        View Reference Image
+                      </a>
+                    </div>
                   )}
                 </div>
 
                 {/* Price Quote footer */}
-                <div className="px-5 py-4 bg-stone-50 border-t border-stone-100 flex justify-between items-center">
-                  <div>
-                    <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-0.5">Price Quote</p>
-                    {inquiry.totalAmount > 0 ? (
-                      <p className="text-xl font-bold text-stone-800">₱{inquiry.totalAmount.toLocaleString()}</p>
-                    ) : (
-                      <p className="text-sm text-stone-400 italic">Pending review by admin</p>
-                    )}
+                {inquiry.totalAmount > 0 ? (
+                  <div className="px-5 py-4 bg-gradient-to-r from-rose-50 to-pink-50 border-t border-rose-100 flex justify-between items-center">
+                    <div>
+                      <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-0.5">Price Quote</p>
+                      <p className="text-2xl font-bold text-rose-600">₱{inquiry.totalAmount.toLocaleString()}</p>
+                    </div>
+                    <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
+                      <Cake className="w-5 h-5 text-rose-400" />
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="px-5 py-4 bg-stone-50 border-t border-stone-100 flex items-center gap-3">
+                    <div className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                    <p className="text-sm text-stone-500 italic">Awaiting price quote from admin</p>
+                  </div>
+                )}
 
               </div>
             ))
