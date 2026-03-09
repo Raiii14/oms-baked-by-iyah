@@ -29,7 +29,8 @@ const Contact = lazy(() => import('./pages/Contact'));
 
 // Role-based Route Protection
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user } = useStore();
+  const { user, isLoading } = useStore();
+  if (isLoading) return <AdminSkeleton />;
   if (!user || user.role !== UserRole.ADMIN) {
     return <Navigate to="/login" replace />;
   }
