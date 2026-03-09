@@ -180,6 +180,8 @@ ALTER PUBLICATION supabase_realtime ADD TABLE user_notifications;
 -- =============================================================================
 -- NOTE: If you already have a products table without admin_only, run this migration first:
 --   ALTER TABLE products ADD COLUMN IF NOT EXISTS admin_only BOOLEAN NOT NULL DEFAULT FALSE;
+-- NOTE: If orders table has legacy 'Confirmed' or 'Baking' statuses, run this migration:
+--   UPDATE orders SET status = 'Preparing' WHERE status IN ('Confirmed', 'Baking');
 INSERT INTO products (id, name, description, price, category, image, stock) VALUES
   ('p1', 'Classic Brookies',        'The perfect combination of brownies and cookies. A customer favorite!', 180, 'Cookies',  'https://picsum.photos/400/400?random=1', 20),
   ('p2', 'Banana Loaf',             'Moist and not too sweet banana bread, perfect for coffee.',             150, 'Pastries', 'https://picsum.photos/400/400?random=2', 15),

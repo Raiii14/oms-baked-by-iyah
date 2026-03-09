@@ -4,14 +4,7 @@ Quick reference for implemented features, pending work, and key design decisions
 
 ## Order Status Model
 
-**Current code (not yet refactored)** — 5 statuses in `types.ts`:
-- `PENDING = 'Pending'`
-- `CONFIRMED = 'Confirmed'`
-- `BAKING = 'Baking'`
-- `COMPLETED = 'Completed'`
-- `CANCELLED = 'Cancelled'`
-
-**Intended (pending refactor)** — 4 statuses:
+**4 statuses in `types.ts`:**
 
 | Status | Value | Meaning |
 |---|---|---|
@@ -22,27 +15,16 @@ Quick reference for implemented features, pending work, and key design decisions
 
 **Business rules:**
 - Customers **cannot** cancel orders. `CANCELLED` is admin-only.
-- `CONFIRMED` and `BAKING` are merged into `PREPARING`.
+- `CONFIRMED` and `BAKING` were merged into `PREPARING` (refactored March 2026).
 - Custom cake inquiry cancel/decline flow is not yet decided — out of scope.
 
-**DB migration (run once in Supabase SQL Editor):**
+**DB migration (run once in Supabase SQL Editor if upgrading existing DB):**
 
 ```sql
 UPDATE orders SET status = 'Preparing' WHERE status IN ('Confirmed', 'Baking');
 ALTER TABLE products ADD COLUMN IF NOT EXISTS admin_only BOOLEAN NOT NULL DEFAULT FALSE;
 ALTER TABLE products ADD COLUMN IF NOT EXISTS best_seller BOOLEAN NOT NULL DEFAULT FALSE;
 ```
-
-**Files that must change for the status refactor:**
-
-| File | What changes |
-|---|---|
-| `types.ts` | Enum definition |
-| `components/StatusBadge.tsx` | `STATUS_STYLES` record |
-| `pages/AdminDashboard.tsx` | `STATUS_SELECT_STYLES` record |
-| `context/StoreContext.tsx` | `getOrderStatusMessage()`, `updateOrderStatus()` email trigger |
-| `utils/emailTemplates.ts` | `orderStatusChangedHtml()` status keys, `getStatusSubject()` |
-| `supabase/schema.sql` | Update default comment + migration note |
 
 ## Email Notification System
 
