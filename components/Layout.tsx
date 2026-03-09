@@ -117,7 +117,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
     { name: 'Home', path: '/' },
     { name: 'Menu', path: '/menu' },
     ...(user?.role !== UserRole.ADMIN ? [{ name: 'Cakes', path: '/custom-cake' }] : []),
-    ...(user?.role !== UserRole.ADMIN ? [{ name: 'Contact', path: '/contact' }] : []),
+    { name: 'Contact', path: '/contact' },
   ];
 
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);

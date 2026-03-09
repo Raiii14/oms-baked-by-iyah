@@ -4,6 +4,7 @@ import { Modal } from '../components/Modal';
 import { useCakePage } from '../hooks/useCakePage';
 import CakeFormModal from '../components/CakeFormModal';
 import CakeGallery from '../components/CakeGallery';
+import { UserRole } from '../types';
 
 const Cake: React.FC = () => {
   const {
@@ -87,6 +88,7 @@ const Cake: React.FC = () => {
         formData={formData}
         user={user}
         isSubmitting={isSubmitting}
+        isAdmin={user?.role === UserRole.ADMIN}
         onClose={closeForm}
         onSubmit={handleSubmit}
         setField={setField}
