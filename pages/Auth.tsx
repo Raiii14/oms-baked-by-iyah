@@ -146,7 +146,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
     if (mode === 'login') {
       navigate(user?.role === UserRole.ADMIN ? '/admin' : redirectTo);
     } else {
-      navigate(redirectTo);
+      navigate('/login');
     }
   };
 
@@ -183,7 +183,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
           message={
             mode === 'login'
               ? 'Welcome back! You have successfully logged in.'
-              : 'Your account has been created successfully. Welcome to Baked by Iyah!'
+              : `We've sent a confirmation email to ${email}. Please verify your account before logging in.`
           }
           primaryAction={{ label: 'Continue', onClick: handleModalClose }}
         />

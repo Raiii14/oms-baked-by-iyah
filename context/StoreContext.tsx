@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import { User, Product, Order, CartItem, OrderStatus, PaymentMethod, DeliveryMethod, UserRole, UserNotification, TopperType } from '../types';
 import { db } from '../services/db';
+import {
+  orderPlacedCustomerHtml,
+  orderPlacedAdminHtml,
+  inquirySubmittedCustomerHtml,
+  inquirySubmittedAdminHtml,
+  orderStatusChangedHtml,
+  getStatusSubject,
+} from '../utils/emailTemplates';
+
+const ADMIN_EMAIL = 'bakedbyiyah@gmail.com';
 
 interface Notification {
   id: string;
@@ -219,8 +229,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [addNotification]);
 
   const register = useCallback(async (name: string, email: string, pass: string, phone: string) => {
-    const newUser = await db.register(name, email, pass, phone);
-    setUser(newUser);
+    await db.register(name, email, pass, phone);
+    // Don't setUser — email confirmation is ON; there is no active session until the user verifies their email.
   }, []);
 
   const logout = useCallback(async () => {
@@ -320,6 +330,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     await db.createOrder(newOrder); // DB Update
     setOrders(prev => [newOrder, ...prev]); // Local Update
     setCart([]);
+    db.sendEmail(user.email, 'Your order has been placed!', orderPlacedCustomerHtml(newOrder)).catch(console.error);
+    db.sendEmail(ADMIN_EMAIL, 'New Order Received', orderPlacedAdminHtml(newOrder)).catch(console.error);
   }, [user, cart, products]);
 
   const submitCustomInquiry = useCallback(async (details: CustomInquiryDetails) => {
@@ -366,6 +378,10 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
     await db.createOrder(newOrder);
     setOrders(prev => [newOrder, ...prev]);
+    if (newOrder.customerEmail) {
+      db.sendEmail(newOrder.customerEmail, 'Your custom cake inquiry has been submitted', inquirySubmittedCustomerHtml(newOrder)).catch(console.error);
+    }
+    db.sendEmail(ADMIN_EMAIL, 'New Custom Cake Inquiry', inquirySubmittedAdminHtml(newOrder)).catch(console.error);
   }, [user]);
 
   // Admin Logic
@@ -375,6 +391,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const updatedOrder = { ...order, status };
       await db.updateOrder(updatedOrder);
       setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      if (order.customerEmail && (status === OrderStatus.BAKING || status === OrderStatus.COMPLETED)) {
+        db.sendEmail(
+          order.customerEmail,
+          getStatusSubject(status),
+          orderStatusChangedHtml(updatedOrder, status),
+        ).catch(console.error);
+      }
       // Write a notification for the customer (skip Pending — that's the default)
       if (status !== OrderStatus.PENDING && order.userId !== 'guest') {
         const notif: UserNotification = {

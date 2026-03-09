@@ -30,6 +30,27 @@ const AdminDashboard: React.FC = () => {
   // Local price input state per inquiry — only sent to DB on "Update" click
   const [inquiryPriceInputs, setInquiryPriceInputs] = useState<Record<string, string>>({});
 
+  // Tracks which order/inquiry status select is in-flight to prevent double-changes
+  const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
+  // Tracks which inquiry price update is in-flight
+  const [updatingPriceId, setUpdatingPriceId] = useState<string | null>(null);
+  // Tracks which product's inventory +/− is in-flight
+  const [updatingInventoryId, setUpdatingInventoryId] = useState<string | null>(null);
+  // Guards for product add/edit/delete modals
+  const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+  const [isDeletingProduct, setIsDeletingProduct] = useState(false);
+  const handleStatusChange = async (orderId: string, status: OrderStatus) => {
+    setUpdatingOrderId(orderId);
+    try {
+      await updateOrderStatus(orderId, status);
+    } catch (err) {
+      console.error('[AdminDashboard] updateOrderStatus failed:', err);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   // Local string draft state for inventory inputs so the field can be fully cleared while typing
   const [stockDrafts, setStockDrafts] = useState<Record<string, string>>({});
   const getStockDisplay = (productId: string, stock: number) =>
@@ -265,8 +286,9 @@ const AdminDashboard: React.FC = () => {
                  <div className="relative flex-shrink-0">
                    <select
                      value={order.status}
-                     onChange={(e) => updateOrderStatus(order.id, e.target.value as OrderStatus)}
-                     className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${STATUS_SELECT_STYLES[order.status]}`}
+                     disabled={updatingOrderId === order.id}
+                     onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
+                     className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${STATUS_SELECT_STYLES[order.status]}`}
                    >
                      {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                    </select>
@@ -370,8 +392,9 @@ const AdminDashboard: React.FC = () => {
                   <div className="relative flex-shrink-0">
                     <select
                       value={inquiry.status}
-                      onChange={(e) => updateOrderStatus(inquiry.id, e.target.value as OrderStatus)}
-                      className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors ${STATUS_SELECT_STYLES[inquiry.status]}`}
+                      disabled={updatingOrderId === inquiry.id}
+                      onChange={(e) => handleStatusChange(inquiry.id, e.target.value as OrderStatus)}
+                      className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${STATUS_SELECT_STYLES[inquiry.status]}`}
                     >
                       {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
@@ -487,15 +510,21 @@ const AdminDashboard: React.FC = () => {
                         />
                       </div>
                       <button
-                        onClick={() => {
+                        disabled={updatingPriceId === inquiry.id}
+                        onClick={async () => {
                           const val = parseFloat(priceInput);
                           if (!isNaN(val) && val >= 0) {
-                            updateInquiryPrice(inquiry.id, val);
+                            setUpdatingPriceId(inquiry.id);
+                            try {
+                              await updateInquiryPrice(inquiry.id, val);
+                            } finally {
+                              setUpdatingPriceId(null);
+                            }
                           }
                         }}
-                        className="px-4 py-2 bg-stone-800 text-white text-sm font-semibold rounded-lg hover:bg-stone-700 active:scale-95 transition-all whitespace-nowrap"
+                        className="px-4 py-2 bg-stone-800 text-white text-sm font-semibold rounded-lg hover:bg-stone-700 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
                       >
-                        Set Price
+                        {updatingPriceId === inquiry.id ? 'Saving…' : 'Set Price'}
                       </button>
                     </div>
                   </div>
@@ -542,11 +571,17 @@ const AdminDashboard: React.FC = () => {
                     <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide">Stock Quantity</span>
                     <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden shadow-sm">
                         <button 
-                            onClick={() => {
+                            onClick={async () => {
                                 const val = Math.max(0, product.stock - 1);
-                                updateInventory(product.id, 'product', val);
+                                setUpdatingInventoryId(product.id);
+                                try {
+                                  await updateInventory(product.id, 'product', val);
+                                } finally {
+                                  setUpdatingInventoryId(null);
+                                }
                             }}
-                            className="w-10 h-9 flex items-center justify-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-r border-stone-200 font-bold text-lg"
+                            disabled={updatingInventoryId === product.id}
+                            className="w-10 h-9 flex items-center justify-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-r border-stone-200 font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             −
                         </button>
@@ -571,11 +606,17 @@ const AdminDashboard: React.FC = () => {
                             min="0"
                         />
                         <button 
-                            onClick={() => {
+                            onClick={async () => {
                                 const val = product.stock + 1;
-                                updateInventory(product.id, 'product', val);
+                                setUpdatingInventoryId(product.id);
+                                try {
+                                  await updateInventory(product.id, 'product', val);
+                                } finally {
+                                  setUpdatingInventoryId(null);
+                                }
                             }}
-                            className="w-10 h-9 flex items-center justify-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-l border-stone-200 font-bold text-lg"
+                            disabled={updatingInventoryId === product.id}
+                            className="w-10 h-9 flex items-center justify-center bg-stone-50 hover:bg-stone-100 text-stone-600 border-l border-stone-200 font-bold text-lg disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             +
                         </button>
@@ -596,7 +637,7 @@ const AdminDashboard: React.FC = () => {
                     Add New Product
                 </h3>
                 <form 
-                    onSubmit={(e) => {
+                    onSubmit={async (e) => {
                         e.preventDefault();
                         const formData = new FormData(e.currentTarget);
                         let imageUrl = (formData.get('imageUrl') as string).trim();
@@ -616,8 +657,13 @@ const AdminDashboard: React.FC = () => {
                             image: imageUrl,
                             stock: Number(formData.get('stock'))
                         };
-                        addProduct(newProduct);
-                        (e.target as HTMLFormElement).reset();
+                        setIsAddingProduct(true);
+                        try {
+                          await addProduct(newProduct);
+                          (e.target as HTMLFormElement).reset();
+                        } finally {
+                          setIsAddingProduct(false);
+                        }
                     }}
                     className="grid grid-cols-1 md:grid-cols-2 gap-4"
                 >
@@ -656,8 +702,8 @@ const AdminDashboard: React.FC = () => {
                         </p>
                     </div>
                     <div className="col-span-2 flex justify-end">
-                        <button type="submit" className="bg-rose-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-rose-600 transition-colors">
-                            Add Product
+                        <button type="submit" disabled={isAddingProduct} className="bg-rose-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-rose-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                            {isAddingProduct ? 'Adding…' : 'Add Product'}
                         </button>
                     </div>
                 </form>
@@ -945,18 +991,25 @@ const AdminDashboard: React.FC = () => {
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setEditingProduct(null)}
-                className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg font-medium text-sm"
+                disabled={isSavingProduct}
+                className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg font-medium text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
+                disabled={isSavingProduct}
                 onClick={async () => {
-                  await updateProduct({ ...editingProduct, image: normalizeImageUrl(editingProduct.image) });
-                  setEditingProduct(null);
+                  setIsSavingProduct(true);
+                  try {
+                    await updateProduct({ ...editingProduct, image: normalizeImageUrl(editingProduct.image) });
+                    setEditingProduct(null);
+                  } finally {
+                    setIsSavingProduct(false);
+                  }
                 }}
-                className="px-4 py-2 bg-rose-500 text-white rounded-lg font-medium text-sm hover:bg-rose-600"
+                className="px-4 py-2 bg-rose-500 text-white rounded-lg font-medium text-sm hover:bg-rose-600 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Save Changes
+                {isSavingProduct ? 'Saving…' : 'Save Changes'}
               </button>
             </div>
           </div>
@@ -977,18 +1030,25 @@ const AdminDashboard: React.FC = () => {
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeletingProductId(null)}
-                className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg font-medium text-sm"
+                disabled={isDeletingProduct}
+                className="px-4 py-2 text-stone-600 hover:bg-stone-100 rounded-lg font-medium text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
+                disabled={isDeletingProduct}
                 onClick={async () => {
-                  await deleteProduct(deletingProductId);
-                  setDeletingProductId(null);
+                  setIsDeletingProduct(true);
+                  try {
+                    await deleteProduct(deletingProductId);
+                    setDeletingProductId(null);
+                  } finally {
+                    setIsDeletingProduct(false);
+                  }
                 }}
-                className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium text-sm hover:bg-red-600"
+                className="px-4 py-2 bg-red-500 text-white rounded-lg font-medium text-sm hover:bg-red-600 disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Remove
+                {isDeletingProduct ? 'Removing…' : 'Remove'}
               </button>
             </div>
           </div>

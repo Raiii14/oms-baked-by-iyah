@@ -5,7 +5,7 @@
 
 -- ── 0. IMPORTANT SETUP NOTES ─────────────────────────────────────────────────
 -- 1. In Supabase Dashboard → Authentication → Providers → Email:
---    Disable "Confirm email" so users can log in immediately after registering.
+--    Enable "Confirm email" — users must verify their email before logging in.
 -- 2. After running this schema, create the admin account:
 --    Dashboard → Authentication → Users → Add User
 --    Email: iyah.admin@bakedbyiyah.com  Password: BakedByIyah@2026

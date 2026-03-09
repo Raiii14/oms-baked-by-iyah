@@ -10,6 +10,7 @@ const Cake: React.FC = () => {
     formData,
     showForm,
     isClosingForm,
+    isSubmitting,
     showLoginWarning, setShowLoginWarning,
     showSuccessModal, setShowSuccessModal,
     lightboxCake, setLightboxCake,
@@ -85,6 +86,7 @@ const Cake: React.FC = () => {
         isClosing={isClosingForm}
         formData={formData}
         user={user}
+        isSubmitting={isSubmitting}
         onClose={closeForm}
         onSubmit={handleSubmit}
         setField={setField}

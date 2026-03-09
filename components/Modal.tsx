@@ -10,10 +10,12 @@ interface ModalProps {
   primaryAction: {
     label: string;
     onClick: () => void;
+    disabled?: boolean;
   };
   secondaryAction?: {
     label: string;
     onClick: () => void;
+    disabled?: boolean;
   };
 }
 
@@ -67,7 +69,8 @@ export const Modal: React.FC<ModalProps> = ({
           <div className="mt-5 sm:mt-6 sm:grid sm:grid-cols-2 sm:gap-3 sm:grid-flow-row-dense justify-center">
             <button
               type="button"
-              className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm ${
+              disabled={primaryAction.disabled}
+              className={`w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 sm:text-sm disabled:opacity-60 disabled:cursor-not-allowed ${
                 !secondaryAction ? 'sm:col-span-2' : 'sm:col-start-2'
               } ${
                 type === 'success'
@@ -83,7 +86,8 @@ export const Modal: React.FC<ModalProps> = ({
             {secondaryAction && (
               <button
                 type="button"
-                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm"
+                disabled={secondaryAction.disabled}
+                className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:col-start-1 sm:text-sm disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={secondaryAction.onClick}
               >
                 {secondaryAction.label}
