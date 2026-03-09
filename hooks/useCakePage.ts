@@ -41,10 +41,6 @@ export function useCakePage() {
     if (user) setFormData(prev => ({ ...prev, name: user.name, email: user.email }));
   }, [user]);
 
-  useEffect(() => {
-    if (user?.role === UserRole.ADMIN) navigate('/admin');
-  }, [user, navigate]);
-
   // Lock body scroll when the form modal is open
   useEffect(() => {
     document.body.style.overflow = showForm ? 'hidden' : '';
