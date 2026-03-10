@@ -281,3 +281,16 @@ export function getStatusSubject(status: OrderStatus): string {
     default:                     return `Order status updated: ${status}`;
   }
 }
+
+export function lowStockAlertHtml(productName: string, currentStock: number): string {
+  return wrapper(`
+    ${heading('Low Stock Alert ⚠️')}
+    ${subheading(`A product in your inventory is running low.`)}
+    ${infoTable([
+      labelValue('Product', productName),
+      labelValue('Current Stock', String(currentStock)),
+    ].join(''))}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:#78716c;">Consider restocking this item soon to avoid running out. You can update stock from the Inventory tab in your admin dashboard.</p>
+  `);
+}

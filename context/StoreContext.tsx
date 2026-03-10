@@ -11,6 +11,7 @@ import {
   inquiryDeclinedAdminHtml,
   orderStatusChangedHtml,
   getStatusSubject,
+  lowStockAlertHtml,
 } from '../utils/emailTemplates';
 
 const ADMIN_EMAIL = 'bakedbyiyah@gmail.com';
@@ -507,9 +508,13 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (type === 'product') {
       const product = products.find(p => p.id === id);
       if (product) {
+        const wasAbove = product.stock > 5;
         const updatedProduct = { ...product, stock: quantity };
         await db.updateProduct(updatedProduct);
         setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
+        if (wasAbove && quantity <= 5 && quantity > 0) {
+          db.sendEmail(ADMIN_EMAIL, `Low Stock Alert: ${product.name}`, lowStockAlertHtml(product.name, quantity)).catch(console.error);
+        }
       }
     }
   }, [products]);

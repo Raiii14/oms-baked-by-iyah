@@ -21,7 +21,7 @@ const Home: React.FC = () => {
         unitCounts[item.id] = (unitCounts[item.id] ?? 0) + item.quantity;
       }
     }
-    const visible = products.filter(p => !p.adminOnly);
+    const visible = products.filter(p => p.stock > 0);
     const soldIds = new Set(Object.keys(unitCounts));
     const topSellers = visible
       .filter(p => soldIds.has(p.id))
@@ -64,14 +64,6 @@ const Home: React.FC = () => {
             >
               Order Now <ArrowRight className="w-4 h-4" />
             </Link>
-            {user?.role !== UserRole.ADMIN && (
-              <Link
-                to="/custom-cake"
-                className="inline-flex items-center gap-2 px-7 py-3 text-base font-semibold rounded-full text-white border-2 border-white/60 hover:bg-white/10 transition-all"
-              >
-                Custom Cake
-              </Link>
-            )}
           </div>
         </div>
       </div>
@@ -97,7 +89,7 @@ const Home: React.FC = () => {
                   />
                   {/* Best Seller badge */}
                   {product.bestSeller && product.stock > 0 && (
-                    <span className="absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm z-10">
+                    <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm z-10">
                       <Star className="w-3 h-3 fill-white" />
                       Best Seller
                     </span>

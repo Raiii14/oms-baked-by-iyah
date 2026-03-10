@@ -112,8 +112,7 @@ const Menu: React.FC = () => {
       .filter(p => {
         const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const notAdminOnly = isAdmin || !p.adminOnly;
-        return matchesCategory && matchesSearch && notAdminOnly;
+        return matchesCategory && matchesSearch;
       })
       .sort((a, b) => {
         if (sortBy === 'name-asc') return a.name.localeCompare(b.name);

@@ -14,7 +14,6 @@ export interface User {
 }
 
 export enum ProductCategory {
-  CAKES = 'Cakes',
   COOKIES = 'Cookies',
   PASTRIES = 'Pastries'
 }
@@ -27,7 +26,6 @@ export interface Product {
   category: ProductCategory;
   image: string;
   stock: number;
-  adminOnly?: boolean;
   bestSeller?: boolean;
 }
 

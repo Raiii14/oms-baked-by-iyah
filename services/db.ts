@@ -237,7 +237,6 @@ class SupabaseService implements DatabaseProvider {
       category: p.category as ProductCategory,
       image: p.image as string,
       stock: p.stock as number,
-      adminOnly: (p.admin_only as boolean) ?? false,
       bestSeller: (p.best_seller as boolean) ?? false,
     }));
   }
@@ -307,7 +306,6 @@ class SupabaseService implements DatabaseProvider {
       category: product.category,
       image: product.image,
       stock: product.stock,
-      admin_only: product.adminOnly ?? false,
       best_seller: product.bestSeller ?? false,
     });
     if (error) throw error;
@@ -322,7 +320,6 @@ class SupabaseService implements DatabaseProvider {
       category: product.category,
       image: product.image,
       stock: product.stock,
-      admin_only: product.adminOnly ?? false,
       best_seller: product.bestSeller ?? false,
     }).eq('id', product.id);
     if (error) throw error;

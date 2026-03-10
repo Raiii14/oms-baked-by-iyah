@@ -195,7 +195,7 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
     <div className="relative min-h-screen flex flex-col overflow-hidden bg-stone-900">
       {/* Full-bleed bakery background */}
       <img
-        src="https://images.unsplash.com/photo-1486427944299-d1955d23e34d?w=1600&q=80"
+        src="https://wallpaperaccess.com/full/1892454.jpg"
         alt=""
         aria-hidden="true"
         className="absolute inset-0 w-full h-full object-cover"
