@@ -56,7 +56,7 @@ const Cake: React.FC = () => {
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85"
           onClick={() => setLightboxCake(null)}
         >
-          <div className="relative w-full max-w-xl" onClick={e => e.stopPropagation()}>
+          <div className="relative w-full max-w-xl flex flex-col items-center" onClick={e => e.stopPropagation()}>
             <button
               onClick={() => setLightboxCake(null)}
               className="absolute -top-10 right-0 text-white/70 hover:text-white transition-colors"
@@ -64,20 +64,18 @@ const Cake: React.FC = () => {
             >
               <X className="w-7 h-7" />
             </button>
+            <p className="text-white font-semibold text-lg mb-3 text-center">{lightboxCake.name}</p>
             <img
               src={lightboxCake.image}
               alt={lightboxCake.name}
               className="w-full max-h-[70vh] object-contain rounded-2xl shadow-2xl"
             />
-            <div className="mt-4 flex items-center justify-between gap-4">
-              <p className="text-white font-semibold text-lg truncate">{lightboxCake.name}</p>
-              <button
-                onClick={() => openForm(lightboxCake)}
-                className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-rose-500 hover:bg-rose-400 text-white text-sm font-semibold rounded-full transition-colors shadow-lg"
-              >
-                <Sparkles className="w-4 h-4" /> Use as Inspiration
-              </button>
-            </div>
+            <button
+              onClick={() => openForm(lightboxCake)}
+              className="mt-4 flex items-center gap-2 px-5 py-2.5 bg-rose-500 hover:bg-rose-400 text-white text-sm font-semibold rounded-full transition-colors shadow-lg"
+            >
+              <Sparkles className="w-4 h-4" /> Use as Inspiration
+            </button>
           </div>
         </div>
       )}

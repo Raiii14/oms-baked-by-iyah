@@ -20,22 +20,31 @@ export const INITIAL_PRODUCTS: Product[] = [
     stock: 15
   },
   {
-    id: 'p3',
-    name: 'Chocolate Moist Cake',
-    description: 'Rich chocolate cake that melts in your mouth.',
-    price: 450,
-    category: ProductCategory.CAKES,
-    image: 'https://picsum.photos/400/400?random=3',
-    stock: 5
-  },
-  {
     id: 'p4',
     name: 'Red Velvet Crinkles',
     description: 'Soft and chewy crinkles with cream cheese filling.',
     price: 120,
     category: ProductCategory.COOKIES,
     image: 'https://picsum.photos/400/400?random=4',
-    stock: 0 // Sold out test
+    stock: 0
+  },
+  {
+    id: 'p5',
+    name: 'Cookie Bites',
+    description: 'Small bite-sized chocolate chip cookies with a rich dark chocolate dip.',
+    price: 100,
+    category: ProductCategory.COOKIES,
+    image: 'https://scontent-mnl1-2.xx.fbcdn.net/v/t39.30808-6/487189667_1060467602768421_4352070483248549824_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=7b2446&_nc_ohc=as1DsYrpmhwQ7kNvwECCRYN&_nc_oc=AdlUTNfqkHVapJUtVn_Fvs7CZRRu0rYzZNS0hK0VTka1Ic8qIUlfzCdMy77Fwb9tjhs&_nc_zt=23&_nc_ht=scontent-mnl1-2.xx&_nc_gid=4yT3KfHel2aAKWfMJZHcww&_nc_ss=8&oh=00_Afy5b7dvxyyvXtSRHmujAN0U7B9_zD9vMHjsVhb7WEDJPA&oe=69B56B79',
+    stock: 15
+  },
+  {
+    id: 'p6',
+    name: 'Gingerbread Cupcake',
+    description: 'Warm spiced gingerbread cupcake topped with cream cheese frosting.',
+    price: 130,
+    category: ProductCategory.PASTRIES,
+    image: 'https://scontent-mnl1-1.xx.fbcdn.net/v/t39.30808-6/487424188_1062284902586691_2210847969741791529_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=111&ccb=1-7&_nc_sid=7b2446&_nc_ohc=qB_DEDGsdDAQ7kNvwHqjNdy&_nc_oc=AdkkhivKQ3Q0j7RRxQ9J8YtN6eof_zy5INMTc5VAgJUj8AvuO75rrUEsqi4Gb0mGnms&_nc_zt=23&_nc_ht=scontent-mnl1-1.xx&_nc_gid=reFcDOtOuVDFGXwJJW-_DA&_nc_ss=8&oh=00_AfyiYPtr0gEYSChw_b8fQ7gUfRsAWG8VbeeECZYzo0fJDA&oe=69B5912F',
+    stock: 10
   }
 ];
 
@@ -69,4 +78,7 @@ export const PAST_CAKES: PastCake[] = [
   { name: 'Red Vintage Bow Cake',        image: 'https://scontent-mnl1-2.xx.fbcdn.net/v/t39.30808-6/557985391_1212074240941089_8356171292982685372_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=7b2446&_nc_ohc=SP-wABdemMcQ7kNvwH6AjFU&_nc_oc=Adll2_5S9FeoxMrw0V-tShZpXT-7UDTQg2mTK_SjEDmkobFDAJNxLLQIXrxDRy7C1Ys&_nc_zt=23&_nc_ht=scontent-mnl1-2.xx&_nc_gid=O6IGwS2wQXturjnoa1AwqA&_nc_ss=8&oh=00_AfzdaKbMLi4nX9ZOlIV0DZu89JoUGR5HyhNXOvVhkYtrbw&oe=69B302AD' },
   { name: 'Kuromi Themed Cake (Twin)',   image: 'https://scontent-mnl3-3.xx.fbcdn.net/v/t39.30808-6/489845443_1067976972017484_4570877682225026267_n.jpg?_nc_cat=101&ccb=1-7&_nc_sid=7b2446&_nc_ohc=JsnQQUp1qb0Q7kNvwGYr89m&_nc_oc=Adnx1DjALamADFsAg2iwqCovVhabmQEFHDr6I5y0qq6lkl3cMZuSoG_Ty2zsVENbhXI&_nc_zt=23&_nc_ht=scontent-mnl3-3.xx&_nc_gid=GhpaUrDj8mMy3gCbNeyt1A&_nc_ss=8&oh=00_Afx7FgZHcRaVwpahj38wdHvqqD7QkTMf5KMvMFKFlKDRcw&oe=69B31AE6' },
   { name: 'Kuromi Themed Cake',          image: 'https://scontent-mnl3-3.xx.fbcdn.net/v/t39.30808-6/488250058_1065369775611537_4884608332579361473_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=7b2446&_nc_ohc=V6y6cyZ6TK0Q7kNvwE8bvaW&_nc_oc=Adk3x9dkk_T3DvEdpWBJn5VYkKDaEJQjf_Y4vpwp-txjVXztF0SJH-FCkgmGt6iOSxQ&_nc_zt=23&_nc_ht=scontent-mnl3-3.xx&_nc_gid=yoKoNzTIf99s0sHbb3NXtA&_nc_ss=8&oh=00_AfxHlRCCZmN-JqdpGCWrW4d5t8U-wcLV3g2ZX0XFjHEEzQ&oe=69B2FBF9' },
+  { name: "Valentine's Day Cake",         image: 'https://scontent-mnl1-2.xx.fbcdn.net/v/t39.30808-6/488251543_1063162149165633_1896241064607153803_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=7b2446&_nc_ohc=kgyuvpdCiAMQ7kNvwG-2xEX&_nc_oc=Adk0dV9g_IA_CK2bTd1aqCD-sgdM4iewdLJk1LDkhFlkWNKxtKy-0_ARp6XlO-eHPzI&_nc_zt=23&_nc_ht=scontent-mnl1-2.xx&_nc_gid=dpe9jPT4Hp_5lx06YQhc-A&_nc_ss=8&oh=00_AfwR455VAFzAcuzOCbdZG3a0Fm9Z4G2NIP1ZbC9MSbF7VA&oe=69B56E3F' },
+  { name: 'Bridal Shower Themed Cake',    image: 'https://scontent-mnl1-1.xx.fbcdn.net/v/t39.30808-6/487733567_1063159302499251_3022171447563465813_n.jpg?_nc_cat=110&ccb=1-7&_nc_sid=7b2446&_nc_ohc=OGW1d7Wm9tIQ7kNvwFx6AVE&_nc_oc=AdninxMInMO96cYNqK_S_V_s2HQwFQXLdUYdQ2k13hrTFbt1CNTNORuORwJ4rZBOATo&_nc_zt=23&_nc_ht=scontent-mnl1-1.xx&_nc_gid=cK6rmj0UHQXg1Th0GpGXGg&_nc_ss=8&oh=00_AfzjI8N4V4rLv8UyJjpy3aJr85ejMB385ACKXjoTt58rgQ&oe=69B59230' },
+  { name: 'TonGits Go Theme Cake',        image: 'https://scontent-mnl3-3.xx.fbcdn.net/v/t39.30808-6/486609760_1059752772839904_8862387982221378280_n.jpg?_nc_cat=108&ccb=1-7&_nc_sid=7b2446&_nc_ohc=IxB_cTRwS6MQ7kNvwGWwvt9&_nc_oc=AdljNOnIWkYNvCXJtjjgRRsCT-9YP6VEqLL497zekQBUQUbBpfhtZwoFUefQIQSGg_c&_nc_zt=23&_nc_ht=scontent-mnl3-3.xx&_nc_gid=EJEq7E8GWqlpsUW9P7QdvQ&_nc_ss=8&oh=00_Afyldxdx2Lqr48ANWRzXNX3z6QOkjJ-gJuKw-qZ-YkO58Q&oe=69B58A6F' },
 ];
