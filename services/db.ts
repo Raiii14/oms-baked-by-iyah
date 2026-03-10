@@ -1,6 +1,6 @@
 import { User, Product, Order, UserRole, UserNotification, OrderStatus, PaymentMethod, DeliveryMethod, ProductCategory } from '../types';
 
-import { supabase } from './supabaseClient';
+import { supabase, supabaseAnonKey } from './supabaseClient';
 
 // ─── DatabaseProvider Interface ───────────────────────────────────────────────
 // Any backend (localStorage, Supabase, Firebase…) must implement this contract.
@@ -468,6 +468,7 @@ class SupabaseService implements DatabaseProvider {
   async sendEmail(to: string, subject: string, html: string): Promise<void> {
     const { error } = await supabase.functions.invoke('send-email', {
       body: { to, subject, html },
+      headers: { Authorization: `Bearer ${supabaseAnonKey}` },
     });
     if (error) console.error('[db] sendEmail error:', error);
     // Never throw — email failure must not crash order operations

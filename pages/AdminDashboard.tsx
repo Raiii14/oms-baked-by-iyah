@@ -289,14 +289,15 @@ const AdminDashboard: React.FC = () => {
              <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
                {/* Card Header */}
-               <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-stone-100 bg-stone-50/60">
-                 <div className="flex items-start gap-3 min-w-0">
-                   <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                     <ShoppingBag className="w-4 h-4 text-rose-500" />
+               <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-4">
+                 <div className="flex items-center justify-between gap-3">
+                 <div className="flex items-center gap-3 min-w-0">
+                   <div className="w-9 h-9 rounded-full bg-white/30 flex items-center justify-center flex-shrink-0">
+                     <ShoppingBag className="w-4 h-4 text-white" />
                    </div>
                    <div className="min-w-0">
-                     <h3 className="font-bold text-stone-800 text-base leading-tight">{order.customerName}</h3>
-                     <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{order.id}</span>
+                     <h3 className="font-bold text-white text-base leading-tight">{order.customerName}</h3>
+                     <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-white/20 text-white/80 px-2 py-0.5 rounded-md">{order.id}</span>
                    </div>
                  </div>
                  <div className="relative flex-shrink-0">
@@ -312,11 +313,12 @@ const AdminDashboard: React.FC = () => {
                      <svg className="fill-current h-3 w-3 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                    </div>
                  </div>
+                 </div>
                </div>
 
                {/* Customer Meta */}
                <div className="px-6 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
-                 <span className="bg-stone-100 text-stone-600 text-xs font-medium px-2.5 py-1 rounded-full">{order.customerEmail || 'No email provided'}</span>
+                 <span className="bg-stone-100 text-stone-600 text-xs font-semibold px-2.5 py-1 rounded-full">{order.customerEmail || 'No email provided'}</span>
                  <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">Ordered: {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                  <span className="bg-rose-50 text-rose-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-rose-100">📅 Needed: {new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {formatTime(order.scheduledTime)}</span>
                  {order.paymentMethod && <span className="bg-green-50 text-green-700 text-xs font-medium px-2.5 py-1 rounded-full border border-green-100">{order.paymentMethod}</span>}
@@ -325,11 +327,12 @@ const AdminDashboard: React.FC = () => {
                {/* Order Items */}
                <div className="px-6 py-5">
                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Order Items</p>
-                 <ul className="space-y-2">
-                   {order.items.map(item => (
-                     <li key={item.id} className="flex justify-between items-center text-sm">
-                       <span className="text-stone-700">{item.quantity}× {item.name}</span>
-                       <span className="font-medium text-stone-600">₱{(item.price * item.quantity).toLocaleString()}</span>
+                 <ul className="space-y-2.5">
+                   {order.items.map((item, idx) => (
+                     <li key={idx} className="flex items-center gap-3">
+                       <img src={item.image} alt={item.name} className="w-11 h-11 rounded-lg object-cover flex-shrink-0 bg-stone-100 border border-stone-100" />
+                       <span className="text-stone-700 text-sm flex-1">{item.quantity}× {item.name}</span>
+                       <span className="font-medium text-stone-600 text-sm flex-shrink-0">₱{(item.price * item.quantity).toLocaleString()}</span>
                      </li>
                    ))}
                  </ul>
@@ -396,9 +399,9 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Card Header */}
                 <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-full bg-white/30 flex items-center justify-center flex-shrink-0">
                         <Cake className="w-4 h-4 text-white" />
                       </div>
                       <div className="min-w-0">
@@ -424,37 +427,42 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Customer Meta */}
                 <div className="px-6 py-3 flex flex-wrap items-center gap-2 bg-stone-50 border-b border-stone-100">
-                  <span className="bg-white border border-stone-200 text-stone-500 text-xs px-2.5 py-1 rounded-full">{inquiry.customerEmail || 'No email provided'}</span>
-                  <span className="bg-amber-50 border border-amber-100 text-amber-700 text-xs px-2.5 py-1 rounded-full font-medium">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  <span className="bg-white border border-stone-200 text-stone-600 text-xs font-semibold px-2.5 py-1 rounded-full">{inquiry.customerEmail || 'No email provided'}</span>
+                  <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  <span className="bg-rose-50 text-rose-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-rose-100">📅 Needed: {new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
 
                 {/* Cake Details */}
                 <div className="divide-y divide-stone-100 px-6">
                   <div className="flex justify-between items-center py-2.5">
-                    <span className="text-xs text-stone-400 font-medium">Size</span>
+                    <span className="text-sm text-stone-500 font-medium min-w-[100px]">Size</span>
                     <span className="text-sm font-medium text-stone-800">{inquiry.customDetails?.size || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2.5">
+                    <span className="text-sm text-stone-500 font-medium min-w-[100px]">Date Needed</span>
+                    <span className="text-sm font-medium text-stone-800">{new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
                   {inquiry.customDetails?.flavor && (
                     <div className="flex justify-between items-center py-2.5">
-                      <span className="text-xs text-stone-400 font-medium">Flavor</span>
+                      <span className="text-sm text-stone-500 font-medium min-w-[100px]">Flavor</span>
                       <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.flavor}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.servings && (
                     <div className="flex justify-between items-center py-2.5">
-                      <span className="text-xs text-stone-400 font-medium">Servings</span>
+                      <span className="text-sm text-stone-500 font-medium min-w-[100px]">Servings</span>
                       <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.servings}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.color && (
                     <div className="flex justify-between items-center py-2.5">
-                      <span className="text-xs text-stone-400 font-medium">Color</span>
+                      <span className="text-sm text-stone-500 font-medium min-w-[100px]">Color</span>
                       <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.color}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.inspirationCake && (
                     <div className="flex justify-between items-start gap-4 py-2.5">
-                      <span className="text-xs text-stone-400 font-medium shrink-0">Inspired by</span>
+                      <span className="text-sm text-stone-500 font-medium shrink-0">Inspired by</span>
                       <div className="text-right">
                         <p className="text-sm font-medium text-stone-800">{inquiry.customDetails.inspirationCake}</p>
                         {inquiry.customDetails.inspirationElements && <p className="text-xs text-stone-500 mt-0.5">{inquiry.customDetails.inspirationElements}</p>}
@@ -463,7 +471,7 @@ const AdminDashboard: React.FC = () => {
                   )}
                   {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
                     <div className="py-3">
-                      <span className="text-xs text-stone-400 font-medium">Toppers</span>
+                      <span className="text-sm text-stone-500 font-medium">Toppers</span>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {inquiry.customDetails.toppers.map(t => (
                           <span key={t} className="text-xs bg-stone-100 text-stone-700 px-2.5 py-1 rounded-full">{t}</span>
@@ -480,13 +488,13 @@ const AdminDashboard: React.FC = () => {
                   )}
                   {inquiry.customDetails?.cakeMessage && (
                     <div className="py-3">
-                      <span className="text-xs text-stone-400 font-medium">Message on Cake</span>
+                      <span className="text-sm text-stone-500 font-medium">Message on Cake</span>
                       <p className="mt-1.5 text-sm text-stone-700 italic border-l-2 border-rose-200 pl-3">&ldquo;{inquiry.customDetails.cakeMessage}&rdquo;</p>
                     </div>
                   )}
                   {inquiry.customDetails?.notes && (
                     <div className="py-3">
-                      <span className="text-xs text-stone-400 font-medium">Notes</span>
+                      <span className="text-sm text-stone-500 font-medium">Notes</span>
                       <p className="mt-1.5 text-sm text-stone-600 leading-relaxed">{inquiry.customDetails.notes}</p>
                     </div>
                   )}

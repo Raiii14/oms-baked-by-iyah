@@ -1,5 +1,5 @@
 import React from 'react';
-import { SkeletonBox, SkeletonText } from './SkeletonBase';
+import { SkeletonBox } from './SkeletonBase';
 
 const ContactSkeleton: React.FC = () => (
   <div className="max-w-3xl mx-auto space-y-10">

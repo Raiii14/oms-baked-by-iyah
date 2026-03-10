@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { compressImage } from '../utils/imageCompression';
-import { UserRole, PastCake, FormState, TopperType } from '../types';
+import { PastCake, FormState, TopperType } from '../types';
 
 const blankForm = (user: { name: string; email: string } | null): FormState => ({
   name: user?.name || '',
