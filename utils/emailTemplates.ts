@@ -168,6 +168,43 @@ export function inquirySubmittedAdminHtml(order: Order): string {
   `);
 }
 
+export function quoteReadyCustomerHtml(order: Order): string {
+  return wrapper(`
+    ${heading('Your Custom Cake Quote is Ready! 🎂')}
+    ${subheading(`Hi ${order.customerName}! We've reviewed your custom cake inquiry and prepared a price quote for you.`)}
+    ${infoTable([
+      labelValue('Inquiry ID', order.id),
+      labelValue('Price Quote', `₱${order.totalAmount.toLocaleString()}`),
+      labelValue('Size', order.customDetails?.size || '—'),
+      labelValue('Flavor', order.customDetails?.flavor || '—'),
+      labelValue('Servings', order.customDetails?.servings || '—'),
+    ].join(''))}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:#78716c;">Log in to your account and visit your Custom Cakes tab to accept or decline this quote. We look forward to creating your dream cake!</p>
+  `);
+}
+
+export function inquiryAcceptedAdminHtml(order: Order): string {
+  return wrapper(`
+    ${heading('Inquiry Accepted ✅')}
+    ${subheading('A customer has accepted their custom cake quote.')}
+    ${infoTable([
+      labelValue('Inquiry ID', order.id),
+      labelValue('Customer', order.customerName),
+      labelValue('Email', order.customerEmail || '—'),
+      labelValue('Phone', order.customerPhone || '—'),
+      labelValue('Price', `₱${order.totalAmount.toLocaleString()}`),
+      labelValue('Payment', order.paymentMethod),
+      labelValue('Delivery', order.deliveryMethod),
+      ...(order.deliveryAddress ? [labelValue('Address', order.deliveryAddress)] : []),
+      labelValue('Scheduled Date', order.scheduledDate),
+    ].join(''))}
+    ${divider()}
+    <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#1c1917;">Inquiry Details</p>
+    ${customDetailsTable(order)}
+  `);
+}
+
 export function orderStatusChangedHtml(order: Order, newStatus: OrderStatus): string {
   const statusMessages: Partial<Record<OrderStatus, { emoji: string; body: string }>> = {
     [OrderStatus.PREPARING]: {

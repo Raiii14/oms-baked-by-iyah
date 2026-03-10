@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Trash2, ShoppingBag, History, Cake, ImageIcon, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { Trash2, ShoppingBag, History, Cake, ImageIcon, ChevronLeft, ChevronRight, Sparkles, Check, X, Upload, Calendar } from 'lucide-react';
 import { Modal } from '../components/Modal';
 import StatusBadge from '../components/StatusBadge';
-import { formatTime } from '../utils/dateUtils';
-import { UserRole } from '../types';
+import { formatTime, getMinDate } from '../utils/dateUtils';
+import { UserRole, OrderStatus, PaymentMethod, DeliveryMethod } from '../types';
+import { compressImage } from '../utils/imageCompression';
 
 const CART_TABS = ['cart', 'history', 'custom'] as const;
 type CartTab = typeof CART_TABS[number];
 
 const Cart: React.FC = () => {
-  const { cart, updateCartQuantity, removeFromCart, user, orders } = useStore();
+  const { cart, updateCartQuantity, removeFromCart, user, orders, acceptInquiry, declineInquiry, addNotification } = useStore();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const activeTab: CartTab = (CART_TABS.includes(searchParams.get('tab') as CartTab)
@@ -68,6 +69,62 @@ const Cart: React.FC = () => {
     const num = parseInt(val);
     if (!isNaN(num)) {
       updateCartQuantity(itemId, num);
+    }
+  };
+
+  // Accept/Decline state for custom inquiries
+  const [acceptingInquiryId, setAcceptingInquiryId] = useState<string | null>(null);
+  const [decliningInquiryId, setDecliningInquiryId] = useState<string | null>(null);
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [isDeclining, setIsDeclining] = useState(false);
+  const [acceptPayment, setAcceptPayment] = useState<PaymentMethod>(PaymentMethod.COD);
+  const [acceptDelivery, setAcceptDelivery] = useState<DeliveryMethod>(DeliveryMethod.PICKUP);
+  const [acceptDate, setAcceptDate] = useState('');
+  const [acceptAddress, setAcceptAddress] = useState('');
+  const [acceptProof, setAcceptProof] = useState<File | null>(null);
+
+  const resetAcceptForm = () => {
+    setAcceptingInquiryId(null);
+    setAcceptPayment(PaymentMethod.COD);
+    setAcceptDelivery(DeliveryMethod.PICKUP);
+    setAcceptDate('');
+    setAcceptAddress('');
+    setAcceptProof(null);
+  };
+
+  const handleAcceptSubmit = async (inquiryId: string) => {
+    if (!acceptDate) { addNotification('Please select a date.', 'error'); return; }
+    if (acceptPayment === PaymentMethod.GCASH && !acceptProof) { addNotification('Please upload GCash receipt.', 'error'); return; }
+    if (acceptDelivery === DeliveryMethod.DELIVERY && !acceptAddress.trim()) { addNotification('Please enter delivery address.', 'error'); return; }
+    setIsAccepting(true);
+    try {
+      await acceptInquiry(inquiryId, {
+        paymentMethod: acceptPayment,
+        deliveryMethod: acceptDelivery,
+        scheduledDate: acceptDate,
+        paymentProof: acceptProof,
+        deliveryAddress: acceptDelivery === DeliveryMethod.DELIVERY ? acceptAddress : undefined,
+      });
+      resetAcceptForm();
+      addNotification('Order accepted! Your cake is being prepared.', 'success');
+    } catch {
+      addNotification('Failed to accept inquiry. Please try again.', 'error');
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  const handleDeclineConfirm = async () => {
+    if (!decliningInquiryId) return;
+    setIsDeclining(true);
+    try {
+      await declineInquiry(decliningInquiryId);
+      setDecliningInquiryId(null);
+      addNotification('Inquiry cancelled.', 'info');
+    } catch {
+      addNotification('Failed to cancel inquiry. Please try again.', 'error');
+    } finally {
+      setIsDeclining(false);
     }
   };
 
@@ -343,7 +400,7 @@ const Cart: React.FC = () => {
                 <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-5 py-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-white/30 flex items-center justify-center flex-shrink-0">
                         <Cake className="w-4 h-4 text-white" />
                       </div>
                       <span className="text-sm font-bold font-mono tracking-wide text-white/80">{inquiry.id}</span>
@@ -361,30 +418,34 @@ const Cart: React.FC = () => {
                 {/* Cake Details */}
                 <div className="divide-y divide-stone-100 px-5">
                   <div className="flex justify-between items-center py-2.5">
-                    <span className="text-xs text-stone-400 font-medium">Size</span>
+                    <span className="text-sm text-stone-500 font-medium min-w-[100px]">Size</span>
                     <span className="text-sm font-medium text-stone-800">{inquiry.customDetails?.size || '—'}</span>
+                  </div>
+                  <div className="flex justify-between items-center py-2.5">
+                    <span className="text-sm text-stone-500 font-medium min-w-[100px]">Date Needed</span>
+                    <span className="text-sm font-medium text-stone-800">{new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                   </div>
                   {inquiry.customDetails?.flavor && (
                     <div className="flex justify-between items-center py-2.5">
-                      <span className="text-xs text-stone-400 font-medium">Flavor</span>
+                      <span className="text-sm text-stone-500 font-medium min-w-[100px]">Flavor</span>
                       <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.flavor}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.servings && (
                     <div className="flex justify-between items-center py-2.5">
-                      <span className="text-xs text-stone-400 font-medium">Servings</span>
+                      <span className="text-sm text-stone-500 font-medium min-w-[100px]">Servings</span>
                       <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.servings}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.color && (
                     <div className="flex justify-between items-center py-2.5">
-                      <span className="text-xs text-stone-400 font-medium">Color</span>
+                      <span className="text-sm text-stone-500 font-medium min-w-[100px]">Color</span>
                       <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.color}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.inspirationCake && (
                     <div className="flex justify-between items-start gap-4 py-2.5">
-                      <span className="text-xs text-stone-400 font-medium shrink-0">Inspired by</span>
+                      <span className="text-sm text-stone-500 font-medium shrink-0">Inspired by</span>
                       <div className="text-right">
                         <p className="text-sm font-medium text-stone-800">{inquiry.customDetails.inspirationCake}</p>
                         {inquiry.customDetails.inspirationElements && <p className="text-xs text-stone-500 mt-0.5">{inquiry.customDetails.inspirationElements}</p>}
@@ -393,7 +454,7 @@ const Cart: React.FC = () => {
                   )}
                   {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
                     <div className="py-3">
-                      <span className="text-xs text-stone-400 font-medium">Toppers</span>
+                      <span className="text-sm text-stone-500 font-medium">Toppers</span>
                       <div className="flex flex-wrap gap-1.5 mt-2">
                         {inquiry.customDetails.toppers.map(t => (
                           <span key={t} className="text-xs bg-stone-100 text-stone-700 px-2.5 py-1 rounded-full">{t}</span>
@@ -410,13 +471,13 @@ const Cart: React.FC = () => {
                   )}
                   {inquiry.customDetails?.cakeMessage && (
                     <div className="py-3">
-                      <span className="text-xs text-stone-400 font-medium">Message on Cake</span>
+                      <span className="text-sm text-stone-500 font-medium">Message on Cake</span>
                       <p className="mt-1.5 text-sm text-stone-700 italic border-l-2 border-rose-200 pl-3">&ldquo;{inquiry.customDetails.cakeMessage}&rdquo;</p>
                     </div>
                   )}
                   {inquiry.customDetails?.notes && (
                     <div className="py-3">
-                      <span className="text-xs text-stone-400 font-medium">Notes</span>
+                      <span className="text-sm text-stone-500 font-medium">Notes</span>
                       <p className="mt-1.5 text-sm text-stone-600 leading-relaxed">{inquiry.customDetails.notes}</p>
                     </div>
                   )}
@@ -436,15 +497,97 @@ const Cart: React.FC = () => {
                 </div>
 
                 {/* Price Quote footer */}
-                {inquiry.totalAmount > 0 ? (
+                {inquiry.totalAmount > 0 && inquiry.status === OrderStatus.PENDING ? (
+                  <>
+                    <div className="px-5 py-4 bg-gradient-to-r from-rose-50 to-pink-50 border-t border-rose-100">
+                      <div className="flex justify-between items-center mb-3">
+                        <div>
+                          <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-0.5">Price Quote</p>
+                          <p className="text-2xl font-bold text-rose-600">₱{inquiry.totalAmount.toLocaleString()}</p>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setAcceptingInquiryId(acceptingInquiryId === inquiry.id ? null : inquiry.id)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white text-sm font-semibold rounded-lg hover:bg-green-700 transition-colors"
+                          >
+                            <Check className="w-4 h-4" /> Accept
+                          </button>
+                          <button
+                            onClick={() => setDecliningInquiryId(inquiry.id)}
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-stone-200 text-stone-700 text-sm font-semibold rounded-lg hover:bg-red-100 hover:text-red-700 transition-colors"
+                          >
+                            <X className="w-4 h-4" /> Cancel
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Inline Accept Checkout Form */}
+                      {acceptingInquiryId === inquiry.id && (
+                        <div className="mt-3 pt-4 border-t border-rose-200 space-y-4">
+                          {/* Schedule */}
+                          <div>
+                            <label className="block text-sm font-medium text-stone-700 mb-1">Pickup / Delivery Date</label>
+                            <div className="relative">
+                              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-stone-400 w-4 h-4" />
+                              <input type="date" value={acceptDate} onChange={e => setAcceptDate(e.target.value)} min={getMinDate()} className="w-full pl-9 pr-3 py-2 border border-stone-300 rounded-lg focus:ring-rose-500 focus:border-rose-500 outline-none text-sm" />
+                            </div>
+                          </div>
+                          {/* Delivery Method */}
+                          <div>
+                            <label className="block text-sm font-medium text-stone-700 mb-1">Method</label>
+                            <div className="flex gap-3">
+                              {[DeliveryMethod.PICKUP, DeliveryMethod.DELIVERY].map(m => (
+                                <label key={m} className={`flex-1 flex items-center justify-center p-2.5 rounded-lg border cursor-pointer text-sm font-medium transition-all ${acceptDelivery === m ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-stone-200 hover:border-stone-300'}`}>
+                                  <input type="radio" name={`delivery-${inquiry.id}`} value={m} checked={acceptDelivery === m} onChange={() => setAcceptDelivery(m)} className="sr-only" />
+                                  {m}
+                                </label>
+                              ))}
+                            </div>
+                            {acceptDelivery === DeliveryMethod.DELIVERY && (
+                              <textarea value={acceptAddress} onChange={e => setAcceptAddress(e.target.value)} placeholder="Complete delivery address" rows={2} className="w-full mt-2 p-2.5 border border-stone-300 rounded-lg text-sm outline-none focus:ring-rose-500 focus:border-rose-500" />
+                            )}
+                          </div>
+                          {/* Payment Method */}
+                          <div>
+                            <label className="block text-sm font-medium text-stone-700 mb-1">Payment</label>
+                            <div className="flex gap-3">
+                              {[PaymentMethod.COD, PaymentMethod.GCASH].map(m => (
+                                <label key={m} className={`flex-1 flex items-center justify-center p-2.5 rounded-lg border cursor-pointer text-sm font-medium transition-all ${acceptPayment === m ? 'border-rose-500 bg-rose-50 text-rose-700' : 'border-stone-200 hover:border-stone-300'}`}>
+                                  <input type="radio" name={`payment-${inquiry.id}`} value={m} checked={acceptPayment === m} onChange={() => setAcceptPayment(m)} className="sr-only" />
+                                  {m === PaymentMethod.COD && acceptDelivery === DeliveryMethod.PICKUP ? 'Cash on Pickup' : m}
+                                </label>
+                              ))}
+                            </div>
+                            {acceptPayment === PaymentMethod.GCASH && (
+                              <div className="mt-2 bg-stone-50 p-3 rounded-lg border border-stone-200">
+                                <p className="text-sm font-medium text-stone-700 mb-2">Send ₱{inquiry.totalAmount.toLocaleString()} to 09XX-XXX-XXXX (Iyah)</p>
+                                <label className="flex items-center gap-2 px-3 py-2 border border-dashed border-stone-300 rounded-lg cursor-pointer hover:border-rose-400 transition-colors">
+                                  <Upload className="w-4 h-4 text-stone-400" />
+                                  <span className="text-sm text-stone-500">{acceptProof ? acceptProof.name : 'Upload receipt'}</span>
+                                  <input type="file" accept="image/*" className="hidden" onChange={async e => { const f = e.target.files?.[0]; if (f) { const c = await compressImage(f); setAcceptProof(c); } }} />
+                                </label>
+                              </div>
+                            )}
+                          </div>
+                          <div className="flex gap-2 pt-1">
+                            <button disabled={isAccepting} onClick={() => handleAcceptSubmit(inquiry.id)} className="flex-1 py-2.5 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors text-sm disabled:opacity-60 disabled:cursor-not-allowed">
+                              {isAccepting ? 'Confirming…' : 'Confirm Order'}
+                            </button>
+                            <button onClick={resetAcceptForm} className="px-4 py-2.5 bg-stone-100 text-stone-600 font-medium rounded-lg hover:bg-stone-200 transition-colors text-sm">
+                              Back
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                ) : inquiry.totalAmount > 0 ? (
                   <div className="px-5 py-4 bg-gradient-to-r from-rose-50 to-pink-50 border-t border-rose-100 flex justify-between items-center">
                     <div>
                       <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-0.5">Price Quote</p>
                       <p className="text-2xl font-bold text-rose-600">₱{inquiry.totalAmount.toLocaleString()}</p>
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-rose-100 flex items-center justify-center">
-                      <Cake className="w-5 h-5 text-rose-400" />
-                    </div>
+                    <StatusBadge status={inquiry.status} />
                   </div>
                 ) : (
                   <div className="px-5 py-4 bg-stone-50 border-t border-stone-100 flex items-center gap-3">
@@ -465,6 +608,17 @@ const Cart: React.FC = () => {
           )}
         </div>
       )}
+
+      {/* Decline confirmation modal */}
+      <Modal
+        isOpen={!!decliningInquiryId}
+        onClose={() => setDecliningInquiryId(null)}
+        type="warning"
+        title="Cancel Custom Cake Order?"
+        message="Are you sure you want to cancel this inquiry? This action cannot be undone."
+        primaryAction={{ label: isDeclining ? 'Cancelling…' : 'Yes, Cancel', onClick: handleDeclineConfirm, disabled: isDeclining }}
+        secondaryAction={{ label: 'Go Back', onClick: () => setDecliningInquiryId(null) }}
+      />
     </div>
   );
 };
