@@ -13,30 +13,29 @@
 
 ---
 
-## Table of Contents
+## Overview
 
-- [Overview](#overview)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Getting Started](#getting-started)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [Environment Variables](#environment-variables)
-- [Database Setup](#database-setup)
-  - [Schema](#schema)
-  - [Admin Account Setup](#admin-account-setup)
-- [Available Scripts](#available-scripts)
-- [Application Routes](#application-routes)
-- [Data Models](#data-models)
-- [Architecture](#architecture)
-- [Deployment](#deployment)
+Single-page application built with React and Supabase. Customers browse products, place orders, and request custom cakes. The admin manages orders, inventory, and the menu — all in real time.
 
 ---
 
-## Overview
+## Key Modules
 
-Baked By Iyah OMS is a client-side single-page application (SPA) built with React and backed by Supabase. Customers can browse the product catalog, add items to their cart, place orders, and request custom cake designs. The admin (baker) manages orders, updates statuses, adjusts inventory, and views sales reports — all in real time.
+**Authentication** — Email/password and Google OAuth login. Role-based access separates customers from the admin. The `/admin` route is fully protected from customer access.
+
+**Product Catalog** — Menu page filtered by category (Cakes, Cookies, Pastries). Supports best seller badges and admin-controlled product visibility toggles.
+
+**Shopping Cart & Checkout** — Persistent cart across page refreshes. Checkout supports Cash on Delivery or GCash, and Pickup or Delivery with scheduling.
+
+**Custom Cake Inquiry** — Customers submit a request with size, flavor notes, and an optional reference image. Admin accepts or declines and sets a custom price.
+
+**Order Management** — Customers view order history with live status updates. Admin views, filters, sorts, and paginates all orders and inquiries.
+
+**Admin Dashboard** — Centralized panel for managing orders, inquiries, inventory, menu items, and sales reports.
+
+**Real-Time Notifications** — In-app toasts pushed instantly to customers when the admin updates an order status, via Supabase Realtime.
+
+**Email Notifications** — Transactional emails sent on order placement and key status changes, handled by a Supabase Edge Function.
 
 ---
 
@@ -68,312 +67,52 @@ Baked By Iyah OMS is a client-side single-page application (SPA) built with Reac
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| UI Framework | React 18 |
-| Language | TypeScript 5.7 |
-| Build Tool | Vite 6 |
-| Styling | Tailwind CSS |
-| Routing | React Router v6 |
-| Backend & Auth | Supabase (PostgreSQL + GoTrue) |
-| Charts | Recharts |
-| Icons | Lucide React |
-| Deployment | Vercel |
+| Category | Tool / Technology | Purpose |
+|---|---|---|
+| Frontend | React 18 | UI component framework |
+| Language | TypeScript 5.7 | Type safety across the codebase |
+| Build | Vite 6 | Dev server and production bundler |
+| Styling | Tailwind CSS | Utility-first CSS styling |
+| Routing | React Router v6 | Client-side page navigation |
+| Database | Supabase (PostgreSQL) | Stores all app data with Row Level Security |
+| Authentication | Supabase Auth | Email/password and Google OAuth |
+| Realtime | Supabase Realtime | Live notification delivery to the browser |
+| Edge Functions | Supabase + Deno | Server-side email sending logic |
+| Charts | Recharts | Sales report visualizations |
+| Icons | Lucide React | UI icon set |
+| Deployment | Vercel | Hosts and auto-deploys from GitHub |
 
 ---
 
-## Project Structure
-
-```
-oms-baked-by-iyah/
-├── App.tsx                    # Root router and lazy-loaded route definitions
-├── index.tsx                  # React DOM entry point
-├── index.css                  # Global stylesheet (Tailwind base + custom font)
-├── types.ts                   # All TypeScript interfaces and enums
-├── constants.ts               # Seed products and mock admin constant
-│
-├── components/
-│   ├── CakeFormModal.tsx      # Custom cake inquiry form modal (props-driven, no store access)
-│   ├── CakeGallery.tsx        # Cake inspiration gallery grid
-│   ├── Layout.tsx             # Shared navigation bar and footer wrapper
-│   ├── Modal.tsx              # Reusable modal dialog
-│   ├── NotificationToast.tsx  # Toast notification display
-│   ├── StatusBadge.tsx        # Reusable color-coded order status pill badge
-│   └── skeletons/
-│       ├── SkeletonBase.tsx   # Base SkeletonBox and SkeletonText primitives
-│       └── *.tsx              # Per-page loading skeleton screens (one per route)
-│
-├── context/
-│   └── StoreContext.tsx       # Global state: user, cart, products, orders, notifications
-│
-├── hooks/
-│   └── useCakePage.ts         # Page-level logic: all state, effects, and handlers for the Cake page
-│
-├── pages/
-│   ├── Home.tsx               # Landing page with hero, featured products, and highlights
-│   ├── Menu.tsx               # Product catalog with category filtering
-│   ├── Cake.tsx               # Custom cake inquiry page — thin orchestrator, delegates to useCakePage
-│   ├── Cart.tsx               # Shopping cart and order history
-│   ├── Checkout.tsx           # Order placement form
-│   ├── Profile.tsx            # User profile editor
-│   ├── AdminDashboard.tsx     # Full admin panel (orders, inventory, reports, menu)
-│   └── Auth.tsx               # Login and registration page
-│
-├── services/
-│   ├── db.ts                  # DatabaseProvider interface + SupabaseService implementation
-│   └── supabaseClient.ts      # Supabase client initialization
-│
-├── utils/
-│   ├── cakeSerializer.ts      # serializeCakeNotes() — builds the notes string from FormState for inquiries
-│   ├── dateUtils.ts           # formatTime() (24hr → AM/PM) and getMinDate() (tomorrow's date)
-│   └── imageCompression.ts    # Client-side image compression before upload
-│
-└── supabase/
-    └── schema.sql             # Full database schema with RLS policies and seed data
-```
-
----
-
-## Getting Started
-
-### Prerequisites
-
-- [Node.js](https://nodejs.org) v18 or higher
-- A [Supabase](https://supabase.com) account and project (free tier works)
-
-### Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-org/oms-baked-by-iyah.git
-   cd oms-baked-by-iyah
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Create your environment file:
-   ```bash
-   cp .env.example .env
-   ```
-   Then fill in your Supabase credentials (see [Environment Variables](#environment-variables)).
-
-4. Set up the database (see [Database Setup](#database-setup)).
-
-5. Start the development server:
-   ```bash
-   npm run dev
-   ```
-
-   The app will be available at `http://localhost:5173`.
-
-### Environment Variables
-
-Create a `.env` file in the project root with the following variables:
-
-```env
-VITE_SUPABASE_URL=https://your-project-id.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
-```
-
-> **Where to find these values:**
-> Supabase Dashboard → Your Project → Project Settings → API
->
-> **Important:** Use the `anon` / `public` key. Never use the `service_role` key in the frontend — it bypasses Row Level Security.
-
-These same variables must be added to your Vercel project under **Settings → Environment Variables** for production.
-
----
-
-## Database Setup
-
-### Schema
-
-Run the full schema once in your Supabase project:
-
-1. Go to **Supabase Dashboard → SQL Editor → New Query**
-2. Paste the contents of [`supabase/schema.sql`](supabase/schema.sql)
-3. Click **Run**
-
-This creates four tables with Row Level Security (RLS) enabled:
-
-| Table | Description |
-|---|---|
-| `profiles` | Extended user data: name, phone number, role (`CUSTOMER` or `ADMIN`) |
-| `products` | Bakery product catalog with stock tracking |
-| `orders` | All customer orders and custom cake inquiries |
-| `user_notifications` | Per-user status update notifications with realtime enabled |
-
-The schema also includes:
-- An automatic trigger (`on_auth_user_created`) that creates a `profiles` row whenever a new user registers
-- Row Level Security policies so customers can only access their own data
-- A seed `INSERT` populating the initial product catalog
-
-### Admin Account Setup
-
-The admin account is not created through the registration form. Follow these steps:
-
-1. Go to **Supabase Dashboard → Authentication → Users → Add User**
-   - Email: `iyah.admin@bakedbyiyah.com`
-   - Password: `BakedByIyah@2026`
-
-2. The `on_auth_user_created` trigger will automatically create a `profiles` row, but it defaults to `role = 'CUSTOMER'`. Promote it to admin by running this in the SQL Editor:
-   ```sql
-   UPDATE profiles
-   SET role = 'ADMIN', name = 'Iyah'
-   WHERE email = 'iyah.admin@bakedbyiyah.com';
-   ```
-
-3. **Optional:** In **Authentication → Providers → Email**, disable **Confirm email** so customers can log in immediately after registering without needing to verify their email.
-
----
-
-## Available Scripts
-
-| Command | Description |
-|---|---|
-| `npm run dev` | Start the local development server at `http://localhost:5173` |
-| `npm run build` | Compile TypeScript and bundle for production (outputs to `dist/`) |
-| `npm run preview` | Preview the production build locally before deploying |
-
----
-
-## Application Routes
+## Routes
 
 | Route | Page | Access |
 |---|---|---|
 | `/` | Home | Public |
 | `/menu` | Product catalog | Public |
-| `/custom-cake` | Custom cake inquiry form | Public |
+| `/custom-cake` | Custom cake inquiry | Public |
+| `/contact` | Contact and FAQ | Public |
 | `/login` | Login | Public |
 | `/register` | Registration | Public |
 | `/cart` | Cart and order history | Authenticated |
-| `/checkout` | Order placement | Authenticated |
+| `/checkout` | Place an order | Authenticated |
 | `/profile` | Profile settings | Authenticated |
 | `/admin` | Admin dashboard | Admin only |
-
-All routes except `/login` and `/register` are wrapped in the shared `Layout` (navigation bar + footer). The `/admin` route redirects non-admin users to `/login`.
-
----
-
-## Data Models
-
-### User
-
-```typescript
-interface User {
-  id: string;
-  email: string;
-  name: string;
-  role: UserRole;          // 'CUSTOMER' | 'ADMIN'
-  phoneNumber?: string;
-  lastNameUpdate?: number; // Unix timestamp — name can only be changed once per year
-}
-```
-
-### Product
-
-```typescript
-interface Product {
-  id: string;
-  name: string;
-  description: string;
-  price: number;           // Philippine Pesos (₱)
-  category: ProductCategory; // 'Cakes' | 'Cookies' | 'Pastries'
-  image: string;           // URL
-  stock: number;
-}
-```
-
-### Order
-
-```typescript
-interface Order {
-  id: string;              // Format: 'ORD-XXXXXX' or 'INQ-XXXXXX' for custom inquiries
-  userId: string;
-  customerName: string;
-  items: CartItem[];       // Snapshot of purchased items at order time
-  totalAmount: number;
-  status: OrderStatus;     // 'Pending' | 'Confirmed' | 'Baking' | 'Completed' | 'Cancelled'
-  paymentMethod: PaymentMethod;   // 'Cash on Delivery' | 'GCash'
-  deliveryMethod: DeliveryMethod; // 'Pickup' | 'Delivery'
-  scheduledDate: string;
-  scheduledTime: string;
-  deliveryAddress?: string;
-  isCustomInquiry?: boolean;
-  customDetails?: {
-    size: string;
-    notes: string;
-    referenceImage?: string;
-  };
-}
-```
-
-### UserNotification
-
-```typescript
-interface UserNotification {
-  id: string;
-  userId: string;
-  message: string;
-  orderId: string;
-  orderStatus: OrderStatus;
-  isRead: boolean;
-  createdAt: string;
-}
-```
 
 ---
 
 ## Architecture
 
-### State Management
+**State Management** — All shared state lives in `StoreContext` — the single source of truth for the authenticated user, cart, products, orders, and notifications. Every page accesses it via `useStore()`.
 
-All shared state lives in [`StoreContext`](context/StoreContext.tsx). It is the single source of truth for: the authenticated user, product catalog, shopping cart, orders, and notifications. Every page reads from and writes to `StoreContext` via the `useStore()` hook.
+**Data Layer** — All Supabase calls go through the `DatabaseProvider` interface in `services/db.ts`. Components never call `supabase` directly, keeping all data access in one place and the backend swappable.
 
-```
-StoreContext (global state)
-    ├── user           — authenticated user profile (null if logged out)
-    ├── products       — full product catalog from Supabase
-    ├── cart           — current shopping cart (persisted to sessionStorage)
-    ├── orders         — all orders (customers see own; admin sees all)
-    └── notifications  — in-app toast messages
-```
+**Code Splitting** — Every page is lazy-loaded via `React.lazy()`, downloading only when visited. Each lazy route has a dedicated skeleton screen shown during loading.
 
-### Page-Level Logic Hooks
-
-When a page's state, effects, and handlers exceed ~40 lines, they are extracted into a custom hook in `hooks/`. The page file becomes a thin orchestrator — it calls the hook and renders JSX, nothing else. Currently `hooks/useCakePage.ts` owns all logic for the `/custom-cake` route.
-
-### Data Layer
-
-All Supabase interactions go through a single abstraction layer: the `DatabaseProvider` interface in [`services/db.ts`](services/db.ts). Components never call `supabase` directly — they call `db.login()`, `db.getOrders()`, etc. This keeps all data access logic in one file and makes the backend swappable.
-
-### Route Code Splitting
-
-Every page is lazy-loaded using `React.lazy()`. Each page becomes a separate JavaScript file that is only downloaded when the user navigates to that route, reducing initial load time. Each lazy route has a dedicated skeleton screen shown during loading.
-
-### Real-time Notifications
-
-When a customer is logged in, `StoreContext` opens a Supabase Realtime channel subscribed to `INSERT` events on `user_notifications` filtered by `user_id`. When the admin updates an order status, the app:
-1. Calls `db.updateOrder()` to update the order row
-2. Calls `db.addUserNotification()` to insert a notification row
-3. The customer's browser receives the new row in real time and displays a toast
+**Real-Time Notifications** — `StoreContext` subscribes to `INSERT` events on `user_notifications` filtered by `user_id`. When the admin updates an order, a notification row is inserted and the customer's browser receives it instantly.
 
 ---
 
 ## Deployment
 
-The app is deployed on Vercel and is accessible at **[bakedbyiyah.vercel.app](https://bakedbyiyah.vercel.app)**.
-
-### Deploy Your Own
-
-1. Push your repository to GitHub.
-2. Import the project in [Vercel](https://vercel.com/new).
-3. Set the required environment variables in Vercel **Settings → Environment Variables**:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-4. Vercel will automatically run `npm run build` and deploy the `dist/` output.
-
-No server configuration is needed — this is a fully static SPA. All backend logic runs through Supabase.
+Live at [bakedbyiyah.vercel.app](https://bakedbyiyah.vercel.app). Deployed on Vercel — add `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` to Vercel environment variables. No server configuration needed.
