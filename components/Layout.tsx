@@ -116,8 +116,8 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const navLinks = [
     { name: 'Home', path: '/' },
     { name: 'Menu', path: '/menu' },
-    ...(user?.role !== UserRole.ADMIN ? [{ name: 'Cakes', path: '/custom-cake' }] : []),
-    ...(user?.role !== UserRole.ADMIN ? [{ name: 'Contact', path: '/contact' }] : []),
+    { name: 'Cakes', path: '/custom-cake' },
+    { name: 'Contact', path: '/contact' },
   ];
 
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
@@ -366,7 +366,7 @@ export const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       )}
 
       {/* App-level toasts: add to cart, errors, etc. */}
-      <div className="fixed bottom-24 right-4 z-50 flex flex-col-reverse items-end pointer-events-none">
+      <div className={`fixed ${user?.role === UserRole.ADMIN ? 'bottom-6' : 'bottom-24'} right-4 z-50 flex flex-col-reverse items-end pointer-events-none`}>
         {notifications.map(n => <AppToast key={n.id} n={n} />)}
       </div>
 

@@ -6,8 +6,12 @@ import {
   orderPlacedAdminHtml,
   inquirySubmittedCustomerHtml,
   inquirySubmittedAdminHtml,
+  quoteReadyCustomerHtml,
+  inquiryAcceptedAdminHtml,
+  inquiryDeclinedAdminHtml,
   orderStatusChangedHtml,
   getStatusSubject,
+  lowStockAlertHtml,
 } from '../utils/emailTemplates';
 
 const ADMIN_EMAIL = 'bakedbyiyah@gmail.com';
@@ -65,6 +69,8 @@ interface StoreContextType {
   submitCustomInquiry: (details: CustomInquiryDetails) => Promise<void>;
   updateOrderStatus: (orderId: string, status: OrderStatus) => Promise<void>;
   updateInquiryPrice: (orderId: string, price: number) => Promise<void>;
+  acceptInquiry: (orderId: string, details: { paymentMethod: PaymentMethod; deliveryMethod: DeliveryMethod; scheduledDate: string; paymentProof?: File | null; deliveryAddress?: string }) => Promise<void>;
+  declineInquiry: (orderId: string) => Promise<void>;
   updateInventory: (id: string, type: 'product' | 'ingredient', quantity: number) => Promise<void>;
   addProduct: (product: Product) => Promise<void>;
   updateProduct: (product: Product) => Promise<void>;
@@ -90,8 +96,7 @@ const generateId = (): string => {
 const getOrderStatusMessage = (orderId: string, status: OrderStatus): string => {
   const shortId = '#' + orderId.replace(/^(ORD|INQ)-/, '');
   switch (status) {
-    case OrderStatus.CONFIRMED: return `Your order ${shortId} has been confirmed! We're getting started. 🎉`;
-    case OrderStatus.BAKING:    return `Your order ${shortId} is now being baked! 🧁`;
+    case OrderStatus.PREPARING: return `Your order ${shortId} is being prepared! 🧁`;
     case OrderStatus.COMPLETED: return `Your order ${shortId} is ready! Come and enjoy. 🎂`;
     case OrderStatus.CANCELLED: return `Your order ${shortId} has been cancelled. Please contact us for more info.`;
     default:                    return `Your order ${shortId} status has been updated to ${status}.`;
@@ -345,10 +350,12 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   }, [user, cart, products]);
 
   const submitCustomInquiry = useCallback(async (details: CustomInquiryDetails) => {
+    if (!user) return;
+
     const inquiryId = `INQ-${generateId()}`;
 
     let referenceImageUrl: string | undefined;
-    if (details.image && user) {
+    if (details.image) {
       try {
         referenceImageUrl = await db.uploadCustomCakeReference(user.id, inquiryId, details.image);
       } catch (err) {
@@ -359,8 +366,8 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const newOrder: Order = {
       id: inquiryId,
       userId: user?.id || 'guest',
-      customerName: user?.name || details.name || '',
-      customerEmail: details.email || user?.email,
+      customerName: user.name,
+      customerEmail: user.email,
       items: [],
       totalAmount: 0, // TBD
       status: OrderStatus.PENDING,
@@ -401,7 +408,7 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const updatedOrder = { ...order, status };
       await db.updateOrder(updatedOrder);
       setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
-      if (order.customerEmail && (status === OrderStatus.BAKING || status === OrderStatus.COMPLETED)) {
+      if (order.customerEmail && (status === OrderStatus.PREPARING || status === OrderStatus.COMPLETED || status === OrderStatus.CANCELLED)) {
         db.sendEmail(
           order.customerEmail,
           getStatusSubject(status),
@@ -427,19 +434,87 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const updateInquiryPrice = useCallback(async (orderId: string, price: number) => {
     const order = orders.find(o => o.id === orderId);
     if (order) {
-        const updatedOrder = { ...order, totalAmount: price };
-        await db.updateOrder(updatedOrder);
-        setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      const updatedOrder = { ...order, totalAmount: price };
+      await db.updateOrder(updatedOrder);
+      setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+      if (order.customerEmail) {
+        db.sendEmail(order.customerEmail, 'Your custom cake quote is ready!', quoteReadyCustomerHtml(updatedOrder)).catch(console.error);
+      }
+      if (order.userId && order.userId !== 'guest') {
+        const notif: UserNotification = {
+          id: `notif-${Date.now()}`,
+          userId: order.userId,
+          message: `Your custom cake quote is ready! Check your inquiries to accept or decline. (${orderId})`,
+          orderId,
+          orderStatus: OrderStatus.PENDING,
+          isRead: false,
+          createdAt: new Date().toISOString(),
+        };
+        await db.addUserNotification(notif);
+      }
     }
+  }, [orders]);
+
+  const acceptInquiry = useCallback(async (orderId: string, details: { paymentMethod: PaymentMethod; deliveryMethod: DeliveryMethod; scheduledDate: string; paymentProof?: File | null; deliveryAddress?: string }) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || !user) return;
+    let paymentProofUrl: string | undefined;
+    if (details.paymentProof) {
+      try {
+        paymentProofUrl = await db.uploadPaymentReceipt(user.id, orderId, details.paymentProof);
+      } catch (err) {
+        console.error('[acceptInquiry] Payment proof upload failed:', err);
+      }
+    }
+    const updatedOrder: Order = {
+      ...order,
+      status: OrderStatus.PREPARING,
+      paymentMethod: details.paymentMethod,
+      deliveryMethod: details.deliveryMethod,
+      scheduledDate: details.scheduledDate,
+      deliveryAddress: details.deliveryMethod === DeliveryMethod.DELIVERY ? details.deliveryAddress : undefined,
+      paymentProof: paymentProofUrl,
+    };
+    await db.updateOrder(updatedOrder);
+    setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+    db.sendEmail(ADMIN_EMAIL, 'Custom Cake Inquiry Accepted', inquiryAcceptedAdminHtml(updatedOrder)).catch(console.error);
+    if (order.customerEmail) {
+      db.sendEmail(order.customerEmail, getStatusSubject(OrderStatus.PREPARING), orderStatusChangedHtml(updatedOrder, OrderStatus.PREPARING)).catch(console.error);
+    }
+    if (order.userId && order.userId !== 'guest') {
+      const notif: UserNotification = {
+        id: `notif-${Date.now()}`,
+        userId: order.userId,
+        message: getOrderStatusMessage(orderId, OrderStatus.PREPARING),
+        orderId,
+        orderStatus: OrderStatus.PREPARING,
+        isRead: false,
+        createdAt: new Date().toISOString(),
+      };
+      await db.addUserNotification(notif);
+    }
+  }, [orders, user]);
+
+  const declineInquiry = useCallback(async (orderId: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return;
+    const updatedOrder = { ...order, status: OrderStatus.CANCELLED };
+    await db.updateOrder(updatedOrder);
+    setOrders(prev => prev.map(o => o.id === orderId ? updatedOrder : o));
+    db.sendEmail(ADMIN_EMAIL, 'Custom Cake Inquiry Declined', inquiryDeclinedAdminHtml(updatedOrder)).catch(console.error);
   }, [orders]);
 
   const updateInventory = useCallback(async (id: string, type: 'product' | 'ingredient', quantity: number) => {
     if (type === 'product') {
       const product = products.find(p => p.id === id);
       if (product) {
+        const wasAbove = product.stock > 5;
         const updatedProduct = { ...product, stock: quantity };
         await db.updateProduct(updatedProduct);
         setProducts(prev => prev.map(p => p.id === id ? updatedProduct : p));
+        if (wasAbove && quantity <= 5 && quantity > 0) {
+          db.sendEmail(ADMIN_EMAIL, `Low Stock Alert: ${product.name}`, lowStockAlertHtml(product.name, quantity)).catch(console.error);
+        }
       }
     }
   }, [products]);
@@ -496,14 +571,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     user, products, cart, orders, notifications, isLoading,
     login, register, verifyOtp, resendOtp, loginWithGoogle, logout, updateUser,
     addToCart, removeFromCart, updateCartQuantity,
-    placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
+    placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, acceptInquiry, declineInquiry, updateInventory, addProduct, updateProduct, deleteProduct,
     addNotification, removeNotification,
     userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
   }), [
     user, products, cart, orders, notifications, isLoading,
     login, register, verifyOtp, resendOtp, loginWithGoogle, logout, updateUser,
     addToCart, removeFromCart, updateCartQuantity,
-    placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, updateInventory, addProduct, updateProduct, deleteProduct,
+    placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, acceptInquiry, declineInquiry, updateInventory, addProduct, updateProduct, deleteProduct,
     addNotification, removeNotification,
     userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
   ]);

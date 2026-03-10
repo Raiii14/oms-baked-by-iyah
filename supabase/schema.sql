@@ -86,7 +86,8 @@ CREATE TABLE IF NOT EXISTS products (
   category    TEXT        NOT NULL,
   image       TEXT,
   stock       INTEGER     NOT NULL DEFAULT 0,
-  admin_only  BOOLEAN     NOT NULL DEFAULT FALSE
+  best_seller BOOLEAN     NOT NULL DEFAULT FALSE
+  -- Migration for existing DBs: ALTER TABLE products ADD COLUMN IF NOT EXISTS best_seller BOOLEAN NOT NULL DEFAULT FALSE;
 );
 
 ALTER TABLE products ENABLE ROW LEVEL SECURITY;
@@ -176,12 +177,15 @@ ALTER PUBLICATION supabase_realtime ADD TABLE user_notifications;
 -- =============================================================================
 -- 6. SEED — Initial product catalog
 -- =============================================================================
--- NOTE: If you already have a products table without admin_only, run this migration first:
---   ALTER TABLE products ADD COLUMN IF NOT EXISTS admin_only BOOLEAN NOT NULL DEFAULT FALSE;
+-- NOTE: If orders table has legacy 'Confirmed' or 'Baking' statuses, run this migration:
+--   UPDATE orders SET status = 'Preparing' WHERE status IN ('Confirmed', 'Baking');
+-- NOTE: If you previously had admin_only column, drop it:
+--   ALTER TABLE products DROP COLUMN IF EXISTS admin_only;
+-- NOTE: If you previously had 'Chocolate Moist Cake' (p3), remove it:
+--   DELETE FROM products WHERE id = 'p3';
 INSERT INTO products (id, name, description, price, category, image, stock) VALUES
   ('p1', 'Classic Brookies',        'The perfect combination of brownies and cookies. A customer favorite!', 180, 'Cookies',  'https://picsum.photos/400/400?random=1', 20),
   ('p2', 'Banana Loaf',             'Moist and not too sweet banana bread, perfect for coffee.',             150, 'Pastries', 'https://picsum.photos/400/400?random=2', 15),
-  ('p3', 'Chocolate Moist Cake',    'Rich chocolate cake that melts in your mouth.',                        450, 'Cakes',    'https://picsum.photos/400/400?random=3',  5),
   ('p4', 'Red Velvet Crinkles',     'Soft and chewy crinkles with cream cheese filling.',                   120, 'Cookies',  'https://picsum.photos/400/400?random=4',  0)
 ON CONFLICT (id) DO NOTHING;
 

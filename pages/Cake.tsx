@@ -4,6 +4,7 @@ import { Modal } from '../components/Modal';
 import { useCakePage } from '../hooks/useCakePage';
 import CakeFormModal from '../components/CakeFormModal';
 import CakeGallery from '../components/CakeGallery';
+import { UserRole } from '../types';
 
 const Cake: React.FC = () => {
   const {
@@ -39,13 +40,13 @@ const Cake: React.FC = () => {
       />
       <Modal
         isOpen={showSuccessModal}
-        onClose={() => { setShowSuccessModal(false); navigate('/cart', { state: { activeTab: 'custom' } }); }}
+        onClose={() => { setShowSuccessModal(false); navigate('/cart?tab=custom'); }}
         type="success"
         title="Inquiry Sent!"
         message="Your custom cake inquiry has been sent successfully. We will review your request and send you a price quote shortly."
         primaryAction={{
           label: 'View Inquiry',
-          onClick: () => { setShowSuccessModal(false); navigate('/cart', { state: { activeTab: 'custom' } }); }
+          onClick: () => { setShowSuccessModal(false); navigate('/cart?tab=custom'); }
         }}
       />
 
@@ -87,6 +88,7 @@ const Cake: React.FC = () => {
         formData={formData}
         user={user}
         isSubmitting={isSubmitting}
+        isAdmin={user?.role === UserRole.ADMIN}
         onClose={closeForm}
         onSubmit={handleSubmit}
         setField={setField}
@@ -100,7 +102,7 @@ const Cake: React.FC = () => {
       {!showForm && (
         <button
           onClick={() => openForm()}
-          className="fixed bottom-24 right-6 z-40 flex items-center gap-2 pl-4 pr-5 h-12 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-sm font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200"
+          className={`fixed ${user?.role === UserRole.ADMIN ? 'bottom-6' : 'bottom-24'} right-6 z-40 flex items-center gap-2 pl-4 pr-5 h-12 bg-rose-500 hover:bg-rose-600 active:scale-95 text-white text-sm font-semibold rounded-full shadow-lg hover:shadow-xl transition-all duration-200`}
           aria-label="Request a custom cake"
         >
           <Sparkles className="w-4 h-4 flex-shrink-0" />

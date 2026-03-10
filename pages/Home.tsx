@@ -1,8 +1,8 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { ArrowRight, Award, ChefHat, Truck, ShoppingCart, LucideIcon } from 'lucide-react';
-import { UserRole } from '../types';
+import { ArrowRight, Award, ChefHat, Truck, ShoppingCart, Star, LucideIcon } from 'lucide-react';
+import { UserRole, OrderStatus } from '../types';
 import FadeIn from '../components/FadeIn';
 
 const WHY_CHOOSE_US: { Icon: LucideIcon; bg: string; text: string; title: string; desc: string }[] = [
@@ -12,8 +12,28 @@ const WHY_CHOOSE_US: { Icon: LucideIcon; bg: string; text: string; title: string
 ];
 
 const Home: React.FC = () => {
-  const { products, addToCart, user } = useStore();
-  const featured = useMemo(() => products.slice(0, 3), [products]);
+  const { products, addToCart, user, orders } = useStore();
+  const featured = useMemo(() => {
+    const unitCounts: Record<string, number> = {};
+    for (const order of orders) {
+      if (order.status !== OrderStatus.COMPLETED) continue;
+      for (const item of order.items) {
+        unitCounts[item.id] = (unitCounts[item.id] ?? 0) + item.quantity;
+      }
+    }
+    const visible = products.filter(p => p.stock > 0);
+    const soldIds = new Set(Object.keys(unitCounts));
+    const topSellers = visible
+      .filter(p => soldIds.has(p.id))
+      .sort((a, b) => unitCounts[b.id] - unitCounts[a.id])
+      .slice(0, 3);
+    if (topSellers.length >= 3) return topSellers;
+    const topIds = new Set(topSellers.map(p => p.id));
+    const fallback = visible
+      .filter(p => !topIds.has(p.id) && p.stock > 0)
+      .sort((a, b) => b.stock - a.stock);
+    return [...topSellers, ...fallback].slice(0, 3);
+  }, [products, orders]);
 
   return (
     <div className="space-y-16">
@@ -44,14 +64,6 @@ const Home: React.FC = () => {
             >
               Order Now <ArrowRight className="w-4 h-4" />
             </Link>
-            {user?.role !== UserRole.ADMIN && (
-              <Link
-                to="/custom-cake"
-                className="inline-flex items-center gap-2 px-7 py-3 text-base font-semibold rounded-full text-white border-2 border-white/60 hover:bg-white/10 transition-all"
-              >
-                Custom Cake
-              </Link>
-            )}
           </div>
         </div>
       </div>
@@ -75,6 +87,13 @@ const Home: React.FC = () => {
                     alt={product.name}
                     className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  {/* Best Seller badge */}
+                  {product.bestSeller && product.stock > 0 && (
+                    <span className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm z-10">
+                      <Star className="w-3 h-3 fill-white" />
+                      Best Seller
+                    </span>
+                  )}
                   {/* Stock badge */}
                   {product.stock === 0 ? (
                     <span className="absolute top-3 left-3 bg-stone-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">Out of stock</span>

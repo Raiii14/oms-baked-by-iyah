@@ -4,7 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
 import { OrderStatus, PaymentMethod, ProductCategory, Product } from '../types';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, LabelList } from 'recharts';
-import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Image as ImageIcon, EyeOff } from 'lucide-react';
+import { Package, ShoppingBag, TrendingUp, Cake, Filter, ChevronLeft, ChevronRight, Plus, Pencil, Trash2, Image as ImageIcon, Star } from 'lucide-react';
 import { formatTime } from '../utils/dateUtils';
 
 type AdminTab = 'orders' | 'inquiries' | 'inventory' | 'reports' | 'menu';
@@ -12,8 +12,7 @@ const VALID_TABS: AdminTab[] = ['orders', 'inquiries', 'inventory', 'reports', '
 
 const STATUS_SELECT_STYLES: Record<OrderStatus, string> = {
   [OrderStatus.PENDING]:   'bg-amber-100 text-amber-700',
-  [OrderStatus.CONFIRMED]: 'bg-blue-100 text-blue-700',
-  [OrderStatus.BAKING]:    'bg-orange-100 text-orange-700',
+  [OrderStatus.PREPARING]: 'bg-orange-100 text-orange-700',
   [OrderStatus.COMPLETED]: 'bg-green-100 text-green-700',
   [OrderStatus.CANCELLED]: 'bg-stone-100 text-stone-600',
 };
@@ -37,7 +36,7 @@ const AdminDashboard: React.FC = () => {
   const [updatingPriceId, setUpdatingPriceId] = useState<string | null>(null);
   // Tracks which product's inventory +/− is in-flight
   const [updatingInventoryId, setUpdatingInventoryId] = useState<string | null>(null);
-  const [togglingAdminOnlyId, setTogglingAdminOnlyId] = useState<string | null>(null);
+  const [togglingBestSellerId, setTogglingBestSellerId] = useState<string | null>(null);
   // Guards for product add/edit/delete modals
   const [isAddingProduct, setIsAddingProduct] = useState(false);
   const [isSavingProduct, setIsSavingProduct] = useState(false);
@@ -261,14 +260,14 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">Sort by Date</label>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">Sort by Date Needed</label>
                     <select 
                         value={sortOrder} 
                         onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
                         className="w-full border border-stone-200 rounded-lg text-sm px-3 py-2 outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50 appearance-none cursor-pointer"
                     >
-                        <option value="desc">Newest First</option>
-                        <option value="asc">Oldest First</option>
+                        <option value="desc">Descending</option>
+                        <option value="asc">Ascending</option>
                     </select>
                 </div>
             </div>
@@ -289,14 +288,15 @@ const AdminDashboard: React.FC = () => {
              <div key={order.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
                {/* Card Header */}
-               <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-stone-100 bg-stone-50/60">
-                 <div className="flex items-start gap-3 min-w-0">
-                   <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                     <ShoppingBag className="w-4 h-4 text-rose-500" />
+               <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-4">
+                 <div className="flex items-center justify-between gap-3">
+                 <div className="flex items-center gap-3 min-w-0">
+                   <div className="w-9 h-9 rounded-full bg-white/30 flex items-center justify-center flex-shrink-0">
+                     <ShoppingBag className="w-4 h-4 text-white" />
                    </div>
                    <div className="min-w-0">
-                     <h3 className="font-bold text-stone-800 text-base leading-tight">{order.customerName}</h3>
-                     <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{order.id}</span>
+                     <h3 className="font-bold text-white text-base leading-tight">{order.customerName}</h3>
+                     <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-white/20 text-white/80 px-2 py-0.5 rounded-md">{order.id}</span>
                    </div>
                  </div>
                  <div className="relative flex-shrink-0">
@@ -304,19 +304,20 @@ const AdminDashboard: React.FC = () => {
                      value={order.status}
                      disabled={updatingOrderId === order.id}
                      onChange={(e) => handleStatusChange(order.id, e.target.value as OrderStatus)}
-                     className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${STATUS_SELECT_STYLES[order.status]}`}
+                     className={`appearance-none pl-3 pr-7 py-1.5 rounded-full text-xs font-bold border-2 border-white/30 outline-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${STATUS_SELECT_STYLES[order.status]}`}
                    >
                      {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
                    </select>
-                   <div className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center">
-                     <svg className="fill-current h-3 w-3 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                   <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                     <svg className="fill-current h-3 w-3 opacity-60" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
                    </div>
+                 </div>
                  </div>
                </div>
 
                {/* Customer Meta */}
                <div className="px-6 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
-                 <span className="bg-stone-100 text-stone-600 text-xs font-medium px-2.5 py-1 rounded-full">{order.customerEmail || 'No email provided'}</span>
+                 <span className="bg-white border border-stone-200 text-stone-600 text-xs font-semibold px-2.5 py-1 rounded-full">{order.customerEmail || 'No email provided'}</span>
                  <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">Ordered: {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                  <span className="bg-rose-50 text-rose-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-rose-100">📅 Needed: {new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {formatTime(order.scheduledTime)}</span>
                  {order.paymentMethod && <span className="bg-green-50 text-green-700 text-xs font-medium px-2.5 py-1 rounded-full border border-green-100">{order.paymentMethod}</span>}
@@ -325,11 +326,12 @@ const AdminDashboard: React.FC = () => {
                {/* Order Items */}
                <div className="px-6 py-5">
                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Order Items</p>
-                 <ul className="space-y-2">
-                   {order.items.map(item => (
-                     <li key={item.id} className="flex justify-between items-center text-sm">
-                       <span className="text-stone-700">{item.quantity}× {item.name}</span>
-                       <span className="font-medium text-stone-600">₱{(item.price * item.quantity).toLocaleString()}</span>
+                 <ul className="space-y-2.5">
+                   {order.items.map((item, idx) => (
+                     <li key={idx} className="flex items-center gap-3">
+                       <img src={item.image} alt={item.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-stone-100 border border-stone-100" />
+                       <span className="text-stone-700 text-sm flex-1">{item.quantity}× {item.name}</span>
+                       <span className="font-medium text-stone-600 text-sm flex-shrink-0">₱{(item.price * item.quantity).toLocaleString()}</span>
                      </li>
                    ))}
                  </ul>
@@ -395,154 +397,194 @@ const AdminDashboard: React.FC = () => {
               <div key={inquiry.id} className="bg-white rounded-2xl shadow-sm border border-stone-200 overflow-hidden">
 
                 {/* Card Header */}
-                <div className="flex items-start justify-between gap-3 px-6 py-4 border-b border-stone-100 bg-stone-50/60">
-                  <div className="flex items-start gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-full bg-rose-100 flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <Cake className="w-4 h-4 text-rose-500" />
+                <div className="bg-gradient-to-r from-rose-500 to-pink-500 px-6 py-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-full bg-white/30 flex items-center justify-center flex-shrink-0">
+                        <Cake className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-white text-base leading-tight">{inquiry.customerName}</h3>
+                        <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-white/20 text-white/80 px-2 py-0.5 rounded-md">{inquiry.id}</span>
+                      </div>
                     </div>
-                    <div className="min-w-0">
-                      <h3 className="font-bold text-stone-800 text-base leading-tight">{inquiry.customerName}</h3>
-                      <span className="inline-block mt-1 text-xs font-bold font-mono tracking-wide bg-stone-100 text-stone-600 px-2 py-0.5 rounded-md">{inquiry.id}</span>
-                    </div>
-                  </div>
-                  <div className="relative flex-shrink-0">
-                    <select
-                      value={inquiry.status}
-                      disabled={updatingOrderId === inquiry.id}
-                      onChange={(e) => handleStatusChange(inquiry.id, e.target.value as OrderStatus)}
-                      className={`appearance-none pl-3 pr-6 py-1.5 rounded-full text-xs font-bold border-none outline-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${STATUS_SELECT_STYLES[inquiry.status]}`}
-                    >
-                      {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
-                    </select>
-                    <div className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center">
-                      <svg className="fill-current h-3 w-3 opacity-50" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                    <div className="relative flex-shrink-0">
+                      <select
+                        value={inquiry.status}
+                        disabled={updatingOrderId === inquiry.id}
+                        onChange={(e) => handleStatusChange(inquiry.id, e.target.value as OrderStatus)}
+                        className={`appearance-none pl-3 pr-7 py-1.5 rounded-full text-xs font-bold border-2 border-white/30 outline-none cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${STATUS_SELECT_STYLES[inquiry.status]}`}
+                      >
+                        {Object.values(OrderStatus).map(s => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center">
+                        <svg className="fill-current h-3 w-3 opacity-60" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 {/* Customer Meta */}
-                <div className="px-6 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
-                  <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">{inquiry.customerEmail || 'No email provided'}</span>
+                <div className="px-6 py-3 flex flex-wrap items-center gap-2 bg-stone-50 border-b border-stone-100">
+                  <span className="bg-white border border-stone-200 text-stone-600 text-xs font-semibold px-2.5 py-1 rounded-full">{inquiry.customerEmail || 'No email provided'}</span>
                   <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">Submitted: {new Date(inquiry.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  <span className="bg-rose-50 text-rose-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-rose-100">📅 Needed: {new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                 </div>
 
                 {/* Cake Details */}
-                <div className="px-6 py-5">
-                  <p className="text-xs font-semibold text-stone-400 uppercase tracking-wider mb-3">Cake Details</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-                    <div className="bg-violet-50 rounded-xl px-4 py-3">
-                      <p className="text-xs text-violet-400 font-medium mb-0.5">Size</p>
-                      <p className="text-sm font-semibold text-violet-800">{inquiry.customDetails?.size || '—'}</p>
-                    </div>
-                    <div className="bg-amber-50 rounded-xl px-4 py-3">
-                      <p className="text-xs text-amber-500 font-medium mb-0.5">Date Needed</p>
-                      <p className="text-sm font-semibold text-amber-800">{new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
-                    </div>
-                    {inquiry.customDetails?.servings && (
-                      <div className="bg-amber-50 rounded-xl px-4 py-3">
-                        <p className="text-xs text-amber-500 font-medium mb-0.5">Servings</p>
-                        <p className="text-sm font-semibold text-amber-800">{inquiry.customDetails.servings}</p>
-                      </div>
-                    )}
-                    {inquiry.customDetails?.flavor && (
-                      <div className="bg-rose-50 rounded-xl px-4 py-3">
-                        <p className="text-xs text-rose-400 font-medium mb-0.5">Flavor</p>
-                        <p className="text-sm font-semibold text-rose-800">{inquiry.customDetails.flavor}</p>
-                      </div>
-                    )}
+                <div className="divide-y divide-stone-100 px-6">
+                  <div className="flex justify-between items-center py-2.5">
+                    <span className="text-sm text-stone-500 font-medium min-w-[100px]">Size</span>
+                    <span className="text-sm font-medium text-stone-800">{inquiry.customDetails?.size || '—'}</span>
                   </div>
-                  {inquiry.customDetails?.cakeMessage && (
-                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Message on Cake</p>
-                      <p className="text-sm text-stone-700">{inquiry.customDetails.cakeMessage}</p>
+                  <div className="flex justify-between items-center py-2.5">
+                    <span className="text-sm text-stone-500 font-medium min-w-[100px]">Date Needed</span>
+                    <span className="text-sm font-medium text-stone-800">{new Date(inquiry.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                  </div>
+                  {inquiry.customDetails?.flavor && (
+                    <div className="flex justify-between items-center py-2.5">
+                      <span className="text-sm text-stone-500 font-medium min-w-[100px]">Flavor</span>
+                      <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.flavor}</span>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.servings && (
+                    <div className="flex justify-between items-center py-2.5">
+                      <span className="text-sm text-stone-500 font-medium min-w-[100px]">Servings</span>
+                      <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.servings}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.color && (
-                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Color Preference</p>
-                      <p className="text-sm text-stone-700">{inquiry.customDetails.color}</p>
-                    </div>
-                  )}
-                  {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
-                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Cake Toppers</p>
-                      <p className="text-sm text-stone-700">{inquiry.customDetails.toppers.join(', ')}</p>
-                      {inquiry.customDetails.toyTopperDetail && (
-                        <p className="text-xs text-stone-500 mt-1">Toy Topper: {inquiry.customDetails.toyTopperDetail}</p>
-                      )}
-                      {inquiry.customDetails.fondantTopperDetail && (
-                        <p className="text-xs text-stone-500 mt-1">Fondant Topper: {inquiry.customDetails.fondantTopperDetail}</p>
-                      )}
-                      {inquiry.customDetails.toppersOther && (
-                        <p className="text-xs text-stone-500 mt-1">Custom Topper: {inquiry.customDetails.toppersOther}</p>
-                      )}
+                    <div className="flex justify-between items-center py-2.5">
+                      <span className="text-sm text-stone-500 font-medium min-w-[100px]">Color</span>
+                      <span className="text-sm font-medium text-stone-800">{inquiry.customDetails.color}</span>
                     </div>
                   )}
                   {inquiry.customDetails?.inspirationCake && (
-                    <div className="bg-violet-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-violet-400 font-medium mb-1">Inspired by</p>
-                      <p className="text-sm font-semibold text-violet-800">{inquiry.customDetails.inspirationCake}</p>
-                      {inquiry.customDetails.inspirationElements && (
-                        <p className="text-xs text-violet-600 mt-1">{inquiry.customDetails.inspirationElements}</p>
+                    <div className="flex justify-between items-start gap-4 py-2.5">
+                      <span className="text-sm text-stone-500 font-medium shrink-0">Inspired by</span>
+                      <div className="text-right">
+                        <p className="text-sm font-medium text-stone-800">{inquiry.customDetails.inspirationCake}</p>
+                        {inquiry.customDetails.inspirationElements && <p className="text-xs text-stone-500 mt-0.5">{inquiry.customDetails.inspirationElements}</p>}
+                      </div>
+                    </div>
+                  )}
+                  {inquiry.customDetails?.toppers && inquiry.customDetails.toppers.length > 0 && (
+                    <div className="py-3">
+                      <span className="text-sm text-stone-500 font-medium">Toppers</span>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {inquiry.customDetails.toppers.map(t => (
+                          <span key={t} className="text-xs bg-stone-100 text-stone-700 px-2.5 py-1 rounded-full">{t}</span>
+                        ))}
+                      </div>
+                      {(inquiry.customDetails.toyTopperDetail || inquiry.customDetails.fondantTopperDetail || inquiry.customDetails.toppersOther) && (
+                        <div className="mt-1.5 space-y-0.5">
+                          {inquiry.customDetails.toyTopperDetail && <p className="text-xs text-stone-500">Toy: {inquiry.customDetails.toyTopperDetail}</p>}
+                          {inquiry.customDetails.fondantTopperDetail && <p className="text-xs text-stone-500">Fondant: {inquiry.customDetails.fondantTopperDetail}</p>}
+                          {inquiry.customDetails.toppersOther && <p className="text-xs text-stone-500">Custom: {inquiry.customDetails.toppersOther}</p>}
+                        </div>
                       )}
                     </div>
                   )}
+                  {inquiry.customDetails?.cakeMessage && (
+                    <div className="py-3">
+                      <span className="text-sm text-stone-500 font-medium">Message on Cake</span>
+                      <p className="mt-1.5 text-sm text-stone-700 italic border-l-2 border-rose-200 pl-3">&ldquo;{inquiry.customDetails.cakeMessage}&rdquo;</p>
+                    </div>
+                  )}
                   {inquiry.customDetails?.notes && (
-                    <div className="bg-stone-50 rounded-xl px-4 py-3 mb-3">
-                      <p className="text-xs text-stone-400 font-medium mb-1">Additional Notes</p>
-                      <p className="text-sm text-stone-700 leading-relaxed">{inquiry.customDetails.notes}</p>
+                    <div className="py-3">
+                      <span className="text-sm text-stone-500 font-medium">Notes</span>
+                      <p className="mt-1.5 text-sm text-stone-600 leading-relaxed">{inquiry.customDetails.notes}</p>
                     </div>
                   )}
                   {inquiry.customDetails?.referenceImage && (
-                    <button
-                      onClick={() => setLightbox({ url: inquiry.customDetails!.referenceImage!, title: 'Cake Reference Image', customer: inquiry.customerName, orderId: inquiry.id })}
-                      className="inline-flex items-center gap-1.5 text-sm text-blue-500 hover:text-blue-700 font-medium transition-colors"
-                    >
-                      <ImageIcon className="w-4 h-4" />
-                      View Reference Image
-                    </button>
+                    <div className="py-3">
+                      <button
+                        onClick={() => setLightbox({ url: inquiry.customDetails!.referenceImage!, title: 'Cake Reference Image', customer: inquiry.customerName, orderId: inquiry.id })}
+                        className="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-semibold bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                        View Reference Image
+                      </button>
+                    </div>
                   )}
                 </div>
 
+                {/* Accepted Order Details — shown after customer accepts the quote */}
+                {inquiry.status !== OrderStatus.PENDING && inquiry.status !== OrderStatus.CANCELLED && inquiry.totalAmount > 0 && (
+                  <div className="px-6 py-4 bg-emerald-50/60 border-t border-emerald-100">
+                    <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-3">Customer Checkout Details</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-stone-500 font-medium">Delivery:</span>
+                        <span className="font-semibold text-stone-700">{inquiry.deliveryMethod || '—'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-stone-500 font-medium">Payment:</span>
+                        <span className="font-semibold text-stone-700">{inquiry.paymentMethod || '—'}</span>
+                      </div>
+                      {inquiry.deliveryAddress && (
+                        <div className="sm:col-span-2 flex items-start gap-2">
+                          <span className="text-stone-500 font-medium shrink-0">Address:</span>
+                          <span className="text-stone-700">{inquiry.deliveryAddress}</span>
+                        </div>
+                      )}
+                    </div>
+                    {inquiry.paymentMethod === PaymentMethod.GCASH && inquiry.paymentProof && (
+                      <button
+                        onClick={() => setLightbox({ url: inquiry.paymentProof!, title: 'GCash Receipt', customer: inquiry.customerName, orderId: inquiry.id })}
+                        className="mt-3 inline-flex items-center gap-1.5 text-sm text-emerald-700 hover:text-emerald-900 font-semibold bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                        View GCash Receipt
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Price Quote */}
-                <div className="px-6 py-4 bg-stone-50 border-t border-stone-100">
+                <div className="px-6 py-4 bg-gradient-to-r from-rose-50 to-pink-50 border-t border-rose-100">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                     <div className="flex-1">
-                      <p className="text-xs font-semibold text-stone-500 uppercase tracking-wider mb-1">Price Quote</p>
-                      <p className="text-2xl font-bold text-stone-800">
-                        {inquiry.totalAmount > 0 ? `₱${inquiry.totalAmount.toLocaleString()}` : <span className="text-stone-300">Not set yet</span>}
+                      <p className="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-1">Price Quote</p>
+                      <p className="text-2xl font-bold text-rose-600">
+                        {inquiry.totalAmount > 0 ? `₱${inquiry.totalAmount.toLocaleString()}` : <span className="text-stone-300 text-lg italic font-normal">Not set yet</span>}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                        <span className="pl-3 pr-1 text-stone-400 font-bold text-sm">₱</span>
-                        <input
-                          type="number"
-                          value={priceInput}
-                          onChange={(e) => setInquiryPriceInputs(prev => ({ ...prev, [inquiry.id]: e.target.value }))}
-                          className="w-28 px-2 py-2 outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          placeholder="0.00"
-                          min="0"
-                        />
-                      </div>
-                      <button
-                        disabled={updatingPriceId === inquiry.id}
-                        onClick={async () => {
-                          const val = parseFloat(priceInput);
-                          if (!isNaN(val) && val >= 0) {
-                            setUpdatingPriceId(inquiry.id);
-                            try {
-                              await updateInquiryPrice(inquiry.id, val);
-                            } finally {
-                              setUpdatingPriceId(null);
+                    {inquiry.status === OrderStatus.PENDING ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                          <span className="pl-3 pr-1 text-stone-400 font-bold text-sm">₱</span>
+                          <input
+                            type="number"
+                            value={priceInput}
+                            onChange={(e) => setInquiryPriceInputs(prev => ({ ...prev, [inquiry.id]: e.target.value }))}
+                            className="w-28 px-2 py-2 outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="0.00"
+                            min="0"
+                          />
+                        </div>
+                        <button
+                          disabled={updatingPriceId === inquiry.id}
+                          onClick={async () => {
+                            const val = parseFloat(priceInput);
+                            if (!isNaN(val) && val >= 0) {
+                              setUpdatingPriceId(inquiry.id);
+                              try {
+                                await updateInquiryPrice(inquiry.id, val);
+                              } finally {
+                                setUpdatingPriceId(null);
+                              }
                             }
-                          }
-                        }}
-                        className="px-4 py-2 bg-stone-800 text-white text-sm font-semibold rounded-lg hover:bg-stone-700 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
-                      >
-                        {updatingPriceId === inquiry.id ? 'Saving…' : 'Set Price'}
-                      </button>
-                    </div>
+                          }}
+                          className="px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-lg hover:bg-rose-700 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+                        >
+                          {updatingPriceId === inquiry.id ? 'Saving…' : 'Set Price'}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${STATUS_SELECT_STYLES[inquiry.status]}`}>{inquiry.status === OrderStatus.PREPARING ? 'Customer Accepted' : inquiry.status}</span>
+                    )}
                   </div>
                 </div>
 
@@ -596,8 +638,8 @@ const AdminDashboard: React.FC = () => {
                     <div className="flex-1">
                       <p className="font-bold text-stone-800 text-base">{product.name}</p>
                       <p className="text-sm text-stone-500 mt-0.5">₱{product.price.toLocaleString()}</p>
-                      {product.adminOnly && (
-                        <span className="inline-block text-xs bg-violet-50 text-violet-600 font-semibold px-2 py-0.5 rounded-full mt-1.5 border border-violet-100 mr-1">Admin Only</span>
+                      {product.bestSeller && (
+                        <span className="inline-block text-xs bg-amber-50 text-amber-600 font-semibold px-2 py-0.5 rounded-full mt-1.5 border border-amber-100 mr-1">Best Seller</span>
                       )}
                       {product.stock <= 5 && (
                         <span className="inline-block text-xs bg-red-50 text-red-600 font-semibold px-2 py-0.5 rounded-full mt-1.5 border border-red-100">⚠ Low Stock</span>
@@ -669,11 +711,15 @@ const AdminDashboard: React.FC = () => {
 
       {/* MENU MANAGEMENT TAB */}
       {activeTab === 'menu' && (
-        <div className="max-w-4xl mx-auto">
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200 mb-8">
-                <h3 className="text-lg font-bold text-stone-800 mb-4">
-                    Add New Product
-                </h3>
+        <div className="max-w-4xl mx-auto space-y-6">
+            {/* Add New Product — Collapsible */}
+            <details className="bg-white rounded-xl shadow-sm border border-stone-200 group">
+                <summary className="flex items-center justify-between px-6 py-4 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden">
+                    <h3 className="text-lg font-bold text-stone-800 flex items-center gap-2">
+                        <Plus className="w-5 h-5 text-rose-500" /> Add New Product
+                    </h3>
+                    <ChevronRight className="w-5 h-5 text-stone-400 transition-transform group-open:rotate-90" />
+                </summary>
                 <form 
                     onSubmit={async (e) => {
                         e.preventDefault();
@@ -694,7 +740,6 @@ const AdminDashboard: React.FC = () => {
                             category: formData.get('category') as ProductCategory,
                             image: imageUrl,
                             stock: Number(formData.get('stock')),
-                            adminOnly: formData.get('adminOnly') === 'on',
                         };
                         setIsAddingProduct(true);
                         try {
@@ -704,63 +749,48 @@ const AdminDashboard: React.FC = () => {
                           setIsAddingProduct(false);
                         }
                     }}
-                    className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                    className="grid grid-cols-2 gap-3 px-6 pb-6 border-t border-stone-100 pt-4"
                 >
-                    <div className="col-span-2 md:col-span-1">
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Product Name</label>
-                        <input name="name" required className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500" placeholder="e.g. Red Velvet Cake" />
+                    <div>
+                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Name</label>
+                        <input name="name" required className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50" placeholder="e.g. Red Velvet Cake" />
                     </div>
-                    <div className="col-span-2 md:col-span-1">
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Category</label>
-                        <select name="category" required className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500">
+                    <div>
+                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Category</label>
+                        <select name="category" required className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50">
                             {Object.values(ProductCategory).map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
                         </select>
                     </div>
                     <div className="col-span-2">
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Description</label>
-                        <textarea name="description" required className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500" rows={3} placeholder="Product description..." />
+                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Description</label>
+                        <textarea name="description" required className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50" rows={2} placeholder="Product description..." />
                     </div>
-                    
-                    {/* Price and Stock separated into their own rows/divs for better mobile layout */}
-                    <div className="col-span-2 md:col-span-1">
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Price (₱)</label>
-                        <input name="price" type="number" required min="0" className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500" placeholder="0.00" />
+                    <div>
+                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Price (₱)</label>
+                        <input name="price" type="number" required min="0" className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50" placeholder="0" />
                     </div>
-                    <div className="col-span-2 md:col-span-1">
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Initial Stock</label>
-                        <input name="stock" type="number" required min="0" className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500" placeholder="0" />
-                    </div>
-
-                    <div className="col-span-2">
-                        <label className="block text-sm font-medium text-stone-700 mb-1">Product Image URL</label>
-                        <input name="imageUrl" type="url" className="w-full border border-stone-300 rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-rose-500 text-sm" placeholder="https://..." />
-                        <p className="text-xs text-stone-400 mt-1.5">
-                            Paste any image URL or a Google Drive share/view link — it will be converted automatically. Leave empty to use a default image.
-                        </p>
+                    <div>
+                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Initial Stock</label>
+                        <input name="stock" type="number" required min="0" className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50" placeholder="0" />
                     </div>
                     <div className="col-span-2">
-                        <label className="flex items-center gap-2 cursor-pointer select-none">
-                            <input
-                                type="checkbox"
-                                name="adminOnly"
-                                className="w-4 h-4 rounded border-stone-300 accent-violet-600"
-                            />
-                            <span className="text-sm text-stone-700">Admin-only <span className="text-stone-400 font-normal">(hidden from customers)</span></span>
-                        </label>
+                        <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1">Image URL</label>
+                        <input name="imageUrl" type="url" className="w-full border border-stone-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-400 bg-stone-50" placeholder="https://... (leave empty for default)" />
                     </div>
                     <div className="col-span-2 flex justify-end">
-                        <button type="submit" disabled={isAddingProduct} className="bg-rose-500 text-white px-6 py-2 rounded-lg font-bold hover:bg-rose-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
+                        <button type="submit" disabled={isAddingProduct} className="bg-rose-500 text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-rose-600 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
                             {isAddingProduct ? 'Adding…' : 'Add Product'}
                         </button>
                     </div>
                 </form>
-            </div>
+            </details>
 
-            <div className="bg-white p-6 rounded-xl shadow-sm border border-stone-200">
-                <div className="flex items-center justify-between mb-4 gap-3">
-                    <h3 className="text-lg font-bold text-stone-800">Current Menu Items</h3>
+            {/* Current Menu Items */}
+            <div className="bg-white rounded-xl shadow-sm border border-stone-200">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-stone-100">
+                    <h3 className="text-lg font-bold text-stone-800">Menu Items <span className="text-sm font-normal text-stone-400">({products.length})</span></h3>
                     <select
                         value={menuSortBy}
                         onChange={(e) => setMenuSortBy(e.target.value as 'name-asc' | 'price-asc' | 'price-desc')}
@@ -771,64 +801,60 @@ const AdminDashboard: React.FC = () => {
                         <option value="price-desc">Price: High → Low</option>
                     </select>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="divide-y divide-stone-100">
                     {sortedMenuProducts.map(product => (
-                        <div key={product.id} className="flex flex-col p-4 border border-stone-100 rounded-xl hover:shadow-md transition-all bg-stone-50/50">
-                            <div className="flex gap-4">
-                                <div className="w-20 h-20 flex-shrink-0">
-                                    <img src={product.image} alt={product.name} className="w-full h-full rounded-lg object-cover bg-stone-200" />
+                        <div key={product.id} className="flex items-center gap-4 px-6 py-4 hover:bg-stone-50/50 transition-colors">
+                            <img src={product.image} alt={product.name} className="w-14 h-14 rounded-xl object-cover bg-stone-200 flex-shrink-0" />
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                    <h4 className="font-bold text-stone-800 text-sm truncate">{product.name}</h4>
+                                    {product.bestSeller && (
+                                        <span className="text-[10px] bg-amber-100 text-amber-600 px-1.5 py-0.5 rounded-full flex items-center gap-0.5 flex-shrink-0"><Star className="w-2.5 h-2.5 fill-amber-500" />Best Seller</span>
+                                    )}
+                                    <span className="text-[10px] bg-stone-100 text-stone-500 px-1.5 py-0.5 rounded-full flex-shrink-0">{product.category}</span>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                    <div className="flex justify-between items-start gap-2">
-                                        <h4 className="font-bold text-stone-800 truncate">{product.name}</h4>
-                                        <div className="flex gap-1 flex-shrink-0">
-                                            {product.adminOnly && (
-                                                <span className="text-xs bg-violet-100 text-violet-600 px-2 py-1 rounded-full whitespace-nowrap">Admin Only</span>
-                                            )}
-                                            <span className="text-xs bg-rose-100 text-rose-600 px-2 py-1 rounded-full whitespace-nowrap">{product.category}</span>
-                                        </div>
-                                    </div>
-                                    <p className="text-sm text-stone-500 line-clamp-2 my-1">{product.description}</p>
-                                    <div className="flex justify-between items-center mt-2">
-                                        <span className="font-bold text-rose-500">₱{product.price}</span>
-                                        <span className="text-xs text-stone-400">Stock: {product.stock}</span>
-                                    </div>
-                                </div>
+                                <p className="text-xs text-stone-400 truncate mt-0.5">{product.description}</p>
                             </div>
-                            <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-stone-100">
+                            <div className="text-right flex-shrink-0">
+                                <p className="font-bold text-rose-500 text-sm">₱{product.price.toLocaleString()}</p>
+                                <p className={`text-xs mt-0.5 ${product.stock <= 5 ? 'text-red-500 font-semibold' : 'text-stone-400'}`}>{product.stock} in stock</p>
+                            </div>
+                            <div className="flex items-center gap-1 flex-shrink-0">
                                 <button
                                     type="button"
-                                    disabled={togglingAdminOnlyId === product.id}
+                                    disabled={togglingBestSellerId === product.id}
                                     onClick={async () => {
-                                        setTogglingAdminOnlyId(product.id);
+                                        setTogglingBestSellerId(product.id);
                                         try {
-                                          await updateProduct({ ...product, adminOnly: !product.adminOnly });
+                                          await updateProduct({ ...product, bestSeller: !product.bestSeller });
                                         } finally {
-                                          setTogglingAdminOnlyId(null);
+                                          setTogglingBestSellerId(null);
                                         }
                                     }}
-                                    className={`flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50 mr-auto ${
-                                        product.adminOnly
-                                            ? 'text-violet-600 hover:text-green-600 hover:bg-green-50'
-                                            : 'text-stone-500 hover:text-violet-500 hover:bg-violet-50'
+                                    className={`p-2 rounded-lg transition-colors disabled:opacity-50 ${
+                                        product.bestSeller
+                                            ? 'text-amber-500 bg-amber-50 hover:bg-amber-100'
+                                            : 'text-stone-400 hover:text-amber-500 hover:bg-amber-50'
                                     }`}
+                                    title={product.bestSeller ? 'Remove Best Seller' : 'Mark Best Seller'}
                                 >
-                                    <EyeOff className="w-3.5 h-3.5" />
-                                    {product.adminOnly ? 'Make Public' : 'Admin Only'}
+                                    <Star className="w-4 h-4" />
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setEditingProduct({ ...product })}
-                                    className="flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-rose-500 hover:bg-rose-50 px-3 py-1.5 rounded-lg transition-colors"
+                                    className="p-2 rounded-lg text-stone-400 hover:text-rose-500 hover:bg-rose-50 transition-colors"
+                                    title="Edit"
                                 >
-                                    <Pencil className="w-3.5 h-3.5" /> Edit
+                                    <Pencil className="w-4 h-4" />
                                 </button>
                                 <button
                                     type="button"
                                     onClick={() => setDeletingProductId(product.id)}
-                                    className="flex items-center gap-1.5 text-xs font-medium text-stone-600 hover:text-red-500 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+                                    className="p-2 rounded-lg text-stone-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                                    title="Remove"
                                 >
-                                    <Trash2 className="w-3.5 h-3.5" /> Remove
+                                    <Trash2 className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
@@ -843,60 +869,48 @@ const AdminDashboard: React.FC = () => {
         <div className="space-y-8">
             {/* Stats Cards */}
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {/* Row 1 */}
-                <div className="bg-gradient-to-br from-rose-500 to-rose-600 text-white p-5 rounded-xl shadow-md flex flex-col justify-between">
-                    <p className="text-rose-100 text-xs font-semibold uppercase tracking-wide">Total Revenue</p>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 border-l-4 border-l-rose-500 flex flex-col justify-between">
+                    <p className="text-stone-500 text-xs font-semibold uppercase tracking-wide">Total Revenue</p>
                     <div>
-                        <p className="text-3xl font-bold mt-2">₱{totalRevenue.toLocaleString()}</p>
-                        <p className="text-rose-200 text-xs mt-1">from non-cancelled orders</p>
+                        <p className="text-3xl font-bold text-stone-800 mt-2">₱{totalRevenue.toLocaleString()}</p>
+                        <p className="text-stone-400 text-xs mt-1">from non-cancelled orders</p>
                     </div>
                 </div>
-                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 flex flex-col justify-between">
-                    <p className="text-stone-400 text-xs font-semibold uppercase tracking-wide">Total Orders</p>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 border-l-4 border-l-stone-400 flex flex-col justify-between">
+                    <p className="text-stone-500 text-xs font-semibold uppercase tracking-wide">Total Orders</p>
                     <div>
                         <p className="text-3xl font-bold text-stone-800 mt-2">{orders.filter(o => !o.isCustomInquiry).length}</p>
                         <p className="text-stone-400 text-xs mt-1">{orders.filter(o => o.isCustomInquiry).length} custom inquiries</p>
                     </div>
                 </div>
-                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 flex flex-col justify-between">
-                    <p className="text-stone-400 text-xs font-semibold uppercase tracking-wide">Avg Order Value</p>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 border-l-4 border-l-sky-500 flex flex-col justify-between">
+                    <p className="text-stone-500 text-xs font-semibold uppercase tracking-wide">Avg Order Value</p>
                     <div>
                         <p className="text-3xl font-bold text-stone-800 mt-2">₱{avgOrderValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                         <p className="text-stone-400 text-xs mt-1">per completed order</p>
                     </div>
                 </div>
-                {/* Row 2 */}
-                <div className="bg-green-50 border border-green-100 p-5 rounded-xl flex flex-col justify-between">
-                    <p className="text-green-600 text-xs font-semibold uppercase tracking-wide">Completed</p>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 border-l-4 border-l-green-500 flex flex-col justify-between">
+                    <p className="text-stone-500 text-xs font-semibold uppercase tracking-wide">Completed</p>
                     <div>
-                        <p className="text-3xl font-bold text-green-700 mt-2">{completedOrders}</p>
-                        <p className="text-green-500 text-xs mt-1">
+                        <p className="text-3xl font-bold text-stone-800 mt-2">{completedOrders}</p>
+                        <p className="text-stone-400 text-xs mt-1">
                           {orders.length > 0 ? Math.round((completedOrders / orders.length) * 100) : 0}% completion rate
                         </p>
                     </div>
                 </div>
-                <div className="bg-amber-50 border border-amber-100 p-5 rounded-xl flex flex-col justify-between">
-                    <p className="text-amber-600 text-xs font-semibold uppercase tracking-wide">Pending</p>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 border-l-4 border-l-amber-500 flex flex-col justify-between">
+                    <p className="text-stone-500 text-xs font-semibold uppercase tracking-wide">Pending</p>
                     <div>
-                        <p className="text-3xl font-bold text-amber-700 mt-2">{pendingOrders}</p>
-                        <p className="text-amber-500 text-xs mt-1">awaiting confirmation</p>
+                        <p className="text-3xl font-bold text-stone-800 mt-2">{pendingOrders}</p>
+                        <p className="text-stone-400 text-xs mt-1">awaiting confirmation</p>
                     </div>
                 </div>
-                <div className={`p-5 rounded-xl flex flex-col justify-between border ${
-                  needsPriceQuote > 0
-                    ? 'bg-violet-50 border-violet-100'
-                    : 'bg-white border-stone-200'
-                }`}>
-                    <p className={`text-xs font-semibold uppercase tracking-wide ${
-                      needsPriceQuote > 0 ? 'text-violet-600' : 'text-stone-400'
-                    }`}>Needs Price Quote</p>
+                <div className="bg-white p-5 rounded-xl shadow-sm border border-stone-200 border-l-4 border-l-violet-500 flex flex-col justify-between">
+                    <p className="text-stone-500 text-xs font-semibold uppercase tracking-wide">Needs Price Quote</p>
                     <div>
-                        <p className={`text-3xl font-bold mt-2 ${
-                          needsPriceQuote > 0 ? 'text-violet-700' : 'text-stone-800'
-                        }`}>{needsPriceQuote}</p>
-                        <p className={`text-xs mt-1 ${
-                          needsPriceQuote > 0 ? 'text-violet-400' : 'text-stone-400'
-                        }`}>custom cake inquiries</p>
+                        <p className="text-3xl font-bold text-stone-800 mt-2">{needsPriceQuote}</p>
+                        <p className="text-stone-400 text-xs mt-1">custom cake inquiries</p>
                     </div>
                 </div>
             </div>
@@ -1073,11 +1087,11 @@ const AdminDashboard: React.FC = () => {
               <label className="flex items-center gap-2 cursor-pointer select-none">
                 <input
                   type="checkbox"
-                  checked={editingProduct.adminOnly ?? false}
-                  onChange={(e) => setEditingProduct(prev => prev ? { ...prev, adminOnly: e.target.checked } : null)}
-                  className="w-4 h-4 rounded border-stone-300 accent-violet-600"
+                  checked={editingProduct.bestSeller ?? false}
+                  onChange={(e) => setEditingProduct(prev => prev ? { ...prev, bestSeller: e.target.checked } : null)}
+                  className="w-4 h-4 rounded border-stone-300 accent-amber-500"
                 />
-                <span className="text-sm font-medium text-stone-700">Admin-only <span className="text-stone-400 font-normal">(hidden from customers)</span></span>
+                <span className="text-sm font-medium text-stone-700">Best Seller <span className="text-stone-400 font-normal">(shows badge on menu)</span></span>
               </label>
             </div>
             <div className="flex justify-end gap-3 mt-6">

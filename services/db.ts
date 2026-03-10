@@ -1,6 +1,6 @@
 import { User, Product, Order, UserRole, UserNotification, OrderStatus, PaymentMethod, DeliveryMethod, ProductCategory } from '../types';
 
-import { supabase } from './supabaseClient';
+import { supabase, supabaseAnonKey } from './supabaseClient';
 
 // ─── DatabaseProvider Interface ───────────────────────────────────────────────
 // Any backend (localStorage, Supabase, Firebase…) must implement this contract.
@@ -237,7 +237,7 @@ class SupabaseService implements DatabaseProvider {
       category: p.category as ProductCategory,
       image: p.image as string,
       stock: p.stock as number,
-      adminOnly: (p.admin_only as boolean) ?? false,
+      bestSeller: (p.best_seller as boolean) ?? false,
     }));
   }
 
@@ -306,7 +306,7 @@ class SupabaseService implements DatabaseProvider {
       category: product.category,
       image: product.image,
       stock: product.stock,
-      admin_only: product.adminOnly ?? false,
+      best_seller: product.bestSeller ?? false,
     });
     if (error) throw error;
     return product;
@@ -320,7 +320,7 @@ class SupabaseService implements DatabaseProvider {
       category: product.category,
       image: product.image,
       stock: product.stock,
-      admin_only: product.adminOnly ?? false,
+      best_seller: product.bestSeller ?? false,
     }).eq('id', product.id);
     if (error) throw error;
     return product;
@@ -463,10 +463,24 @@ class SupabaseService implements DatabaseProvider {
   }
 
   async sendEmail(to: string, subject: string, html: string): Promise<void> {
-    const { error } = await supabase.functions.invoke('send-email', {
-      body: { to, subject, html },
-    });
-    if (error) console.error('[db] sendEmail error:', error);
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          apikey: supabaseAnonKey,
+        },
+        body: JSON.stringify({ to, subject, html }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        console.error('[db] sendEmail error:', res.status, body);
+      }
+    } catch (err) {
+      console.error('[db] sendEmail error:', err);
+    }
     // Never throw — email failure must not crash order operations
   }
 }

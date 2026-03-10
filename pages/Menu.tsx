@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useStore } from '../context/StoreContext';
 import { ProductCategory, UserRole, Product } from '../types';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Star } from 'lucide-react';
 
 const ProductCard = React.memo<{ product: Product; addToCart: (product: Product, quantity: number) => void; isAdmin: boolean }>(({ product, addToCart, isAdmin }) => {
   const [quantity, setQuantity] = useState(1);
@@ -20,6 +20,12 @@ const ProductCard = React.memo<{ product: Product; addToCart: (product: Product,
           alt={product.name} 
           className={`w-full h-full object-cover transition-transform duration-500 hover:scale-110 ${product.stock === 0 ? 'grayscale' : ''}`}
         />
+        {product.bestSeller && product.stock > 0 && (
+          <div className="absolute top-3 left-3 flex items-center gap-1 bg-amber-400 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
+            <Star className="w-3 h-3 fill-white" />
+            Best Seller
+          </div>
+        )}
         {product.stock === 0 && (
           <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
             <span className="bg-red-500 text-white px-4 py-1 rounded-full font-bold transform -rotate-12 border-2 border-white">SOLD OUT</span>
@@ -106,8 +112,7 @@ const Menu: React.FC = () => {
       .filter(p => {
         const matchesCategory = selectedCategory === 'All' || p.category === selectedCategory;
         const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
-        const notAdminOnly = isAdmin || !p.adminOnly;
-        return matchesCategory && matchesSearch && notAdminOnly;
+        return matchesCategory && matchesSearch;
       })
       .sort((a, b) => {
         if (sortBy === 'name-asc') return a.name.localeCompare(b.name);

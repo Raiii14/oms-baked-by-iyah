@@ -10,6 +10,7 @@ interface CakeFormModalProps {
   formData: FormState;
   user: { name: string; email: string } | null;
   isSubmitting: boolean;
+  isAdmin?: boolean;
   onClose: () => void;
   onSubmit: (e: React.FormEvent) => void;
   setField: (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => void;
@@ -25,6 +26,7 @@ const CakeFormModal: React.FC<CakeFormModalProps> = ({
   formData,
   user,
   isSubmitting,
+  isAdmin,
   onClose,
   onSubmit,
   setField,
@@ -324,7 +326,7 @@ const CakeFormModal: React.FC<CakeFormModalProps> = ({
           <div className="pb-1">
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || !!isAdmin}
               className="w-full flex justify-center items-center gap-2 py-3.5 rounded-xl shadow-md text-base font-bold text-white bg-gradient-to-r from-rose-500 to-rose-600 hover:from-rose-600 hover:to-rose-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-rose-500 transition-all hover:scale-[1.01] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
             >
               <Send className="w-4 h-4" />

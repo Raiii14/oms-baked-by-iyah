@@ -112,7 +112,7 @@ export function orderPlacedCustomerHtml(order: Order): string {
     <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#1c1917;">Order Summary</p>
     ${itemsTable(order)}
     ${divider()}
-    <p style="margin:0;font-size:13px;color:#78716c;">You can track your order status in your profile. Note: Orders can only be cancelled before they are confirmed.</p>
+    <p style="margin:0;font-size:13px;color:#78716c;">You can track your order status in your profile. To request a cancellation, please message us on Facebook before your order is being prepared.</p>
   `);
 }
 
@@ -168,15 +168,56 @@ export function inquirySubmittedAdminHtml(order: Order): string {
   `);
 }
 
+export function quoteReadyCustomerHtml(order: Order): string {
+  return wrapper(`
+    ${heading('Your Custom Cake Quote is Ready! 🎂')}
+    ${subheading(`Hi ${order.customerName}! We've reviewed your custom cake inquiry and prepared a price quote for you.`)}
+    ${infoTable([
+      labelValue('Inquiry ID', order.id),
+      labelValue('Price Quote', `₱${order.totalAmount.toLocaleString()}`),
+      labelValue('Size', order.customDetails?.size || '—'),
+      labelValue('Flavor', order.customDetails?.flavor || '—'),
+      labelValue('Servings', order.customDetails?.servings || '—'),
+    ].join(''))}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:#78716c;">Log in to your account and visit your Custom Cakes tab to accept or decline this quote. We look forward to creating your dream cake!</p>
+  `);
+}
+
+export function inquiryAcceptedAdminHtml(order: Order): string {
+  return wrapper(`
+    ${heading('Inquiry Accepted ✅')}
+    ${subheading('A customer has accepted their custom cake quote.')}
+    ${infoTable([
+      labelValue('Inquiry ID', order.id),
+      labelValue('Customer', order.customerName),
+      labelValue('Email', order.customerEmail || '—'),
+      labelValue('Phone', order.customerPhone || '—'),
+      labelValue('Price', `₱${order.totalAmount.toLocaleString()}`),
+      labelValue('Payment', order.paymentMethod),
+      labelValue('Delivery', order.deliveryMethod),
+      ...(order.deliveryAddress ? [labelValue('Address', order.deliveryAddress)] : []),
+      labelValue('Scheduled Date', order.scheduledDate),
+    ].join(''))}
+    ${divider()}
+    <p style="margin:0 0 12px;font-size:13px;font-weight:600;color:#1c1917;">Inquiry Details</p>
+    ${customDetailsTable(order)}
+  `);
+}
+
 export function orderStatusChangedHtml(order: Order, newStatus: OrderStatus): string {
   const statusMessages: Partial<Record<OrderStatus, { emoji: string; body: string }>> = {
-    [OrderStatus.BAKING]: {
+    [OrderStatus.PREPARING]: {
       emoji: '🧁',
-      body: `Great news! Your order <strong>${order.id}</strong> is now being baked with love. We'll let you know as soon as it's ready.`,
+      body: `Your order <strong>${order.id}</strong> is confirmed and is now being prepared for delivery.`,
     },
     [OrderStatus.COMPLETED]: {
       emoji: '🎂',
       body: `Your order <strong>${order.id}</strong> is ready! Please come pick it up or expect your delivery soon. Thank you for choosing Baked by Iyah!`,
+    },
+    [OrderStatus.CANCELLED]: {
+      emoji: '❌',
+      body: `We regret to inform you that your order <strong>${order.id}</strong> has been cancelled. Please message us on Facebook if you have any concerns.`,
     },
   };
 
@@ -234,8 +275,22 @@ export function inquiryDeclinedAdminHtml(order: Order): string {
 
 export function getStatusSubject(status: OrderStatus): string {
   switch (status) {
-    case OrderStatus.BAKING:    return "Your order is being prepared!";
-    case OrderStatus.COMPLETED: return "Your order is ready!";
-    default:                    return `Order status updated: ${status}`;
+    case OrderStatus.PREPARING:  return "Your order is now being prepared!";
+    case OrderStatus.COMPLETED:  return "Your order is ready!";
+    case OrderStatus.CANCELLED:  return "Your order has been cancelled";
+    default:                     return `Order status updated: ${status}`;
   }
+}
+
+export function lowStockAlertHtml(productName: string, currentStock: number): string {
+  return wrapper(`
+    ${heading('Low Stock Alert ⚠️')}
+    ${subheading(`A product in your inventory is running low.`)}
+    ${infoTable([
+      labelValue('Product', productName),
+      labelValue('Current Stock', String(currentStock)),
+    ].join(''))}
+    ${divider()}
+    <p style="margin:0;font-size:13px;color:#78716c;">Consider restocking this item soon to avoid running out. You can update stock from the Inventory tab in your admin dashboard.</p>
+  `);
 }
