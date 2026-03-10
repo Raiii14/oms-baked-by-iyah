@@ -261,7 +261,7 @@ const AdminDashboard: React.FC = () => {
                     </div>
                 </div>
                 <div>
-                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">Sort by Date</label>
+                    <label className="block text-xs font-semibold text-stone-500 uppercase tracking-wide mb-1.5">Sort by Date Needed</label>
                     <select 
                         value={sortOrder} 
                         onChange={(e) => setSortOrder(e.target.value as 'asc' | 'desc')}
@@ -318,7 +318,7 @@ const AdminDashboard: React.FC = () => {
 
                {/* Customer Meta */}
                <div className="px-6 py-3 flex flex-wrap items-center gap-2 border-b border-stone-100">
-                 <span className="bg-stone-100 text-stone-600 text-xs font-semibold px-2.5 py-1 rounded-full">{order.customerEmail || 'No email provided'}</span>
+                 <span className="bg-white border border-stone-200 text-stone-600 text-xs font-semibold px-2.5 py-1 rounded-full">{order.customerEmail || 'No email provided'}</span>
                  <span className="bg-stone-100 text-stone-500 text-xs px-2.5 py-1 rounded-full">Ordered: {new Date(order.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                  <span className="bg-rose-50 text-rose-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-rose-100">📅 Needed: {new Date(order.scheduledDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} at {formatTime(order.scheduledTime)}</span>
                  {order.paymentMethod && <span className="bg-green-50 text-green-700 text-xs font-medium px-2.5 py-1 rounded-full border border-green-100">{order.paymentMethod}</span>}
@@ -330,7 +330,7 @@ const AdminDashboard: React.FC = () => {
                  <ul className="space-y-2.5">
                    {order.items.map((item, idx) => (
                      <li key={idx} className="flex items-center gap-3">
-                       <img src={item.image} alt={item.name} className="w-11 h-11 rounded-lg object-cover flex-shrink-0 bg-stone-100 border border-stone-100" />
+                       <img src={item.image} alt={item.name} className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-stone-100 border border-stone-100" />
                        <span className="text-stone-700 text-sm flex-1">{item.quantity}× {item.name}</span>
                        <span className="font-medium text-stone-600 text-sm flex-shrink-0">₱{(item.price * item.quantity).toLocaleString()}</span>
                      </li>
@@ -511,6 +511,38 @@ const AdminDashboard: React.FC = () => {
                   )}
                 </div>
 
+                {/* Accepted Order Details — shown after customer accepts the quote */}
+                {inquiry.status !== OrderStatus.PENDING && inquiry.status !== OrderStatus.CANCELLED && inquiry.totalAmount > 0 && (
+                  <div className="px-6 py-4 bg-emerald-50/60 border-t border-emerald-100">
+                    <p className="text-xs font-semibold text-emerald-600 uppercase tracking-wider mb-3">Customer Checkout Details</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-stone-500 font-medium">Delivery:</span>
+                        <span className="font-semibold text-stone-700">{inquiry.deliveryMethod || '—'}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-stone-500 font-medium">Payment:</span>
+                        <span className="font-semibold text-stone-700">{inquiry.paymentMethod || '—'}</span>
+                      </div>
+                      {inquiry.deliveryAddress && (
+                        <div className="sm:col-span-2 flex items-start gap-2">
+                          <span className="text-stone-500 font-medium shrink-0">Address:</span>
+                          <span className="text-stone-700">{inquiry.deliveryAddress}</span>
+                        </div>
+                      )}
+                    </div>
+                    {inquiry.paymentMethod === PaymentMethod.GCASH && inquiry.paymentProof && (
+                      <button
+                        onClick={() => setLightbox({ url: inquiry.paymentProof!, title: 'GCash Receipt', customer: inquiry.customerName, orderId: inquiry.id })}
+                        className="mt-3 inline-flex items-center gap-1.5 text-sm text-emerald-700 hover:text-emerald-900 font-semibold bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors"
+                      >
+                        <ImageIcon className="w-4 h-4" />
+                        View GCash Receipt
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {/* Price Quote */}
                 <div className="px-6 py-4 bg-gradient-to-r from-rose-50 to-pink-50 border-t border-rose-100">
                   <div className="flex flex-col sm:flex-row sm:items-center gap-3">
@@ -520,36 +552,40 @@ const AdminDashboard: React.FC = () => {
                         {inquiry.totalAmount > 0 ? `₱${inquiry.totalAmount.toLocaleString()}` : <span className="text-stone-300 text-lg italic font-normal">Not set yet</span>}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                        <span className="pl-3 pr-1 text-stone-400 font-bold text-sm">₱</span>
-                        <input
-                          type="number"
-                          value={priceInput}
-                          onChange={(e) => setInquiryPriceInputs(prev => ({ ...prev, [inquiry.id]: e.target.value }))}
-                          className="w-28 px-2 py-2 outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          placeholder="0.00"
-                          min="0"
-                        />
-                      </div>
-                      <button
-                        disabled={updatingPriceId === inquiry.id}
-                        onClick={async () => {
-                          const val = parseFloat(priceInput);
-                          if (!isNaN(val) && val >= 0) {
-                            setUpdatingPriceId(inquiry.id);
-                            try {
-                              await updateInquiryPrice(inquiry.id, val);
-                            } finally {
-                              setUpdatingPriceId(null);
+                    {inquiry.status === OrderStatus.PENDING ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden bg-white shadow-sm">
+                          <span className="pl-3 pr-1 text-stone-400 font-bold text-sm">₱</span>
+                          <input
+                            type="number"
+                            value={priceInput}
+                            onChange={(e) => setInquiryPriceInputs(prev => ({ ...prev, [inquiry.id]: e.target.value }))}
+                            className="w-28 px-2 py-2 outline-none text-sm font-medium [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                            placeholder="0.00"
+                            min="0"
+                          />
+                        </div>
+                        <button
+                          disabled={updatingPriceId === inquiry.id}
+                          onClick={async () => {
+                            const val = parseFloat(priceInput);
+                            if (!isNaN(val) && val >= 0) {
+                              setUpdatingPriceId(inquiry.id);
+                              try {
+                                await updateInquiryPrice(inquiry.id, val);
+                              } finally {
+                                setUpdatingPriceId(null);
+                              }
                             }
-                          }
-                        }}
-                        className="px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-lg hover:bg-rose-700 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
-                      >
-                        {updatingPriceId === inquiry.id ? 'Saving…' : 'Set Price'}
-                      </button>
-                    </div>
+                          }}
+                          className="px-4 py-2 bg-rose-600 text-white text-sm font-semibold rounded-lg hover:bg-rose-700 active:scale-95 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
+                        >
+                          {updatingPriceId === inquiry.id ? 'Saving…' : 'Set Price'}
+                        </button>
+                      </div>
+                    ) : (
+                      <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${STATUS_SELECT_STYLES[inquiry.status]}`}>{inquiry.status === OrderStatus.PREPARING ? 'Customer Accepted' : inquiry.status}</span>
+                    )}
                   </div>
                 </div>
 

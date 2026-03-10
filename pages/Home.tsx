@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useStore } from '../context/StoreContext';
-import { ArrowRight, Award, ChefHat, Truck, ShoppingCart, LucideIcon } from 'lucide-react';
+import { ArrowRight, Award, ChefHat, Truck, ShoppingCart, Star, LucideIcon } from 'lucide-react';
 import { UserRole, OrderStatus } from '../types';
 import FadeIn from '../components/FadeIn';
 
@@ -95,6 +95,13 @@ const Home: React.FC = () => {
                     alt={product.name}
                     className="w-full h-56 object-cover transition-transform duration-500 group-hover:scale-105"
                   />
+                  {/* Best Seller badge */}
+                  {product.bestSeller && product.stock > 0 && (
+                    <span className="absolute top-3 right-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm z-10">
+                      <Star className="w-3 h-3 fill-white" />
+                      Best Seller
+                    </span>
+                  )}
                   {/* Stock badge */}
                   {product.stock === 0 ? (
                     <span className="absolute top-3 left-3 bg-stone-500 text-white text-xs font-bold px-2.5 py-1 rounded-full">Out of stock</span>

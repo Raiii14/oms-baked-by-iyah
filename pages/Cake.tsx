@@ -40,13 +40,13 @@ const Cake: React.FC = () => {
       />
       <Modal
         isOpen={showSuccessModal}
-        onClose={() => { setShowSuccessModal(false); navigate('/cart', { state: { activeTab: 'custom' } }); }}
+        onClose={() => { setShowSuccessModal(false); navigate('/cart?tab=custom'); }}
         type="success"
         title="Inquiry Sent!"
         message="Your custom cake inquiry has been sent successfully. We will review your request and send you a price quote shortly."
         primaryAction={{
           label: 'View Inquiry',
-          onClick: () => { setShowSuccessModal(false); navigate('/cart', { state: { activeTab: 'custom' } }); }
+          onClick: () => { setShowSuccessModal(false); navigate('/cart?tab=custom'); }
         }}
       />
 

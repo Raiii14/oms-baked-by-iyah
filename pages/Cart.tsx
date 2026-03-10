@@ -345,7 +345,7 @@ const Cart: React.FC = () => {
                         <img
                           src={item.image}
                           alt={item.name}
-                          className="w-11 h-11 rounded-lg object-cover flex-shrink-0 bg-stone-100 border border-stone-100"
+                          className="w-16 h-16 rounded-lg object-cover flex-shrink-0 bg-stone-100 border border-stone-100"
                         />
                         <span className="text-stone-600 text-sm flex-1">{item.quantity}× {item.name}</span>
                         <span className="font-medium text-stone-700 text-sm flex-shrink-0">₱{(item.price * item.quantity).toLocaleString()}</span>
