@@ -4,19 +4,21 @@ Quick reference for implemented features, pending work, and key design decisions
 
 ## Order Status Model
 
-**4 statuses in `types.ts`:**
+**4 statuses in `types.ts`** (current) — 5 after inquiry quote flow is implemented:
 
 | Status | Value | Meaning |
 |---|---|---|
-| PENDING | `'Pending'` | Waiting for admin to confirm |
-| PREPARING | `'Preparing'` | Confirmed, being prepared for delivery |
+| PENDING | `'Pending'` | Waiting for admin to review |
+| QUOTED | `'Quoted'` | Admin set price, awaiting customer response *(planned)* |
+| PREPARING | `'Preparing'` | Customer accepted, order in production |
 | COMPLETED | `'Completed'` | Order delivered |
-| CANCELLED | `'Cancelled'` | Admin-only manual override for edge cases |
+| CANCELLED | `'Cancelled'` | Customer declined or admin override |
 
 **Business rules:**
 - Customers **cannot** cancel orders. `CANCELLED` is admin-only.
 - `CONFIRMED` and `BAKING` were merged into `PREPARING` (refactored March 2026).
-- Custom cake inquiry cancel/decline flow is not yet decided — out of scope.
+- `QUOTED` will be added when the inquiry quote flow is implemented.
+- Custom inquiry accept/decline flow: planned, see `/memories/repo/plan-inquiry-quote-flow.md`.
 
 **DB migration (run once in Supabase SQL Editor if upgrading existing DB):**
 
@@ -41,8 +43,9 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS best_seller BOOLEAN NOT NULL DEFAU
 | Status → Completed | Customer only | ✅ Implemented |
 | Order cancelled by admin | Customer (email + in-app) | ✅ Implemented |
 
-**Rules:**
-- `sendEmail` is always fire-and-forget: `.catch(console.error)`, never `await`ed in user flows.
+| Quote sent to customer (admin sets price) | Customer | ❌ Planned |
+| Customer accepts quote | Admin | ❌ Planned |
+| Customer declines quote | Admin (email only) | ❌ Planned |: `.catch(console.error)`, never `await`ed in user flows.
 - Always guard before sending: `if (order.customerEmail) { db.sendEmail(...).catch(console.error); }`
 - Email failures must never crash order operations.
 
@@ -56,7 +59,7 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS best_seller BOOLEAN NOT NULL DEFAU
 | Admin toggle UI (AdminDashboard → Menu tab) | ✅ Done |
 | Home page best sellers section | ✅ Done — top 3 by units in COMPLETED orders (fallback: in-stock by stock desc) |
 
-**Pending change:** `Home.tsx` best sellers section should compute top 3 by filtering `orders` for `COMPLETED` status, counting units per product ID, and taking the top 3.
+**Pending change:** ~~`Home.tsx` best sellers section should compute top 3~~  Done ✅
 
 ## Admin-Only Products
 
@@ -74,7 +77,8 @@ ALTER TABLE products ADD COLUMN IF NOT EXISTS admin_only BOOLEAN NOT NULL DEFAUL
 
 | Feature | Notes |
 |---|---|
-| Custom inquiry cancel/decline flow | Intentionally deferred — not yet decided |
+| Custom inquiry quote flow (QUOTED status) | Planned — see `/memories/repo/plan-inquiry-quote-flow.md` |
+| Frontend email call debug | Edge fn works; browser console `[db] sendEmail error:` not yet traced |
 
 ---
 

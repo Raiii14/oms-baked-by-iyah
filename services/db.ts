@@ -466,11 +466,24 @@ class SupabaseService implements DatabaseProvider {
   }
 
   async sendEmail(to: string, subject: string, html: string): Promise<void> {
-    const { error } = await supabase.functions.invoke('send-email', {
-      body: { to, subject, html },
-      headers: { Authorization: `Bearer ${supabaseAnonKey}` },
-    });
-    if (error) console.error('[db] sendEmail error:', error);
+    try {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-email`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${supabaseAnonKey}`,
+          apikey: supabaseAnonKey,
+        },
+        body: JSON.stringify({ to, subject, html }),
+      });
+      if (!res.ok) {
+        const body = await res.text();
+        console.error('[db] sendEmail error:', res.status, body);
+      }
+    } catch (err) {
+      console.error('[db] sendEmail error:', err);
+    }
     // Never throw — email failure must not crash order operations
   }
 }
