@@ -13,6 +13,9 @@ export interface DatabaseProvider {
   register(name: string, email: string, pass: string, phone: string): Promise<User>;
   verifyOtp(email: string, token: string): Promise<void>;
   resendOtp(email: string): Promise<void>;
+  resetPasswordForEmail(email: string): Promise<void>;
+  verifyRecoveryOtp(email: string, token: string): Promise<void>;
+  updatePassword(newPassword: string): Promise<void>;
   logout(): Promise<void>;
   updateUser(user: User): Promise<User>;
 
@@ -200,6 +203,21 @@ class SupabaseService implements DatabaseProvider {
     if (error) throw new Error(error.message);
   }
 
+  async resetPasswordForEmail(email: string): Promise<void> {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    if (error) throw new Error(error.message);
+  }
+
+  async verifyRecoveryOtp(email: string, token: string): Promise<void> {
+    const { error } = await supabase.auth.verifyOtp({ email, token, type: 'recovery' });
+    if (error) throw new Error(error.message);
+  }
+
+  async updatePassword(newPassword: string): Promise<void> {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) throw new Error(error.message);
+  }
+
   async logout(): Promise<void> {
     await supabase.auth.signOut();
   }
@@ -226,8 +244,7 @@ class SupabaseService implements DatabaseProvider {
   async getProducts(): Promise<Product[]> {
     const { data, error } = await supabase
       .from('products')
-      .select('*')
-      .neq('id', 'p5');
+      .select('*');
     if (error) throw error;
     return (data || []).map(p => ({
       id: p.id as string,

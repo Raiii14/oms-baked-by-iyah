@@ -381,7 +381,20 @@ const Auth: React.FC<AuthProps> = ({ mode }) => {
               </button>
             </FloatingInput>
 
-            {/* Confirm Password â€” register only */}
+            {/* Forgot password — login only */}
+            {mode === 'login' && (
+              <div className="flex justify-end -mt-1">
+                <button
+                  type="button"
+                  onClick={() => navigate('/forgot-password')}
+                  className="text-xs text-white/50 hover:text-rose-300 transition-colors underline underline-offset-2"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
+            {/* Confirm Password — register only */}
             {mode === 'register' && (
               <FloatingInput
                 id="confirm-password"

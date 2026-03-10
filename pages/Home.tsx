@@ -14,6 +14,12 @@ const WHY_CHOOSE_US: { Icon: LucideIcon; bg: string; text: string; title: string
 const Home: React.FC = () => {
   const { products, addToCart, user, orders } = useStore();
   const featured = useMemo(() => {
+    const visible = products.filter(p => p.stock > 0);
+
+    // 1. Admin-flagged best sellers first
+    const flagged = visible.filter(p => p.bestSeller);
+
+    // 2. Then top sellers by completed-order unit count
     const unitCounts: Record<string, number> = {};
     for (const order of orders) {
       if (order.status !== OrderStatus.COMPLETED) continue;
@@ -21,18 +27,17 @@ const Home: React.FC = () => {
         unitCounts[item.id] = (unitCounts[item.id] ?? 0) + item.quantity;
       }
     }
-    const visible = products.filter(p => p.stock > 0);
+    const flaggedIds = new Set(flagged.map(p => p.id));
     const soldIds = new Set(Object.keys(unitCounts));
     const topSellers = visible
-      .filter(p => soldIds.has(p.id))
-      .sort((a, b) => unitCounts[b.id] - unitCounts[a.id])
-      .slice(0, 3);
-    if (topSellers.length >= 3) return topSellers;
-    const topIds = new Set(topSellers.map(p => p.id));
-    const fallback = visible
-      .filter(p => !topIds.has(p.id) && p.stock > 0)
-      .sort((a, b) => b.stock - a.stock);
-    return [...topSellers, ...fallback].slice(0, 3);
+      .filter(p => !flaggedIds.has(p.id) && soldIds.has(p.id))
+      .sort((a, b) => unitCounts[b.id] - unitCounts[a.id]);
+
+    // 3. Fallback by stock
+    const usedIds = new Set([...flaggedIds, ...topSellers.map(p => p.id)]);
+    const fallback = visible.filter(p => !usedIds.has(p.id)).sort((a, b) => b.stock - a.stock);
+
+    return [...flagged, ...topSellers, ...fallback].slice(0, 3);
   }, [products, orders]);
 
   return (

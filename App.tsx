@@ -24,6 +24,7 @@ const Cart = lazy(() => import('./pages/Cart'));
 const Checkout = lazy(() => import('./pages/Checkout'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const Auth = lazy(() => import('./pages/Auth'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Contact = lazy(() => import('./pages/Contact'));
 
@@ -53,6 +54,14 @@ const AppRoutes = () => (
       element={
         <Suspense fallback={<AuthSkeleton />}>
           <Auth mode="register" />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/forgot-password"
+      element={
+        <Suspense fallback={<AuthSkeleton />}>
+          <ForgotPassword />
         </Suspense>
       }
     />

@@ -13,13 +13,17 @@ const CakeGallery: React.FC<CakeGalleryProps> = ({ onSelectCake }) => (
       <p className="text-stone-500 mt-2 max-w-xl mx-auto">
         Browse our past creations for inspiration, then tell us what you have in mind.
       </p>
+      <p className="text-stone-400 text-xs mt-1">Tap a cake to view it full-size and use it as inspiration for your order.</p>
     </div>
     <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
       {PAST_CAKES.map((cake) => (
-        <button
+        <div
           key={cake.name}
+          className="group relative aspect-square overflow-hidden rounded-2xl shadow-sm hover:shadow-lg transition-all cursor-pointer"
           onClick={() => onSelectCake(cake)}
-          className="group relative aspect-square overflow-hidden rounded-2xl shadow-sm hover:shadow-lg transition-all focus:outline-none focus:ring-2 focus:ring-rose-500 focus:ring-offset-2"
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') onSelectCake(cake); }}
           aria-label={`View ${cake.name}`}
         >
           <img
@@ -27,10 +31,11 @@ const CakeGallery: React.FC<CakeGalleryProps> = ({ onSelectCake }) => (
             alt={cake.name}
             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-3">
-            <p className="text-white text-sm font-semibold leading-tight text-left">{cake.name}</p>
-          </div>
-        </button>
+          {/* Dark overlay */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-black/60" />
+          {/* Name — top center */}
+          <p className="absolute top-3 inset-x-0 text-center text-white text-sm font-semibold drop-shadow-lg leading-tight px-2">{cake.name}</p>
+        </div>
       ))}
     </div>
   </div>

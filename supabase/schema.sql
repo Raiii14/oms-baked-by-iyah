@@ -186,7 +186,9 @@ ALTER PUBLICATION supabase_realtime ADD TABLE user_notifications;
 INSERT INTO products (id, name, description, price, category, image, stock) VALUES
   ('p1', 'Classic Brookies',        'The perfect combination of brownies and cookies. A customer favorite!', 180, 'Cookies',  'https://picsum.photos/400/400?random=1', 20),
   ('p2', 'Banana Loaf',             'Moist and not too sweet banana bread, perfect for coffee.',             150, 'Pastries', 'https://picsum.photos/400/400?random=2', 15),
-  ('p4', 'Red Velvet Crinkles',     'Soft and chewy crinkles with cream cheese filling.',                   120, 'Cookies',  'https://picsum.photos/400/400?random=4',  0)
+  ('p4', 'Red Velvet Crinkles',     'Soft and chewy crinkles with cream cheese filling.',                   120, 'Cookies',  'https://picsum.photos/400/400?random=4',  0),
+  ('p5', 'Cookie Bites',            'Small bite-sized chocolate chip cookies with a rich dark chocolate dip.', 100, 'Cookies',  'https://scontent-mnl1-2.xx.fbcdn.net/v/t39.30808-6/487189667_1060467602768421_4352070483248549824_n.jpg?_nc_cat=105&ccb=1-7&_nc_sid=7b2446&_nc_ohc=as1DsYrpmhwQ7kNvwECCRYN&_nc_oc=AdlUTNfqkHVapJUtVn_Fvs7CZRRu0rYzZNS0hK0VTka1Ic8qIUlfzCdMy77Fwb9tjhs&_nc_zt=23&_nc_ht=scontent-mnl1-2.xx&_nc_gid=4yT3KfHel2aAKWfMJZHcww&_nc_ss=8&oh=00_Afy5b7dvxyyvXtSRHmujAN0U7B9_zD9vMHjsVhb7WEDJPA&oe=69B56B79', 15),
+  ('p6', 'Gingerbread Cupcake',     'Warm spiced gingerbread cupcake topped with cream cheese frosting.',     130, 'Pastries', 'https://scontent-mnl1-1.xx.fbcdn.net/v/t39.30808-6/487424188_1062284902586691_2210847969741791529_n.jpg?stp=cp6_dst-jpg_tt6&_nc_cat=111&ccb=1-7&_nc_sid=7b2446&_nc_ohc=qB_DEDGsdDAQ7kNvwHqjNdy&_nc_oc=AdkkhivKQ3Q0j7RRxQ9J8YtN6eof_zy5INMTc5VAgJUj8AvuO75rrUEsqi4Gb0mGnms&_nc_zt=23&_nc_ht=scontent-mnl1-1.xx&_nc_gid=reFcDOtOuVDFGXwJJW-_DA&_nc_ss=8&oh=00_AfyiYPtr0gEYSChw_b8fQ7gUfRsAWG8VbeeECZYzo0fJDA&oe=69B5912F', 10)
 ON CONFLICT (id) DO NOTHING;
 
 

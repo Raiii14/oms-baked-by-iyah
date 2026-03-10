@@ -52,6 +52,9 @@ interface StoreContextType {
   register: (name: string, email: string, pass: string, phone: string) => Promise<void>;
   verifyOtp: (email: string, token: string) => Promise<void>;
   resendOtp: (email: string) => Promise<void>;
+  resetPasswordForEmail: (email: string) => Promise<void>;
+  verifyRecoveryOtp: (email: string, token: string) => Promise<void>;
+  updatePassword: (newPassword: string) => Promise<void>;
   loginWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updates: Partial<User>) => Promise<void>;
@@ -246,6 +249,18 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const resendOtp = useCallback(async (email: string) => {
     await db.resendOtp(email);
+  }, []);
+
+  const resetPasswordForEmail = useCallback(async (email: string) => {
+    await db.resetPasswordForEmail(email);
+  }, []);
+
+  const verifyRecoveryOtp = useCallback(async (email: string, token: string) => {
+    await db.verifyRecoveryOtp(email, token);
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword: string) => {
+    await db.updatePassword(newPassword);
   }, []);
 
   const logout = useCallback(async () => {
@@ -569,14 +584,14 @@ export const StoreProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const contextValue = useMemo(() => ({
     user, products, cart, orders, notifications, isLoading,
-    login, register, verifyOtp, resendOtp, loginWithGoogle, logout, updateUser,
+    login, register, verifyOtp, resendOtp, resetPasswordForEmail, verifyRecoveryOtp, updatePassword, loginWithGoogle, logout, updateUser,
     addToCart, removeFromCart, updateCartQuantity,
     placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, acceptInquiry, declineInquiry, updateInventory, addProduct, updateProduct, deleteProduct,
     addNotification, removeNotification,
     userNotifications, toastQueue, markNotificationRead, markAllNotificationsRead, dismissToast
   }), [
     user, products, cart, orders, notifications, isLoading,
-    login, register, verifyOtp, resendOtp, loginWithGoogle, logout, updateUser,
+    login, register, verifyOtp, resendOtp, resetPasswordForEmail, verifyRecoveryOtp, updatePassword, loginWithGoogle, logout, updateUser,
     addToCart, removeFromCart, updateCartQuantity,
     placeOrder, submitCustomInquiry, updateOrderStatus, updateInquiryPrice, acceptInquiry, declineInquiry, updateInventory, addProduct, updateProduct, deleteProduct,
     addNotification, removeNotification,
